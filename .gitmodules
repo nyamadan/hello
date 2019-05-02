@@ -1,0 +1,9 @@
+[submodule "embree"]
+	path = embree
+	url = https://github.com/embree/embree.git
+[submodule "ispc"]
+	path = ispc
+	url = https://github.com/ispc/ispc.git
+[submodule "glm"]
+	path = glm
+	url = https://github.com/g-truc/glm.git
