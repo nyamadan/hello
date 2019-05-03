@@ -1,3 +1,4 @@
+#include <memory>
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
@@ -17,17 +18,24 @@ glm::vec3 *vertex_colors = nullptr;
 #define aligned_free free
 #endif
 
+template <typename T>
+struct AlignedDeleter {
+  void operator()(T *ptr) const {
+	  aligned_free(ptr);
+  }
+};
+
 /* adds a cube to the scene */
 unsigned int addCube(RTCDevice device, RTCScene scene) {
   /* create a triangulated cube with 12 triangles and 8 vertices */
-  RTCGeometry mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+  auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
   /* create face and vertex color arrays */
   face_colors = (glm::vec3 *)aligned_alloc(12 * sizeof(glm::vec3), 16);
   vertex_colors = (glm::vec3 *)aligned_alloc(8 * sizeof(glm::vec3), 16);
 
   /* set vertices and vertex colors */
-  glm::vec3 *vertices = (glm::vec3 *)rtcSetNewGeometryBuffer(
+  auto *vertices = (glm::vec3 *)rtcSetNewGeometryBuffer(
       mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3), 8);
   vertex_colors[0] = glm::vec3(0, 0, 0);
   vertices[0].x = -1;
@@ -63,7 +71,7 @@ unsigned int addCube(RTCDevice device, RTCScene scene) {
   vertices[7].z = +1;
 
   /* set triangles and face colors */
-  int tri = 0;
+  auto tri = 0;
   glm::uvec3 *triangles = (glm::uvec3 *)rtcSetNewGeometryBuffer(
       mesh, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3), 12);
 
@@ -121,7 +129,40 @@ unsigned int addCube(RTCDevice device, RTCScene scene) {
                              sizeof(glm::vec3), 8);
 
   rtcCommitGeometry(mesh);
-  unsigned int geomID = rtcAttachGeometry(scene, mesh);
+  auto geomID = rtcAttachGeometry(scene, mesh);
+  rtcReleaseGeometry(mesh);
+  return geomID;
+}
+
+/* adds a ground plane to the scene */
+unsigned int addGroundPlane(RTCDevice device, RTCScene scene) {
+  /* create a triangulated plane with 2 triangles and 4 vertices */
+  auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+
+  /* set vertices */
+  auto *vertices = (glm::vec3 *)rtcSetNewGeometryBuffer(
+      mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3), 4);
+  vertices[0].x = -10;
+  vertices[0].y = -2;
+  vertices[0].z = -10;
+  vertices[1].x = -10;
+  vertices[1].y = -2;
+  vertices[1].z = +10;
+  vertices[2].x = +10;
+  vertices[2].y = -2;
+  vertices[2].z = -10;
+  vertices[3].x = +10;
+  vertices[3].y = -2;
+  vertices[3].z = +10;
+
+  /* set triangles */
+  auto *triangles = (glm::uvec3 *)rtcSetNewGeometryBuffer(
+      mesh, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3), 2);
+  triangles[0] = glm::uvec3(0, 1, 2);
+  triangles[1] = glm::uvec3(1, 3, 2);
+
+  rtcCommitGeometry(mesh);
+  auto geomID = rtcAttachGeometry(scene, mesh);
   rtcReleaseGeometry(mesh);
   return geomID;
 }
@@ -130,7 +171,11 @@ int main(void) {
   auto device = rtcNewDevice(NULL);
   auto scene = rtcNewScene(device);
 
-  auto geomId = addCube(device, scene);
+  auto cube = addCube(device, scene);
+  auto plane = addGroundPlane(device, scene);
+
+   std::unique_ptr<glm::vec3, AlignedDeleter<glm::vec3>> x(
+      (glm::vec3 *)aligned_alloc(12 * sizeof(glm::vec3), 16));
 
   aligned_free(face_colors);
   aligned_free(vertex_colors);
