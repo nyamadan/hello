@@ -1,4 +1,11 @@
+#include <algorithm>
+#include <iostream>
+#include <limits>
 #include <memory>
+#include <mutex>
+#include <thread>
+
+#include <tbb/parallel_for.h>
 
 #include <glm/glm.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -9,7 +16,7 @@
 #include <embree3/rtcore_geometry.h>
 #include <embree3/rtcore_ray.h>
 
-#ifdef _MSC_VER
+#ifdef _WIN32
 #define aligned_alloc _aligned_malloc
 #define aligned_free _aligned_free
 #else
@@ -40,17 +47,16 @@ struct AlignedDeleter<T[]> {
   void operator()(T *ptr) const { aligned_free(ptr); }
 };
 
+const auto TILE_SIZE_X = 32;
+const auto TILE_SIZE_Y = 32;
+
 /* adds a cube to the scene */
 unsigned int addCube(
     RTCDevice device, RTCScene scene,
-    std::unique_ptr<glm::vec3[], AlignedDeleter<glm::vec3[]>> &vertex_colors,
-    std::unique_ptr<glm::vec3[], AlignedDeleter<glm::vec3[]>> &face_colors) {
+    glm::vec3 vertex_colors[],
+    glm::vec3 face_colors[]) {
   /* create a triangulated cube with 12 triangles and 8 vertices */
   auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-
-  /* create face and vertex color arrays */
-  face_colors.reset((glm::vec3 *)aligned_alloc(12 * sizeof(glm::vec3), 16));
-  vertex_colors.reset((glm::vec3 *)aligned_alloc(8 * sizeof(glm::vec3), 16));
 
   /* set vertices and vertex colors */
   auto *vertices = (glm::vec3 *)rtcSetNewGeometryBuffer(
@@ -127,7 +133,7 @@ unsigned int addCube(
 
   rtcSetGeometryVertexAttributeCount(mesh, 1);
   rtcSetSharedGeometryBuffer(mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
-                             RTC_FORMAT_FLOAT3, vertex_colors.get(), 0,
+                             RTC_FORMAT_FLOAT3, vertex_colors, 0,
                              sizeof(glm::vec3), 8);
 
   rtcCommitGeometry(mesh);
@@ -169,17 +175,134 @@ unsigned int addGroundPlane(RTCDevice device, RTCScene scene) {
   return geomID;
 }
 
-int main(void) {
-  auto face_colors =
-      std::unique_ptr<glm::vec3[], AlignedDeleter<glm::vec3[]>>();
-  auto vertex_colors =
-      std::unique_ptr<glm::vec3[], AlignedDeleter<glm::vec3[]>>();
+glm::vec3 renderPixelStandard(RTCScene scene, const glm::vec3 vertex_colors[],
+                              const glm::vec3 face_colors[], float x, float y,
+                              glm::vec3 cameraFrom, glm::vec3 cameraDir) {
 
-  auto device = rtcNewDevice(NULL);
+  const auto tnear = 0.001f;
+  const auto tfar = 1000.0f;
+
+  RTCIntersectContext context;
+  rtcInitIntersectContext(&context);
+
+  /* initialize ray */
+  auto ray = RTCRayHit();
+  ray.ray.dir_x = cameraDir.x;
+  ray.ray.dir_y = cameraDir.y;
+  ray.ray.dir_z = cameraDir.z;
+  ray.ray.org_x = cameraFrom.x;
+  ray.ray.org_y = cameraFrom.y;
+  ray.ray.org_z = cameraFrom.z;
+  ray.ray.tnear = tnear;
+  ray.ray.tfar = tfar;
+  ray.ray.time = 0.0f;
+  ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+
+  /* intersect ray with scene */
+  rtcIntersect1(scene, &context, &ray);
+
+  /* shade pixels */
+  auto color = glm::vec3(0.0f);
+  if (ray.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
+    glm::vec3 diffuse = face_colors[ray.hit.primID];
+    color = color + diffuse * 0.5f;
+    glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
+
+    /* initialize shadow ray */
+    RTCRay shadow;
+    shadow.org_x = ray.ray.org_x + ray.ray.tfar * ray.ray.dir_x;
+    shadow.org_y = ray.ray.org_y + ray.ray.tfar * ray.ray.dir_y;
+    shadow.org_z = ray.ray.org_z + ray.ray.tfar * ray.ray.dir_z;
+    shadow.dir_x = -lightDir.x;
+    shadow.dir_y = -lightDir.y;
+    shadow.dir_z = -lightDir.z;
+    shadow.tnear = tnear;
+    shadow.tfar = tfar;
+    shadow.time = 0.0f;
+
+    /* trace shadow ray */
+    rtcOccluded1(scene, &context, &shadow);
+
+    /* add light contribution */
+    if (shadow.tfar >= 0.0f) {
+      auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
+      color =
+          color + diffuse * std::clamp(-glm::dot(lightDir, glm::normalize(Ng)),
+                                       0.0f, 1.0f);
+    }
+  }
+  return color;
+}
+
+/* renders a single screen tile */
+void renderTileStandard(int tileIndex, RTCScene scene,
+                        const glm::vec3 vertex_colors[],
+                        const glm::vec3 face_colors[], glm::u8vec3 *pixels,
+                        const unsigned int width, const unsigned int height,
+                        const glm::vec3 cameraFrom, const glm::vec3 cameraDir,
+                        const int numTilesX, const int numTilesY) {
+  const unsigned int tileY = tileIndex / numTilesX;
+  const unsigned int tileX = tileIndex - tileY * numTilesX;
+  const unsigned int x0 = tileX * TILE_SIZE_X;
+  const unsigned int x1 = std::min(x0 + TILE_SIZE_X, width);
+  const unsigned int y0 = tileY * TILE_SIZE_Y;
+  const unsigned int y1 = std::min(y0 + TILE_SIZE_Y, height);
+
+  for (unsigned int y = y0; y < y1; y++)
+    for (unsigned int x = x0; x < x1; x++) {
+      /* calculate pixel color */
+      glm::vec3 color =
+          renderPixelStandard(scene, vertex_colors, face_colors, (float)x,
+                              (float)y, cameraFrom, cameraDir);
+
+      /* write color to framebuffer */
+      unsigned int r = (unsigned int)(255.0f * std::clamp(color.x, 0.0f, 1.0f));
+      unsigned int g = (unsigned int)(255.0f * std::clamp(color.y, 0.0f, 1.0f));
+      unsigned int b = (unsigned int)(255.0f * std::clamp(color.z, 0.0f, 1.0f));
+      pixels[y * width + x] = glm::u8vec3(r, g, b);
+    }
+}
+
+/* called by the C++ code to render */
+void device_render(RTCScene scene, const glm::vec3 vertex_colors[],
+                   const glm::vec3 face_colors[], glm::u8vec3 *pixels,
+                   const uint32_t width, const uint32_t height) {
+  const auto numTilesX = (width + TILE_SIZE_X - 1) / TILE_SIZE_X;
+  const auto numTilesY = (height + TILE_SIZE_Y - 1) / TILE_SIZE_Y;
+
+  const auto cameraFrom = glm::vec3(1.5f, 1.5f, -1.5f);
+  const auto cameraTo = glm::vec3(0.0f, 0.0f, 0.0f);
+  const auto cameraDir = glm::normalize(cameraTo - cameraFrom);
+
+  tbb::parallel_for(
+      size_t(0), size_t(numTilesX * numTilesY), [&](size_t tileIndex) {
+        renderTileStandard((int)tileIndex, scene, vertex_colors, face_colors,
+                           pixels, width, height, cameraFrom, cameraDir,
+                           numTilesX, numTilesY);
+      });
+}
+
+int main(void) {
+  auto face_colors = std::unique_ptr<glm::vec3[], AlignedDeleter<glm::vec3[]>>(
+      (glm::vec3 *)aligned_alloc(12 * sizeof(glm::vec3), 16));
+  auto vertex_colors =
+      std::unique_ptr<glm::vec3[], AlignedDeleter<glm::vec3[]>>(
+          (glm::vec3 *)aligned_alloc(12 * sizeof(glm::vec3), 16));
+
+  auto device = rtcNewDevice("verbose=1");
   auto scene = rtcNewScene(device);
 
-  auto cube = addCube(device, scene, vertex_colors, face_colors);
+  auto cube = addCube(device, scene, vertex_colors.get(), face_colors.get());
   auto plane = addGroundPlane(device, scene);
+
+  rtcCommitScene(scene);
+
+  const auto width = 640;
+  const auto height = 480;
+  auto pixels = std::make_unique<glm::u8vec3[]>(width * height);
+
+  device_render(scene, vertex_colors.get(), face_colors.get(), pixels.get(),
+                width, height);
 
   rtcReleaseScene(scene);
   rtcReleaseDevice(device);

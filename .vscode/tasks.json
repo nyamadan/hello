@@ -12,10 +12,7 @@
             },
             "args": [
                 "--build", ".",
-                "--config", "Debug",
-                "--target", "all",
-                "--",
-                "-j", "10"
+                "--config", "Debug"
             ],
             "group": {
                 "kind": "build",
@@ -31,10 +28,7 @@
             },
             "problemMatcher": {
                 "base": "$msCompile",
-                "fileLocation": [
-                    "relative",
-                    "${workspaceFolder}/build"
-                ]
+                "fileLocation": ["relative", "${workspaceFolder}/build"]
             }
         }
     ]
