@@ -20,17 +20,19 @@ endif()
 include_directories(
     "${EMBREE_DIR}/include"
     "${TBB_DIR}/tbb/include"
-    "${PROJECT_SOURCE_DIR}/glm")
+    "${PROJECT_SOURCE_DIR}/glm"
+    "${PROJECT_SOURCE_DIR}/stb"
+)
 
 link_directories(
     "${EMBREE_DIR}/lib"
-    "${TBB_DIR}/tbb/lib/intel64/vc_mt"
+    "${TBB_DIR}/tbb/lib/intel64/vc14"
 )
 
 add_executable(hello_embree main.cpp)
 target_link_libraries(hello_embree
     "${EMBREE_DIR}/lib/embree3.lib"
-    "${TBB_DIR}/tbb/lib/intel64/vc_mt/tbb.lib"
+    "${TBB_DIR}/tbb/lib/intel64/vc14/tbb.lib"
 )
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})

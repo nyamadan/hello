@@ -1,3 +1,6 @@
+#define STB_IMAGE_WRITE_IMPLEMENTATION
+#include <stb_image_write.h>
+
 #include <algorithm>
 #include <iostream>
 #include <limits>
@@ -51,10 +54,8 @@ const auto TILE_SIZE_X = 32;
 const auto TILE_SIZE_Y = 32;
 
 /* adds a cube to the scene */
-unsigned int addCube(
-    RTCDevice device, RTCScene scene,
-    glm::vec3 vertex_colors[],
-    glm::vec3 face_colors[]) {
+unsigned int addCube(RTCDevice device, RTCScene scene,
+                     glm::vec3 vertex_colors[], glm::vec3 face_colors[]) {
   /* create a triangulated cube with 12 triangles and 8 vertices */
   auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
@@ -150,18 +151,10 @@ unsigned int addGroundPlane(RTCDevice device, RTCScene scene) {
   /* set vertices */
   auto *vertices = (glm::vec3 *)rtcSetNewGeometryBuffer(
       mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3), 4);
-  vertices[0].x = -10;
-  vertices[0].y = -2;
-  vertices[0].z = -10;
-  vertices[1].x = -10;
-  vertices[1].y = -2;
-  vertices[1].z = +10;
-  vertices[2].x = +10;
-  vertices[2].y = -2;
-  vertices[2].z = -10;
-  vertices[3].x = +10;
-  vertices[3].y = -2;
-  vertices[3].z = +10;
+  vertices[0] = glm::vec3(-10, -2, -10);
+  vertices[1] = glm::vec3(-10, -2, +10);
+  vertices[2] = glm::vec3(+10, -2, -10);
+  vertices[3] = glm::vec3(+10, -2, +10);
 
   /* set triangles */
   auto *triangles = (glm::uvec3 *)rtcSetNewGeometryBuffer(
@@ -177,19 +170,29 @@ unsigned int addGroundPlane(RTCDevice device, RTCScene scene) {
 
 glm::vec3 renderPixelStandard(RTCScene scene, const glm::vec3 vertex_colors[],
                               const glm::vec3 face_colors[], float x, float y,
-                              glm::vec3 cameraFrom, glm::vec3 cameraDir) {
-
+                              float width, float height, glm::vec3 cameraFrom,
+                              glm::vec3 cameraDir) {
   const auto tnear = 0.001f;
   const auto tfar = 1000.0f;
+
+  const auto side =
+      glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), cameraDir));
+  const auto up = glm::normalize(glm::cross(cameraDir, side));
+
+  const auto fov = 60.0f;
+  const auto t = std::tanf(glm::radians(fov) * 0.5f);
+  const auto rayDir =
+      glm::normalize(t * width / height * (x / width - 0.5f) * side +
+                     t * (y / height - 0.5f) * up + cameraDir);
 
   RTCIntersectContext context;
   rtcInitIntersectContext(&context);
 
   /* initialize ray */
   auto ray = RTCRayHit();
-  ray.ray.dir_x = cameraDir.x;
-  ray.ray.dir_y = cameraDir.y;
-  ray.ray.dir_z = cameraDir.z;
+  ray.ray.dir_x = rayDir.x;
+  ray.ray.dir_y = rayDir.y;
+  ray.ray.dir_z = rayDir.z;
   ray.ray.org_x = cameraFrom.x;
   ray.ray.org_y = cameraFrom.y;
   ray.ray.org_z = cameraFrom.z;
@@ -209,6 +212,7 @@ glm::vec3 renderPixelStandard(RTCScene scene, const glm::vec3 vertex_colors[],
     glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
 
     /* initialize shadow ray */
+    glm::vec3 shadowOrg = cameraFrom + ray.ray.tfar * rayDir;
     RTCRay shadow;
     shadow.org_x = ray.ray.org_x + ray.ray.tfar * ray.ray.dir_x;
     shadow.org_y = ray.ray.org_y + ray.ray.tfar * ray.ray.dir_y;
@@ -253,7 +257,7 @@ void renderTileStandard(int tileIndex, RTCScene scene,
       /* calculate pixel color */
       glm::vec3 color =
           renderPixelStandard(scene, vertex_colors, face_colors, (float)x,
-                              (float)y, cameraFrom, cameraDir);
+                              (float)y, width, height, cameraFrom, cameraDir);
 
       /* write color to framebuffer */
       unsigned int r = (unsigned int)(255.0f * std::clamp(color.x, 0.0f, 1.0f));
@@ -297,12 +301,15 @@ int main(void) {
 
   rtcCommitScene(scene);
 
-  const auto width = 640;
-  const auto height = 480;
+  const auto width = 1024;
+  const auto height = 768;
   auto pixels = std::make_unique<glm::u8vec3[]>(width * height);
 
   device_render(scene, vertex_colors.get(), face_colors.get(), pixels.get(),
                 width, height);
+
+  stbi_flip_vertically_on_write(true);
+  stbi_write_png("result.png", width, height, 3, pixels.get(), 3 * width);
 
   rtcReleaseScene(scene);
   rtcReleaseDevice(device);
