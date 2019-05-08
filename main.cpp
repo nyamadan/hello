@@ -172,14 +172,14 @@ glm::vec3 renderPixelStandard(RTCScene scene, const glm::vec3 vertex_colors[],
                               const glm::vec3 face_colors[], float x, float y,
                               float width, float height, glm::vec3 cameraFrom,
                               glm::vec3 cameraDir) {
+  const auto fov = 120.0f;
   const auto tnear = 0.001f;
   const auto tfar = 1000.0f;
 
   const auto side =
-      glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), cameraDir));
-  const auto up = glm::normalize(glm::cross(cameraDir, side));
+      glm::normalize(glm::cross(cameraDir, glm::vec3(0.0f, 1.0f, 0.0f)));
+  const auto up = glm::normalize(glm::cross(side, cameraDir));
 
-  const auto fov = 60.0f;
   const auto t = std::tanf(glm::radians(fov) * 0.5f);
   const auto rayDir =
       glm::normalize(t * width / height * (x / width - 0.5f) * side +

@@ -26,10 +26,7 @@
                 "showReuseMessage": true,
                 "clear": false
             },
-            "problemMatcher": {
-                "base": "$msCompile",
-                "fileLocation": ["relative", "${workspaceFolder}/build"]
-            }
+            "problemMatcher": "$msCompile"
         }
     ]
 }
