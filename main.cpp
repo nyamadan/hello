@@ -1,4 +1,6 @@
 #define STB_IMAGE_WRITE_IMPLEMENTATION
+#define GLM_ENABLE_EXPERIMENTAL
+
 #include <stb_image_write.h>
 
 #include <algorithm>
@@ -10,8 +12,11 @@
 
 #include <tbb/parallel_for.h>
 
+#include <GL/gl3w.h>
+#include <GLFW/glfw3.h>
+
+#include <glm/ext.hpp>
 #include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
 
 #include <embree3/rtcore.h>
 #include <embree3/rtcore_common.h>
@@ -52,6 +57,36 @@ struct AlignedDeleter<T[]> {
 
 const auto TILE_SIZE_X = 32;
 const auto TILE_SIZE_Y = 32;
+
+void glfwErrorCallback(int error, const char *description) {
+  fprintf(stderr, "error %d: %s\n", error, description);
+}
+
+void glDebugOutput(GLenum source, GLenum type, GLuint eid, GLenum severity,
+                   GLsizei length, const GLchar *message,
+                   const void *user_param) {
+  switch (severity) {
+    case GL_DEBUG_SEVERITY_NOTIFICATION:
+      break;
+    case GL_DEBUG_SEVERITY_LOW:
+    case GL_DEBUG_SEVERITY_MEDIUM:
+    case GL_DEBUG_SEVERITY_HIGH:
+      fprintf(stderr, "ERROR(%X): %s\n", eid, message);
+      break;
+  }
+}
+
+void EnableOpenGLDebugExtention() {
+  GLint flags;
+  glGetIntegerv(GL_CONTEXT_FLAGS, &flags);
+  if (flags & GL_CONTEXT_FLAG_DEBUG_BIT) {
+    glEnable(GL_DEBUG_OUTPUT);
+    glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
+    glDebugMessageCallback(glDebugOutput, nullptr);
+    glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, nullptr,
+                          GL_TRUE);
+  }
+}
 
 /* adds a cube to the scene */
 unsigned int addCube(RTCDevice device, RTCScene scene,
@@ -310,6 +345,48 @@ int main(void) {
 
   stbi_flip_vertically_on_write(true);
   stbi_write_png("result.png", width, height, 3, pixels.get(), 3 * width);
+
+  if (!glfwInit()) return -1;
+
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+  glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+  glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+  glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+
+#ifndef NDEBUG
+  glfwSetErrorCallback(glfwErrorCallback);
+  glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
+#endif
+
+  glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+
+  const auto windowWidth = 1024;
+  const auto windowHeight = 768;
+  const auto mainWindow =
+      glfwCreateWindow(windowWidth, windowHeight, "Hello Embree", NULL, NULL);
+  if (!mainWindow) {
+    glfwTerminate();
+    return -1;
+  }
+
+  glfwMakeContextCurrent(mainWindow);
+
+  // Initialize OpenGL loader
+  if (gl3wInit() != 0) {
+    return 1;
+  }
+
+#ifndef NDEBUG
+  EnableOpenGLDebugExtention();
+#endif
+
+  glfwSwapInterval(1);
+
+  while (!glfwWindowShouldClose(mainWindow)) {
+    glfwPollEvents();
+  }
+
+  glfwTerminate();
 
   rtcReleaseScene(scene);
   rtcReleaseDevice(device);

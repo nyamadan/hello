@@ -12,27 +12,45 @@ if(NOT EMBREE_DIR)
     message(FATAL_ERROR "REQUIRED: EMBREE_DIR") 
 endif()
 
-if(NOT TBB_DIR)
-    set(TBB_DIR "TBB-NOTFOUND" CACHE PATH "Specify TBB")
-    message(FATAL_ERROR "REQUIRED: TBB_DIR") 
+if(NOT TBB_INCLUDE_DIR)
+    set(TBB_INCLUDE_DIR "TBB-NOTFOUND" CACHE PATH "Specify TBB_INCLUDE_DIR")
+    message(FATAL_ERROR "REQUIRED: TBB_INCLUDE_DIR") 
 endif()
+
+if(NOT TBB_LIB_DIR)
+    set(TBB_LIB_DIR "TBB-NOTFOUND" CACHE PATH "Specify TBB_LIB_DIR")
+    message(FATAL_ERROR "REQUIRED: TBB_LIB_DIR") 
+endif()
+
+add_subdirectory(
+    "${PROJECT_SOURCE_DIR}/glfw"
+    "${PROJECT_SOURCE_DIR}/tinygltf"
+)
 
 include_directories(
     "${EMBREE_DIR}/include"
-    "${TBB_DIR}/tbb/include"
+    "${TBB_INCLUDE_DIR}"
     "${PROJECT_SOURCE_DIR}/glm"
     "${PROJECT_SOURCE_DIR}/stb"
+    "${PROJECT_SOURCE_DIR}/gl3w/include"
+    "${PROJECT_SOURCE_DIR}/glfw/include"
+    "${PROJECT_SOURCE_DIR}/tinygltf"
 )
 
 link_directories(
     "${EMBREE_DIR}/lib"
-    "${TBB_DIR}/tbb/lib/intel64/vc14"
+    "${TBB_LIB_DIR}"
 )
 
-add_executable(hello_embree main.cpp)
+add_executable(
+    hello_embree
+    "${PROJECT_SOURCE_DIR}/main.cpp"
+    "${PROJECT_SOURCE_DIR}/gl3w/src/gl3w.c"
+)
 target_link_libraries(hello_embree
+    glfw
     "${EMBREE_DIR}/lib/embree3.lib"
-    "${TBB_DIR}/tbb/lib/intel64/vc14/tbb.lib"
+    "${TBB_LIB_DIR}/tbb.lib"
 )
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
