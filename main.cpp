@@ -55,8 +55,8 @@ struct AlignedDeleter<T[]> {
   void operator()(T *ptr) const { aligned_free(ptr); }
 };
 
-const auto TILE_SIZE_X = 32;
-const auto TILE_SIZE_Y = 32;
+const auto TILE_SIZE_X = 128;
+const auto TILE_SIZE_Y = 128;
 
 void glfwErrorCallback(int error, const char *description) {
   fprintf(stderr, "error %d: %s\n", error, description);
@@ -321,7 +321,8 @@ void device_render(RTCScene scene, const glm::vec3 vertex_colors[],
       });
 }
 
-void copyPixelsToTexture(const glm::u8vec3 pixels[], GLuint fbo, GLuint texture,int32_t width, int32_t height) {
+void copyPixelsToTexture(const glm::u8vec3 pixels[], GLuint fbo, GLuint texture,
+                         int32_t width, int32_t height) {
   glBindFramebuffer(GL_FRAMEBUFFER, fbo);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, texture);
@@ -335,6 +336,9 @@ void copyPixelsToTexture(const glm::u8vec3 pixels[], GLuint fbo, GLuint texture,
   glBindTexture(GL_TEXTURE_2D, 0);
   glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
+
+class CameraController {
+};
 
 int main(void) {
   auto face_colors = std::unique_ptr<glm::vec3[], AlignedDeleter<glm::vec3[]>>(
@@ -355,8 +359,7 @@ int main(void) {
   const auto height = 768;
   auto pixels = std::make_unique<glm::u8vec3[]>(width * height);
 
-  device_render(scene, vertex_colors.get(), face_colors.get(), pixels.get(),
-                width, height);
+  device_render(scene, vertex_colors.get(), face_colors.get(), pixels.get(), width, height);
 
   stbi_flip_vertically_on_write(true);
   stbi_write_png("hello_embree.png", width, height, 3, pixels.get(), 3 * width);
@@ -405,6 +408,12 @@ int main(void) {
   glViewport(0, 0, windowWidth, windowHeight);
   glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
   while (!glfwWindowShouldClose(mainWindow)) {
+    double xpos, ypos;
+    glfwGetCursorPos(mainWindow, &xpos, &ypos);
+
+	device_render(scene, vertex_colors.get(), face_colors.get(), pixels.get(), width, height);
+	copyPixelsToTexture(pixels.get(), fbo, texture, width, height);
+
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
     glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
