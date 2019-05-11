@@ -321,6 +321,21 @@ void device_render(RTCScene scene, const glm::vec3 vertex_colors[],
       });
 }
 
+void copyPixelsToTexture(const glm::uvec3 pixels[], GLuint fbo, GLuint texture,int32_t width, int32_t height) {
+  glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+  glActiveTexture(GL_TEXTURE0);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+               GL_UNSIGNED_BYTE, pixels);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+  glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
+  glBindTexture(GL_TEXTURE_2D, 0);
+  glBindFramebuffer(GL_FRAMEBUFFER, 0);
+}
+
 int main(void) {
   auto face_colors = std::unique_ptr<glm::vec3[], AlignedDeleter<glm::vec3[]>>(
       (glm::vec3 *)aligned_alloc(12 * sizeof(glm::vec3), 16));
@@ -344,7 +359,7 @@ int main(void) {
                 width, height);
 
   stbi_flip_vertically_on_write(true);
-  stbi_write_png("result.png", width, height, 3, pixels.get(), 3 * width);
+  stbi_write_png("hello_embree.png", width, height, 3, pixels.get(), 3 * width);
 
   if (!glfwInit()) return -1;
 
@@ -358,10 +373,10 @@ int main(void) {
   glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
 #endif
 
-  glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
+  glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-  const auto windowWidth = 1024;
-  const auto windowHeight = 768;
+  const auto windowWidth = width;
+  const auto windowHeight = height;
   const auto mainWindow =
       glfwCreateWindow(windowWidth, windowHeight, "Hello Embree", NULL, NULL);
   if (!mainWindow) {
@@ -380,11 +395,30 @@ int main(void) {
   EnableOpenGLDebugExtention();
 #endif
 
-  glfwSwapInterval(1);
+  GLuint texture = 0;
+  GLuint fbo = 0;
+  glGenFramebuffers(1, &fbo);
+  glGenTextures(1, &texture);
 
+  auto x = pixels.get();
+  copyPixelsToTexture(pixels.get(), fbo, texture, width, height);
+
+  glViewport(0, 0, windowWidth, windowHeight);
+  glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
   while (!glfwWindowShouldClose(mainWindow)) {
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
+    glBlitFramebuffer(0, 0, width, height, 0, 0, windowWidth, windowHeight,
+                      GL_COLOR_BUFFER_BIT, GL_LINEAR);
+    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+    glfwSwapBuffers(mainWindow);
     glfwPollEvents();
   }
+
+  glDeleteFramebuffers(1, &fbo);
+  glDeleteTextures(1, &texture);
 
   glfwTerminate();
 
