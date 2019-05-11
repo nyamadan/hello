@@ -321,7 +321,7 @@ void device_render(RTCScene scene, const glm::vec3 vertex_colors[],
       });
 }
 
-void copyPixelsToTexture(const glm::uvec3 pixels[], GLuint fbo, GLuint texture,int32_t width, int32_t height) {
+void copyPixelsToTexture(const glm::u8vec3 pixels[], GLuint fbo, GLuint texture,int32_t width, int32_t height) {
   glBindFramebuffer(GL_FRAMEBUFFER, fbo);
   glActiveTexture(GL_TEXTURE0);
   glBindTexture(GL_TEXTURE_2D, texture);
@@ -400,7 +400,6 @@ int main(void) {
   glGenFramebuffers(1, &fbo);
   glGenTextures(1, &texture);
 
-  auto x = pixels.get();
   copyPixelsToTexture(pixels.get(), fbo, texture, width, height);
 
   glViewport(0, 0, windowWidth, windowHeight);
