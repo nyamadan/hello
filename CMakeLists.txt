@@ -45,8 +45,14 @@ link_directories(
 add_executable(
     hello_embree
     "${PROJECT_SOURCE_DIR}/main.cpp"
+    "${PROJECT_SOURCE_DIR}/ray_tracer.cpp"
+    "${PROJECT_SOURCE_DIR}/ray_tracer_camera.cpp"
+    "${PROJECT_SOURCE_DIR}/stb_image_write.cpp"
     "${PROJECT_SOURCE_DIR}/gl3w/src/gl3w.c"
 )
+
+add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
+
 target_link_libraries(hello_embree
     glfw
     "${EMBREE_DIR}/lib/embree3.lib"
