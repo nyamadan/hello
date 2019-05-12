@@ -206,8 +206,8 @@ int main(void) {
 
     rtcCommitScene(scene);
 
-    const auto width = 1024;
-    const auto height = 768;
+    const auto width = 640;
+    const auto height = 480;
     auto pixels = std::make_unique<glm::u8vec3[]>(width * height);
 
     raytracer.render(scene, vertex_colors.get(), face_colors.get(),

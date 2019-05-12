@@ -1,9 +1,3 @@
-[submodule "embree"]
-	path = embree
-	url = https://github.com/embree/embree.git
-[submodule "ispc"]
-	path = ispc
-	url = https://github.com/ispc/ispc.git
 [submodule "glm"]
 	path = glm
 	url = https://github.com/g-truc/glm.git
@@ -13,9 +7,6 @@
 [submodule "tinygltf"]
 	path = tinygltf
 	url = https://github.com/syoyo/tinygltf.git
-[submodule "glfw"]
-	path = glfw
-	url = https://github.com/glfw/glfw.git
 [submodule "gl3w"]
 	path = gl3w
 	url = https://github.com/skaslev/gl3w.git

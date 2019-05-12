@@ -7,39 +7,51 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 
 project(hello_embree VERSION 0.1.0)
 
-if(NOT EMBREE_DIR)
-    set(EMBREE_DIR "EMBREE-NOTFOUND" CACHE PATH "Specify Embree3")
-    message(FATAL_ERROR "REQUIRED: EMBREE_DIR") 
+if(NOT EMBREE_INCLUDE_DIR)
+    set(EMBREE_INCLUDE_DIR "EMBREE_INCLUDE_DIR-NOTFOUND" CACHE PATH "EMBREE_INCLUDE_DIR")
+    message(FATAL_ERROR "REQUIRED: EMBREE_INCLUDE_DIR") 
+endif()
+
+if(NOT EMBREE_LIBRARY_DIR)
+    set(EMBREE_LIBRARY_DIR "EMBREE_LIBRARY_DIR-NOTFOUND" CACHE PATH "EMBREE_LIBRARY_DIR")
+    message(FATAL_ERROR "REQUIRED: EMBREE_LIBRARY_DIR") 
 endif()
 
 if(NOT TBB_INCLUDE_DIR)
-    set(TBB_INCLUDE_DIR "TBB-NOTFOUND" CACHE PATH "Specify TBB_INCLUDE_DIR")
+    set(TBB_INCLUDE_DIR "TBB_INCLUDE_DIR-NOTFOUND" CACHE PATH "TBB_INCLUDE_DIR")
     message(FATAL_ERROR "REQUIRED: TBB_INCLUDE_DIR") 
 endif()
 
-if(NOT TBB_LIB_DIR)
-    set(TBB_LIB_DIR "TBB-NOTFOUND" CACHE PATH "Specify TBB_LIB_DIR")
-    message(FATAL_ERROR "REQUIRED: TBB_LIB_DIR") 
+if(NOT TBB_LIBRARY_DIR)
+    set(TBB_LIBRARY_DIR "TBB_LIBRARY_DIR-NOTFOUND" CACHE PATH "TBB_LIBRARY_DIR")
+    message(FATAL_ERROR "REQUIRED: TBB_LIBRARY_DIR") 
 endif()
 
-add_subdirectory(
-    "${PROJECT_SOURCE_DIR}/glfw"
-    "${PROJECT_SOURCE_DIR}/tinygltf"
-)
+if(NOT GLFW3_INCLUDE_DIR)
+    set(TBB_LIBRARY_DIR "GLFW3_INCLUDE_DIR-NOTFOUND" CACHE PATH "GLFW3_INCLUDE_DIR")
+    message(FATAL_ERROR "REQUIRED: GLFW3_INCLUDE_DIR") 
+endif()
+
+if(NOT GLFW3_glfw_LIBRARY)
+    set(TBB_LIBRARY_DIR "GLFW3_glfw_LIBRARY-NOTFOUND" CACHE FILEPATH "GLFW3_glfw_LIBRARY")
+    message(FATAL_ERROR "REQUIRED: GLFW3_glfw_LIBRARY") 
+endif()
+
+add_subdirectory( "${PROJECT_SOURCE_DIR}/tinygltf")
 
 include_directories(
-    "${EMBREE_DIR}/include"
+    "${EMBREE_INCLUDE_DIR}"
     "${TBB_INCLUDE_DIR}"
+    "${GLFW3_INCLUDE_DIR}"
     "${PROJECT_SOURCE_DIR}/glm"
     "${PROJECT_SOURCE_DIR}/stb"
     "${PROJECT_SOURCE_DIR}/gl3w/include"
-    "${PROJECT_SOURCE_DIR}/glfw/include"
     "${PROJECT_SOURCE_DIR}/tinygltf"
 )
 
 link_directories(
-    "${EMBREE_DIR}/lib"
-    "${TBB_LIB_DIR}"
+    "${EMBREE_LIBRARY_DIR}"
+    "${TBB_LIBRARY_DIR}"
 )
 
 add_executable(
@@ -54,9 +66,9 @@ add_executable(
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 
 target_link_libraries(hello_embree
-    glfw
-    "${EMBREE_DIR}/lib/embree3.lib"
-    "${TBB_LIB_DIR}/tbb.lib"
+    "${EMBREE_LIBRARY_DIR}/embree3.lib"
+    "${TBB_LIBRARY_DIR}/tbb.lib"
+    "${GLFW3_glfw_LIBRARY}"
 )
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
