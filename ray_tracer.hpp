@@ -1,7 +1,8 @@
 #pragma once
 #include <glm/glm.hpp>
-
 #include <embree3/rtcore.h>
+
+#include "ray_tracer_camera.hpp"
 
 class RayTracer {
   private:

@@ -203,11 +203,12 @@ int main(void) {
     auto plane = addGroundPlane(device, scene);
 
     auto raytracer = RayTracer();
+    auto camera = RayTracerCamera(640, 480, 120.0f, 0.001f, 1000.0f);
 
     rtcCommitScene(scene);
 
-    const auto width = 640;
-    const auto height = 480;
+    const auto width = camera.getWidth();
+    const auto height = camera.getHeight();
     auto pixels = std::make_unique<glm::u8vec3[]>(width * height);
 
     raytracer.render(scene, vertex_colors.get(), face_colors.get(),

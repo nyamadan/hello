@@ -37,7 +37,7 @@ if(NOT GLFW3_glfw_LIBRARY)
     message(FATAL_ERROR "REQUIRED: GLFW3_glfw_LIBRARY") 
 endif()
 
-add_subdirectory( "${PROJECT_SOURCE_DIR}/tinygltf")
+# add_subdirectory( "${PROJECT_SOURCE_DIR}/tinygltf")
 
 include_directories(
     "${EMBREE_INCLUDE_DIR}"
