@@ -211,8 +211,8 @@ int main(void) {
     const auto height = camera.getHeight();
     auto pixels = std::make_unique<glm::u8vec3[]>(width * height);
 
-    raytracer.render(scene, vertex_colors.get(), face_colors.get(),
-                     pixels.get(), width, height);
+    raytracer.render(scene, camera, vertex_colors.get(), face_colors.get(),
+                     pixels.get());
 
     stbi_flip_vertically_on_write(true);
     stbi_write_png("hello_embree.png", width, height, 3, pixels.get(),
@@ -265,8 +265,12 @@ int main(void) {
         double xpos, ypos;
         glfwGetCursorPos(window, &xpos, &ypos);
 
-        raytracer.render(scene, vertex_colors.get(), face_colors.get(),
-                         pixels.get(), width, height);
+		const auto eye = glm::vec3(1.5f, 1.5f, -1.5f);
+        const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
+        const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
+        camera.lookAt(eye, target, up);
+        raytracer.render(scene, camera, vertex_colors.get(), face_colors.get(),
+                         pixels.get());
         copyPixelsToTexture(pixels.get(), fbo, texture, width, height);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);

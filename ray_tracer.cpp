@@ -1,20 +1,24 @@
-#include <algorithm>
-#include <tbb/parallel_for.h>
 #include "ray_tracer.hpp"
+#include <tbb/parallel_for.h>
+#include <algorithm>
 
-glm::vec3 RayTracer::renderPixelStandard(RTCScene scene,
+glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                                          const glm::vec3 vertex_colors[],
                                          const glm::vec3 face_colors[], float x,
-                                         float y, float width, float height,
-                                         glm::vec3 cameraFrom,
-                                         glm::vec3 cameraDir) {
-    const auto fov = 120.0f;
-    const auto tnear = 0.001f;
-    const auto tfar = 1000.0f;
+                                         float y) {
+    const auto fov = camera.getFov();
+    const auto tnear = camera.getNear();
+    const auto tfar = camera.getFar();
+
+    const auto cameraDir = camera.getCameraDir();
+    const auto cameraFrom = camera.getCameraOrigin();
+
+    const auto width = camera.getWidth();
+    const auto height = camera.getHeight();
 
     const auto side =
-        glm::normalize(glm::cross(cameraDir, glm::vec3(0.0f, 1.0f, 0.0f)));
-    const auto up = glm::normalize(glm::cross(side, cameraDir));
+        glm::normalize(glm::cross(camera.getCameraDir(), camera.getCameraUp()));
+    const auto up = glm::normalize(glm::cross(side, camera.getCameraDir()));
 
     const auto t = tanf(glm::radians(fov) * 0.5f);
     const auto rayDir =
@@ -65,7 +69,7 @@ glm::vec3 RayTracer::renderPixelStandard(RTCScene scene,
 
         /* add light contribution */
         if (shadow.tfar >= 0.0f) {
-            auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
+            const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
             color = color + diffuse * std::clamp(-glm::dot(lightDir,
                                                            glm::normalize(Ng)),
                                                  0.0f, 1.0f);
@@ -75,12 +79,13 @@ glm::vec3 RayTracer::renderPixelStandard(RTCScene scene,
 }
 
 /* renders a single screen tile */
-void RayTracer::renderTileStandard(
-    int tileIndex, RTCScene scene, const glm::vec3 vertex_colors[],
-    const glm::vec3 face_colors[], glm::u8vec3 *pixels,
-    const unsigned int width, const unsigned int height,
-    const glm::vec3 cameraFrom, const glm::vec3 cameraDir, const int numTilesX,
-    const int numTilesY) {
+void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
+                           const glm::vec3 vertex_colors[],
+                           const glm::vec3 face_colors[], glm::u8vec3 *pixels,
+                           int tileIndex, int numTilesX,
+                           int numTilesY) {
+    const auto width = camera.getWidth();
+    const auto height = camera.getHeight();
     const unsigned int tileY = tileIndex / numTilesX;
     const unsigned int tileX = tileIndex - tileY * numTilesX;
     const unsigned int x0 = tileX * TILE_SIZE_X;
@@ -91,9 +96,8 @@ void RayTracer::renderTileStandard(
     for (unsigned int y = y0; y < y1; y++)
         for (unsigned int x = x0; x < x1; x++) {
             /* calculate pixel color */
-            glm::vec3 color = renderPixelStandard(
-                scene, vertex_colors, face_colors, (float)x, (float)y, width,
-                height, cameraFrom, cameraDir);
+            glm::vec3 color = renderPixel(
+                scene, camera, vertex_colors, face_colors, (float)x, (float)y);
 
             /* write color to framebuffer */
             unsigned int r =
@@ -106,21 +110,17 @@ void RayTracer::renderTileStandard(
         }
 }
 
-void RayTracer::render(RTCScene scene, const glm::vec3 vertex_colors[],
-                              const glm::vec3 face_colors[],
-                              glm::u8vec3 *pixels, const uint32_t width,
-                              const uint32_t height) {
+void RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
+                       const glm::vec3 vertex_colors[],
+                       const glm::vec3 face_colors[], glm::u8vec3 *pixels) {
+    const auto width = camera.getWidth();
+    const auto height = camera.getHeight();
     const auto numTilesX = (width + TILE_SIZE_X - 1) / TILE_SIZE_X;
     const auto numTilesY = (height + TILE_SIZE_Y - 1) / TILE_SIZE_Y;
 
-    const auto cameraFrom = glm::vec3(1.5f, 1.5f, -1.5f);
-    const auto cameraTo = glm::vec3(0.0f, 0.0f, 0.0f);
-    const auto cameraDir = glm::normalize(cameraTo - cameraFrom);
-
-    tbb::parallel_for(
-        size_t(0), size_t(numTilesX * numTilesY), [&](size_t tileIndex) {
-            renderTileStandard((int)tileIndex, scene, vertex_colors,
-                               face_colors, pixels, width, height, cameraFrom,
-                               cameraDir, numTilesX, numTilesY);
-        });
+    tbb::parallel_for(size_t(0), size_t(numTilesX * numTilesY),
+                      [&](size_t tileIndex) {
+                          renderTile(scene, camera, vertex_colors, face_colors,
+                                     pixels, tileIndex, numTilesX, numTilesY);
+                      });
 }
