@@ -3,27 +3,15 @@
 #include <algorithm>
 
 glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
-                                         const glm::vec3 vertex_colors[],
-                                         const glm::vec3 face_colors[], float x,
-                                         float y) {
-    const auto fov = camera.getFov();
+                                 const glm::vec3 vertex_colors[],
+                                 const glm::vec3 face_colors[], float x,
+                                 float y) {
     const auto tnear = camera.getNear();
     const auto tfar = camera.getFar();
 
-    const auto cameraDir = camera.getCameraDir();
     const auto cameraFrom = camera.getCameraOrigin();
 
-    const auto width = camera.getWidth();
-    const auto height = camera.getHeight();
-
-    const auto side =
-        glm::normalize(glm::cross(camera.getCameraDir(), camera.getCameraUp()));
-    const auto up = glm::normalize(glm::cross(side, camera.getCameraDir()));
-
-    const auto t = tanf(glm::radians(fov) * 0.5f);
-    const auto rayDir =
-        glm::normalize(t * width / height * (x / width - 0.5f) * side +
-                       t * (y / height - 0.5f) * up + cameraDir);
+    const auto rayDir = camera.getRayDir(x, y);
 
     RTCIntersectContext context;
     rtcInitIntersectContext(&context);
@@ -82,8 +70,7 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
 void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
                            const glm::vec3 vertex_colors[],
                            const glm::vec3 face_colors[], glm::u8vec3 *pixels,
-                           int tileIndex, int numTilesX,
-                           int numTilesY) {
+                           int tileIndex, int numTilesX, int numTilesY) {
     const auto width = camera.getWidth();
     const auto height = camera.getHeight();
     const unsigned int tileY = tileIndex / numTilesX;
@@ -96,8 +83,8 @@ void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
     for (unsigned int y = y0; y < y1; y++)
         for (unsigned int x = x0; x < x1; x++) {
             /* calculate pixel color */
-            glm::vec3 color = renderPixel(
-                scene, camera, vertex_colors, face_colors, (float)x, (float)y);
+            glm::vec3 color = renderPixel(scene, camera, vertex_colors,
+                                          face_colors, (float)x, (float)y);
 
             /* write color to framebuffer */
             unsigned int r =

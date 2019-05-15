@@ -11,9 +11,9 @@ class RayTracerCamera {
     float tnear;
     float tfar;
 
-	glm::vec3 up;
-	glm::vec3 origin;
-	glm::vec3 dir;
+    glm::vec3 up;
+    glm::vec3 origin;
+    glm::vec3 dir;
 
   public:
     RayTracerCamera(int32_t width, int32_t height, float fov = 120.0f,
@@ -27,9 +27,31 @@ class RayTracerCamera {
     float getFar() const { return tfar; }
     float getAspect() const { return static_cast<float>(width) / height; }
 
-	const glm::vec3 &getCameraOrigin() const { return origin; }
+    glm::vec3 getCameraSide() const {
+        return glm::normalize(glm::cross(this->dir, this->up));
+    }
+
+    glm::vec3 getCameraUp(const glm::vec3 &side) const {
+        return glm::normalize(glm::cross(side, this->dir));
+    }
+
+    glm::vec3 getRayDir(float x, float y) const {
+        const auto side = getCameraSide();
+        const auto up = getCameraUp(side);
+        const auto t = tanf(glm::radians(this->fov) * 0.5f);
+        return glm::normalize(t * width / height * (x / width - 0.5f) * side +
+                              t * (y / height - 0.5f) * up + this->dir);
+    }
+
+    const glm::vec3 &getCameraOrigin() const { return origin; }
     const glm::vec3 &getCameraDir() const { return dir; }
     const glm::vec3 &getCameraUp() const { return up; }
+
+    const void setCameraOrigin(const glm::vec3 &origin) {
+        this->origin = origin;
+    }
+    const void setCameraDir(const glm::vec3 &dir) { this->dir = dir; }
+    const void setCameraUp(const glm::vec3 &up) { this->up = up; }
 
     const void lookAt(const glm::vec3 &eye, const glm::vec3 &target,
                       const glm::vec3 &up);

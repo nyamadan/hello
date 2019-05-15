@@ -188,6 +188,13 @@ void copyPixelsToTexture(const glm::u8vec3 pixels[], GLuint fbo, GLuint texture,
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
 }
 
+glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
+    double x, y;
+    double aspect = size.x / size.y;
+    glfwGetCursorPos(window, &x, &y);
+    return glm::dvec2(aspect * (x / size.x - 0.5f), 1.0f - y / size.y);
+}
+
 int main(void) {
     auto face_colors =
         std::unique_ptr<glm::vec3[], AlignedDeleter<glm::vec3[]>>(
@@ -203,12 +210,17 @@ int main(void) {
     auto plane = addGroundPlane(device, scene);
 
     auto raytracer = RayTracer();
-    auto camera = RayTracerCamera(640, 480, 120.0f, 0.001f, 1000.0f);
+    const auto width = 640u;
+    const auto height = 480u;
+
+    auto camera = RayTracerCamera(width, height, 120.0f, 0.001f, 1000.0f);
+    const auto eye = glm::vec3(1.5f, 1.5f, -1.5f);
+    const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
+    const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
+    camera.lookAt(eye, target, up);
 
     rtcCommitScene(scene);
 
-    const auto width = camera.getWidth();
-    const auto height = camera.getHeight();
     auto pixels = std::make_unique<glm::u8vec3[]>(width * height);
 
     raytracer.render(scene, camera, vertex_colors.get(), face_colors.get(),
@@ -232,10 +244,9 @@ int main(void) {
 
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    const auto windowWidth = width;
-    const auto windowHeight = height;
-    const auto window =
-        glfwCreateWindow(windowWidth, windowHeight, "Hello Embree", NULL, NULL);
+    const auto windowSize = glm::u32vec2(width, height);
+    const auto window = glfwCreateWindow(windowSize.x, windowSize.y,
+                                         "Hello Embree", NULL, NULL);
     if (!window) {
         glfwTerminate();
         return -1;
@@ -256,19 +267,25 @@ int main(void) {
     GLuint fbo = 0;
     glGenFramebuffers(1, &fbo);
     glGenTextures(1, &texture);
-
-    copyPixelsToTexture(pixels.get(), fbo, texture, width, height);
-
-    glViewport(0, 0, windowWidth, windowHeight);
+    glViewport(0, 0, windowSize.x, windowSize.y);
     glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
-    while (!glfwWindowShouldClose(window)) {
-        double xpos, ypos;
-        glfwGetCursorPos(window, &xpos, &ypos);
 
-		const auto eye = glm::vec3(1.5f, 1.5f, -1.5f);
-        const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
-        const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
-        camera.lookAt(eye, target, up);
+    glm::dvec2 prevMousePos = getWindowMousePos(window, windowSize);
+
+    while (!glfwWindowShouldClose(window)) {
+        glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
+
+        glm::vec2 mouseDelta = mousePos - prevMousePos;
+
+        const auto state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+        if (state == GLFW_PRESS) {
+            const auto side = camera.getCameraSide();
+            const auto up = camera.getCameraUp(side);
+            camera.setCameraDir(glm::rotate(
+                glm::rotate(camera.getCameraDir(), -mouseDelta.y, side),
+                mouseDelta.x, up));
+        }
+
         raytracer.render(scene, camera, vertex_colors.get(), face_colors.get(),
                          pixels.get());
         copyPixelsToTexture(pixels.get(), fbo, texture, width, height);
@@ -276,12 +293,14 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, windowWidth, windowHeight,
+        glBlitFramebuffer(0, 0, width, height, 0, 0, windowSize.x, windowSize.y,
                           GL_COLOR_BUFFER_BIT, GL_LINEAR);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glfwSwapBuffers(window);
         glfwPollEvents();
+
+        prevMousePos = mousePos;
     }
 
     glDeleteFramebuffers(1, &fbo);
