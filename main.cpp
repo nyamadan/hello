@@ -272,22 +272,46 @@ int main(void) {
 
     glm::dvec2 prevMousePos = getWindowMousePos(window, windowSize);
 
+    auto t0 = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
+        auto t = glfwGetTime();
+        auto dt = t - t0;
         glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
 
         glm::vec2 mouseDelta = mousePos - prevMousePos;
 
-        const auto state = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-        if (state == GLFW_PRESS) {
-            const auto side = camera.getCameraSide();
-            const auto up = camera.getCameraUp(side);
+		const auto side = camera.getCameraSide();
+		const auto up = camera.getCameraUp(side);
+        const auto lbtn = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+        if (lbtn == GLFW_PRESS) {
             camera.setCameraDir(glm::rotate(
                 glm::rotate(camera.getCameraDir(), -mouseDelta.y, side),
                 mouseDelta.x, up));
         }
 
+        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
+            const auto dir = camera.getCameraDir();
+            camera.setCameraOrigin(camera.getCameraOrigin() + dir * dt);
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
+            const auto dir = camera.getCameraDir();
+            camera.setCameraOrigin(camera.getCameraOrigin() - dir * dt);
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+            const auto dir = camera.getCameraDir();
+            camera.setCameraOrigin(camera.getCameraOrigin() + side * dt);
+        }
+
+        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+            const auto dir = camera.getCameraDir();
+            camera.setCameraOrigin(camera.getCameraOrigin() - side * dt);
+        }
+
         raytracer.render(scene, camera, vertex_colors.get(), face_colors.get(),
                          pixels.get());
+
         copyPixelsToTexture(pixels.get(), fbo, texture, width, height);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -301,6 +325,7 @@ int main(void) {
         glfwPollEvents();
 
         prevMousePos = mousePos;
+        t0 = t;
     }
 
     glDeleteFramebuffers(1, &fbo);
