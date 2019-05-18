@@ -57,7 +57,9 @@ add_executable(
     "${PROJECT_SOURCE_DIR}/main.cpp"
     "${PROJECT_SOURCE_DIR}/ray_tracer.cpp"
     "${PROJECT_SOURCE_DIR}/ray_tracer_camera.cpp"
+    "${PROJECT_SOURCE_DIR}/stb_image.cpp"
     "${PROJECT_SOURCE_DIR}/stb_image_write.cpp"
+    "${PROJECT_SOURCE_DIR}/tiny_gltf.cpp"
     "${PROJECT_SOURCE_DIR}/gl3w/src/gl3w.c"
 )
 

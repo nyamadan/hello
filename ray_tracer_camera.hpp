@@ -28,19 +28,18 @@ class RayTracerCamera {
     float getAspect() const { return static_cast<float>(width) / height; }
 
     glm::vec3 getCameraSide() const {
-        return glm::normalize(glm::cross(this->dir, this->up));
+        return glm::normalize(glm::cross(dir, up));
     }
 
     glm::vec3 getCameraUp(const glm::vec3 &side) const {
-        return glm::normalize(glm::cross(side, this->dir));
+        return glm::normalize(glm::cross(side, dir));
     }
 
     glm::vec3 getRayDir(float x, float y) const {
         const auto side = getCameraSide();
         const auto up = getCameraUp(side);
-        const auto t = tanf(glm::radians(this->fov) * 0.5f);
-        return glm::normalize(t * width / height * (x / width - 0.5f) * side +
-                              t * (y / height - 0.5f) * up + this->dir);
+        const auto scale = tanf(glm::radians(this->fov * 0.5f));
+        return glm::normalize(scale * x * side + scale * y * up + this->dir);
     }
 
     const glm::vec3 &getCameraOrigin() const { return origin; }
