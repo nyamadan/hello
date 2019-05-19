@@ -1,5 +1,6 @@
 #include <algorithm>
 #include <iostream>
+#include <vector>
 #include <limits>
 #include <memory>
 #include <mutex>
@@ -63,56 +64,43 @@ unsigned int addCube(RTCDevice device, RTCScene scene) {
     auto *vertices = (glm::vec3 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
         8);
-    vertices[0] = glm::ivec3(-1, -1, -1);
-    vertices[1] = glm::ivec3(-1, -1, +1);
-    vertices[2] = glm::ivec3(-1, +1, -1);
-    vertices[3] = glm::ivec3(-1, +1, +1);
-    vertices[4] = glm::ivec3(+1, -1, -1);
-    vertices[5] = glm::ivec3(+1, -1, +1);
-    vertices[6] = glm::ivec3(+1, +1, -1);
-    vertices[7] = glm::ivec3(+1, +1, +1);
+    vertices[0] = glm::vec3(-1, -1, -1);
+    vertices[1] = glm::vec3(-1, -1, +1);
+    vertices[2] = glm::vec3(-1, +1, -1);
+    vertices[3] = glm::vec3(-1, +1, +1);
+    vertices[4] = glm::vec3(+1, -1, -1);
+    vertices[5] = glm::vec3(+1, -1, +1);
+    vertices[6] = glm::vec3(+1, +1, -1);
+    vertices[7] = glm::vec3(+1, +1, +1);
 
     /* set triangles and face colors */
-    auto tri = 0;
     glm::uvec3 *triangles = (glm::uvec3 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
         12);
 
     // left side
-    triangles[tri] = glm::uvec3(0, 1, 2);
-    tri++;
-    triangles[tri] = glm::uvec3(1, 3, 2);
-    tri++;
+    triangles[0] = glm::uvec3(0, 1, 2);
+    triangles[1] = glm::uvec3(1, 3, 2);
 
     // right side
-    triangles[tri] = glm::uvec3(4, 6, 5);
-    tri++;
-    triangles[tri] = glm::uvec3(5, 6, 7);
-    tri++;
+    triangles[2] = glm::uvec3(4, 6, 5);
+    triangles[3] = glm::uvec3(5, 6, 7);
 
     // bottom side
-    triangles[tri] = glm::uvec3(0, 4, 1);
-    tri++;
-    triangles[tri] = glm::uvec3(1, 4, 5);
-    tri++;
+    triangles[4] = glm::uvec3(0, 4, 1);
+    triangles[5] = glm::uvec3(1, 4, 5);
 
     // top side
-    triangles[tri] = glm::uvec3(2, 3, 6);
-    tri++;
-    triangles[tri] = glm::uvec3(3, 7, 6);
-    tri++;
+    triangles[6] = glm::uvec3(2, 3, 6);
+    triangles[7] = glm::uvec3(3, 7, 6);
 
     // front side
-    triangles[tri] = glm::uvec3(0, 2, 4);
-    tri++;
-    triangles[tri] = glm::uvec3(2, 6, 4);
-    tri++;
+    triangles[8] = glm::uvec3(0, 2, 4);
+    triangles[9] = glm::uvec3(2, 6, 4);
 
     // back side
-    triangles[tri] = glm::uvec3(1, 5, 3);
-    tri++;
-    triangles[tri] = glm::uvec3(3, 5, 7);
-    tri++;
+    triangles[10] = glm::uvec3(1, 5, 3);
+    triangles[11] = glm::uvec3(3, 5, 7);
 
     rtcSetGeometryVertexAttributeCount(mesh, 1);
     glm::vec3 *vertex_colors = (glm::vec3 *)rtcSetNewGeometryBuffer(
@@ -169,8 +157,10 @@ unsigned int addGroundPlane(RTCDevice device, RTCScene scene) {
     return geomID;
 }
 
-static void addMesh(RTCDevice device, RTCScene rtcScene, tinygltf::Model &model,
-                    const tinygltf::Mesh &gltfMesh) {
+static void addMesh(const RTCDevice device, const RTCScene rtcScene,
+                    const tinygltf::Model &model,
+                    const tinygltf::Mesh &gltfMesh, const glm::mat4 &world,
+                    std::vector<int> &geomIds) {
     for (size_t i = 0; i < gltfMesh.primitives.size(); i++) {
         const auto &primitive = gltfMesh.primitives[i];
 
@@ -183,14 +173,17 @@ static void addMesh(RTCDevice device, RTCScene rtcScene, tinygltf::Model &model,
         assert(mode == TINYGLTF_MODE_TRIANGLES);
 
         auto rtcMesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+        rtcSetGeometryVertexAttributeCount(rtcMesh, 1);
+        auto allSemantics = 0;
 
         const auto &indexAccessor = model.accessors[primitive.indices];
-		const auto &indexBufferView =
+        const auto &indexBufferView =
             model.bufferViews[indexAccessor.bufferView];
         const auto &indexBuffer = model.buffers[indexBufferView.buffer];
 
         assert(indexAccessor.type == TINYGLTF_TYPE_SCALAR);
-        assert(indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
+        assert(indexAccessor.componentType ==
+               TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
 
         auto *triangles = (uint32_t *)rtcSetNewGeometryBuffer(
             rtcMesh, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
@@ -198,18 +191,18 @@ static void addMesh(RTCDevice device, RTCScene rtcScene, tinygltf::Model &model,
 
         for (auto i = 0; i < indexAccessor.count; i++) {
             const auto byteStride = indexAccessor.ByteStride(indexBufferView);
-            const auto byteOffset = indexAccessor.byteOffset + indexBufferView.byteOffset;
+            const auto byteOffset =
+                indexAccessor.byteOffset + indexBufferView.byteOffset;
             const auto componentType = indexAccessor.componentType;
             const auto normalized = indexAccessor.normalized;
             const auto buffer =
-                (uint16_t *)(model.buffers[indexBufferView.buffer]
-                                    .data.data() +
-                                byteOffset + byteStride * i);
+                (uint16_t *)(model.buffers[indexBufferView.buffer].data.data() +
+                             byteOffset + byteStride * i);
 
-			triangles[i] = *buffer;
+            triangles[i] = *buffer;
         }
 
-        //for (auto i = 0; i < indexAccessor.count; i++) {
+        // for (auto i = 0; i < indexAccessor.count; i++) {
         //    printf("%d: %d\n", i, triangles[i]);
         //}
 
@@ -233,34 +226,56 @@ static void addMesh(RTCDevice device, RTCScene rtcScene, tinygltf::Model &model,
                     break;
             }
 
+			int semantics = 0;
+            if (it->first.compare("POSITION") == 0) {
+				semantics = 1 << 0;
+            } else if (it->first.compare("NORMAL") == 0){
+				semantics = 1 << 1;
+            } else if (it->first.compare("TEXCOORD_0") == 0){
+				semantics = 1 << 2;
+			}
+
+			allSemantics |= semantics;
+
             // it->first would be "POSITION", "NORMAL", "TEXCOORD_0", ...
-            if ((it->first.compare("POSITION") == 0) ||
-                (it->first.compare("NORMAL") == 0) ||
-                (it->first.compare("TEXCOORD_0") == 0)) {
+            if (semantics > 0) {
                 // Compute byteStride from Accessor + BufferView
                 // combination.
                 const auto byteStride = accessor.ByteStride(bufferView);
-                const auto byteOffset = accessor.byteOffset + bufferView.byteOffset;
+                const auto byteOffset =
+                    accessor.byteOffset + bufferView.byteOffset;
                 const auto componentType = accessor.componentType;
-
                 const auto normalized = accessor.normalized;
-                const auto &semantics = it->first;
 
                 switch (accessor.componentType) {
                     case TINYGLTF_COMPONENT_TYPE_FLOAT: {
                         float *geometryBuffer = nullptr;
 
-                        if (it->first.compare("POSITION") == 0) {
-                            geometryBuffer = (float *)rtcSetNewGeometryBuffer(
-                                rtcMesh, RTC_BUFFER_TYPE_VERTEX, 0,
-                                (RTCFormat)((int)RTC_FORMAT_FLOAT + size - 1),
-                                sizeof(float) * size, accessor.count);
-                        } else if (it->first.compare("NORMAL") == 0) {
-                            rtcSetGeometryVertexAttributeCount(rtcMesh, 1);
-                            geometryBuffer = (float *)rtcSetNewGeometryBuffer(
-                                rtcMesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
-                                (RTCFormat)((int)RTC_FORMAT_FLOAT + size - 1),
-                                sizeof(float) * size, accessor.count);
+						switch (semantics) {
+                            case 1: {
+								geometryBuffer = (float *)rtcSetNewGeometryBuffer(
+									rtcMesh, RTC_BUFFER_TYPE_VERTEX, 0,
+									(RTCFormat)((int)RTC_FORMAT_FLOAT + size - 1),
+									sizeof(float) * size, accessor.count);
+                            } break;
+                            case 2: {
+                                geometryBuffer =
+                                    (float *)rtcSetNewGeometryBuffer(
+                                        rtcMesh,
+                                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
+                                        (RTCFormat)((int)RTC_FORMAT_FLOAT +
+                                                    size - 1),
+                                        sizeof(float) * size, accessor.count);
+                            } break;
+                            case 4: {
+                                geometryBuffer =
+                                    (float *)rtcSetNewGeometryBuffer(
+                                        rtcMesh,
+                                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1,
+                                        (RTCFormat)((int)RTC_FORMAT_FLOAT +
+                                                    size - 1),
+                                        sizeof(float) * size, accessor.count);
+                            } break;
                         }
 
                         for (auto i = 0; i < accessor.count; i++) {
@@ -268,13 +283,40 @@ static void addMesh(RTCDevice device, RTCScene rtcScene, tinygltf::Model &model,
                                 (const float *)(model.buffers[bufferView.buffer]
                                                     .data.data() +
                                                 byteOffset + byteStride * i);
-                            for (auto j = 0; j < size; j++) {
-                                geometryBuffer[i * size + j] = buffer[j];
+                            // for (auto j = 0; j < size; j++) {
+                            //    geometryBuffer[i * size + j] = buffer[j];
+                            //}
+
+                            switch (size) {
+                                case 2: {
+                                    const auto v =
+                                        glm::vec2(buffer[0], buffer[1]);
+                                    geometryBuffer[size * i + 0] = v[0];
+                                    geometryBuffer[size * i + 1] = v[1];
+                                } break;
+                                case 3: {
+                                    const auto v =
+                                        world * glm::vec4(buffer[0], buffer[1],
+                                                          buffer[2], 1.0f);
+                                    geometryBuffer[size * i + 0] = v[0];
+                                    geometryBuffer[size * i + 1] = v[1];
+                                    geometryBuffer[size * i + 2] = v[2];
+                                } break;
+                                case 4: {
+                                    const auto v =
+                                        glm::vec4(buffer[0], buffer[1],
+                                                  buffer[2], buffer[3]);
+                                    geometryBuffer[size * i + 0] = v[0];
+                                    geometryBuffer[size * i + 1] = v[1];
+                                    geometryBuffer[size * i + 2] = v[2];
+                                    geometryBuffer[size * i + 3] = v[3];
+                                } break;
                             }
                         }
 
-                        //for (auto i = 0; i < accessor.count; i++) {
-                        //    printf("%d: %f, %f, %f\n", i, geometryBuffer[i * size + 0],
+                        // for (auto i = 0; i < accessor.count; i++) {
+                        //    printf("%d: %f, %f, %f\n", i, geometryBuffer[i *
+                        //    size + 0],
                         //           geometryBuffer[i * size + 1],
                         //           geometryBuffer[i * size + 2]);
                         //}
@@ -283,15 +325,18 @@ static void addMesh(RTCDevice device, RTCScene rtcScene, tinygltf::Model &model,
             }
         }
 
-		rtcCommitGeometry(rtcMesh);
-		auto geomID = rtcAttachGeometry(rtcScene, rtcMesh);
-		rtcReleaseGeometry(rtcMesh);
+        rtcCommitGeometry(rtcMesh);
+        auto geomID = rtcAttachGeometry(rtcScene, rtcMesh);
+        rtcReleaseGeometry(rtcMesh);
+
+		geomIds.push_back(geomID);
     }
 }
 
-static void addNode(RTCDevice device, RTCScene scene, tinygltf::Model &model,
-                    const tinygltf::Node &node, const glm::mat4 world) {
-    glm::mat4 matrix;
+static void addNode(const RTCDevice device, const RTCScene scene,
+                    const tinygltf::Model &model, const tinygltf::Node &node,
+                    const glm::mat4 world, std::vector<int> &geomIds) {
+    glm::mat4 matrix(1.0f);
     if (node.matrix.size() == 16) {
         // Use `matrix' attribute
         matrix = glm::make_mat4(node.matrix.data());
@@ -320,14 +365,31 @@ static void addNode(RTCDevice device, RTCScene scene, tinygltf::Model &model,
     }
 
     if (node.mesh > -1) {
-        addMesh(device, scene, model, model.meshes[node.mesh]);
+        addMesh(device, scene, model, model.meshes[node.mesh], world * matrix, geomIds);
     }
 
     // Draw child nodes.
     for (auto i = 0; i < node.children.size(); i++) {
         addNode(device, scene, model, model.nodes[node.children[i]],
-                world * matrix);
+                world * matrix, geomIds);
     }
+}
+
+std::vector<int> addModel(const RTCDevice device, const RTCScene rtcScene,
+              const tinygltf::Model &model) {
+
+	std::vector<int> geomIds;
+    const auto sceneToDisplay =
+        model.defaultScene > -1 ? model.defaultScene : 0;
+    const tinygltf::Scene &gltfScene = model.scenes[sceneToDisplay];
+
+    for (size_t i = 0; i < gltfScene.nodes.size(); i++) {
+        auto matrix = glm::mat4(1.0f);
+        const auto &node = model.nodes[gltfScene.nodes[i]];
+        addNode(device, rtcScene, model, node, matrix, geomIds);
+    }
+
+	return geomIds;
 }
 
 void copyPixelsToTexture(const glm::u8vec3 pixels[], GLuint fbo, GLuint texture,
@@ -360,25 +422,13 @@ int main(void) {
     // auto cube = addCube(device, rtcScene);
     auto plane = addGroundPlane(device, rtcScene);
 
-	// add model
-	tinygltf::Model model;
-	tinygltf::TinyGLTF loader;
-	std::string err;
-	std::string warn;
-	const auto ret =
-		loader.LoadBinaryFromFile(&model, &err, &warn, "Box.glb");
-
-	if (ret) {
-		const auto sceneToDisplay =
-			model.defaultScene > -1 ? model.defaultScene : 0;
-		const tinygltf::Scene &gltfScene = model.scenes[sceneToDisplay];
-
-		for (size_t i = 0; i < gltfScene.nodes.size(); i++) {
-			auto matrix = glm::mat4();
-			const auto &node = model.nodes[gltfScene.nodes[i]];
-			addNode(device, rtcScene, model, node, matrix);
-		}
-	}
+    // add model
+    tinygltf::Model model;
+    tinygltf::TinyGLTF loader;
+    std::string err;
+    std::string warn;
+    const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn, "Box.glb");
+    const auto box = addModel(device, rtcScene, model);
 
     auto raytracer = RayTracer();
     const auto width = 640u;
