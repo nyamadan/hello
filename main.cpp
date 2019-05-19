@@ -342,9 +342,6 @@ static void addMesh(const RTCDevice device, const RTCScene rtcScene,
                                 (const float *)(model.buffers[bufferView.buffer]
                                                     .data.data() +
                                                 byteOffset + byteStride * i);
-                            // for (auto j = 0; j < size; j++) {
-                            //    geometryBuffer[i * size + j] = buffer[j];
-                            //}
 
                             switch (size) {
                                 case 2: {
@@ -354,12 +351,36 @@ static void addMesh(const RTCDevice device, const RTCScene rtcScene,
                                     geometryBuffer[size * i + 1] = v[1];
                                 } break;
                                 case 3: {
-                                    const auto v =
-                                        world * glm::vec4(buffer[0], buffer[1],
+                                    switch (semantics) {
+                                        case 1: {
+                                            const auto v =
+                                                world *
+                                                glm::vec4(buffer[0], buffer[1],
                                                           buffer[2], 1.0f);
-                                    geometryBuffer[size * i + 0] = v[0];
-                                    geometryBuffer[size * i + 1] = v[1];
-                                    geometryBuffer[size * i + 2] = v[2];
+                                            geometryBuffer[size * i + 0] = v[0];
+                                            geometryBuffer[size * i + 1] = v[1];
+                                            geometryBuffer[size * i + 2] = v[2];
+                                        } break;
+                                        case 2: {
+                                            const auto v =
+                                                glm::transpose(
+                                                    glm::inverse(world)) *
+                                                glm::vec4(buffer[0], buffer[1],
+                                                          buffer[2], 1.0f);
+                                            geometryBuffer[size * i + 0] = v[0];
+                                            geometryBuffer[size * i + 1] = v[1];
+                                            geometryBuffer[size * i + 2] = v[2];
+                                        } break;
+                                        default: {
+                                            const auto v =
+                                                glm::vec4(buffer[0], buffer[1],
+                                                          buffer[2], 1.0f);
+                                            geometryBuffer[size * i + 0] = v[0];
+                                            geometryBuffer[size * i + 1] = v[1];
+                                            geometryBuffer[size * i + 2] = v[2];
+                                        } break;
+                                    }
+
                                 } break;
                                 case 4: {
                                     const auto v =
