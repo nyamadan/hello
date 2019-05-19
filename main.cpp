@@ -1,10 +1,10 @@
 #include <algorithm>
 #include <iostream>
-#include <vector>
 #include <limits>
 #include <memory>
 #include <mutex>
 #include <thread>
+#include <vector>
 
 #include <stb_image_write.h>
 #include <tbb/parallel_for.h>
@@ -61,59 +61,107 @@ unsigned int addCube(RTCDevice device, RTCScene scene) {
     auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
     /* set vertices and vertex colors */
-    auto *vertices = (glm::vec3 *)rtcSetNewGeometryBuffer(
+    auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
-        8);
-    vertices[0] = glm::vec3(-1, -1, -1);
-    vertices[1] = glm::vec3(-1, -1, +1);
-    vertices[2] = glm::vec3(-1, +1, -1);
-    vertices[3] = glm::vec3(-1, +1, +1);
-    vertices[4] = glm::vec3(+1, -1, -1);
-    vertices[5] = glm::vec3(+1, -1, +1);
-    vertices[6] = glm::vec3(+1, +1, -1);
-    vertices[7] = glm::vec3(+1, +1, +1);
+        24);
+    positions[0] = glm::vec3(1, 1, -1);
+    positions[1] = glm::vec3(1, 1, 1);
+    positions[2] = glm::vec3(1, -1, 1);
+    positions[3] = glm::vec3(1, -1, -1);
+    positions[4] = glm::vec3(-1, 1, 1);
+    positions[5] = glm::vec3(-1, 1, -1);
+    positions[6] = glm::vec3(-1, -1, -1);
+    positions[7] = glm::vec3(-1, -1, 1);
+    positions[8] = glm::vec3(-1, 1, 1);
+    positions[9] = glm::vec3(1, 1, 1);
+    positions[10] = glm::vec3(1, 1, -1);
+    positions[11] = glm::vec3(-1, 1, -1);
+    positions[12] = glm::vec3(-1, -1, -1);
+    positions[13] = glm::vec3(1, -1, -1);
+    positions[14] = glm::vec3(1, -1, 1);
+    positions[15] = glm::vec3(-1, -1, 1);
+    positions[16] = glm::vec3(1, 1, 1);
+    positions[17] = glm::vec3(-1, 1, 1);
+    positions[18] = glm::vec3(-1, -1, 1);
+    positions[19] = glm::vec3(1, -1, 1);
+    positions[20] = glm::vec3(-1, 1, -1);
+    positions[21] = glm::vec3(1, 1, -1);
+    positions[22] = glm::vec3(1, -1, -1);
+    positions[23] = glm::vec3(-1, -1, -1);
 
     /* set triangles and face colors */
-    glm::uvec3 *triangles = (glm::uvec3 *)rtcSetNewGeometryBuffer(
+    glm::uvec3 *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
         12);
+    indices[0] = glm::uvec3(0, 1, 2);
+    indices[1] = glm::uvec3(0, 2, 3);
+    indices[2] = glm::uvec3(4, 5, 6);
+    indices[3] = glm::uvec3(4, 6, 7);
+    indices[4] = glm::uvec3(8, 9, 10);
+    indices[5] = glm::uvec3(8, 10, 11);
+    indices[6] = glm::uvec3(12, 13, 14);
+    indices[7] = glm::uvec3(12, 14, 15);
+    indices[8] = glm::uvec3(16, 17, 18);
+    indices[9] = glm::uvec3(16, 18, 19);
+    indices[10] = glm::uvec3(20, 21, 22);
+    indices[11] = glm::uvec3(20, 22, 23);
 
-    // left side
-    triangles[0] = glm::uvec3(0, 1, 2);
-    triangles[1] = glm::uvec3(1, 3, 2);
-
-    // right side
-    triangles[2] = glm::uvec3(4, 6, 5);
-    triangles[3] = glm::uvec3(5, 6, 7);
-
-    // bottom side
-    triangles[4] = glm::uvec3(0, 4, 1);
-    triangles[5] = glm::uvec3(1, 4, 5);
-
-    // top side
-    triangles[6] = glm::uvec3(2, 3, 6);
-    triangles[7] = glm::uvec3(3, 7, 6);
-
-    // front side
-    triangles[8] = glm::uvec3(0, 2, 4);
-    triangles[9] = glm::uvec3(2, 6, 4);
-
-    // back side
-    triangles[10] = glm::uvec3(1, 5, 3);
-    triangles[11] = glm::uvec3(3, 5, 7);
-
-    rtcSetGeometryVertexAttributeCount(mesh, 1);
-    glm::vec3 *vertex_colors = (glm::vec3 *)rtcSetNewGeometryBuffer(
+    rtcSetGeometryVertexAttributeCount(mesh, 2);
+    glm::vec3 *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), 8);
-    vertex_colors[0] = glm::vec3(0, 0, 0);
-    vertex_colors[1] = glm::vec3(0, 0, 1);
-    vertex_colors[2] = glm::vec3(0, 1, 0);
-    vertex_colors[3] = glm::vec3(0, 1, 1);
-    vertex_colors[4] = glm::vec3(1, 0, 0);
-    vertex_colors[5] = glm::vec3(1, 0, 1);
-    vertex_colors[6] = glm::vec3(1, 1, 0);
-    vertex_colors[7] = glm::vec3(1, 1, 1);
+        sizeof(glm::vec3), 24);
+    normals[0] = glm::vec3(1, 0, 0);
+    normals[1] = glm::vec3(1, 0, 0);
+    normals[2] = glm::vec3(1, 0, 0);
+    normals[3] = glm::vec3(1, 0, 0);
+    normals[4] = glm::vec3(-1, 0, 0);
+    normals[5] = glm::vec3(-1, 0, 0);
+    normals[6] = glm::vec3(-1, 0, 0);
+    normals[7] = glm::vec3(-1, 0, 0);
+    normals[8] = glm::vec3(0, 1, 0);
+    normals[9] = glm::vec3(0, 1, 0);
+    normals[10] = glm::vec3(0, 1, 0);
+    normals[11] = glm::vec3(0, 1, 0);
+    normals[12] = glm::vec3(0, -1, 0);
+    normals[13] = glm::vec3(0, -1, 0);
+    normals[14] = glm::vec3(0, -1, 0);
+    normals[15] = glm::vec3(0, -1, 0);
+    normals[16] = glm::vec3(0, 0, 1);
+    normals[17] = glm::vec3(0, 0, 1);
+    normals[18] = glm::vec3(0, 0, 1);
+    normals[19] = glm::vec3(0, 0, 1);
+    normals[20] = glm::vec3(0, 0, -1);
+    normals[21] = glm::vec3(0, 0, -1);
+    normals[22] = glm::vec3(0, 0, -1);
+    normals[23] = glm::vec3(0, 0, -1);
+
+    glm::vec2 *uvs = (glm::vec2 *)rtcSetNewGeometryBuffer(
+        mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT3,
+        sizeof(glm::vec2), 24);
+    uvs[0] = glm::vec2(1, 0);
+    uvs[1] = glm::vec2(0, 0);
+    uvs[2] = glm::vec2(0, 1);
+    uvs[3] = glm::vec2(1, 1);
+    uvs[4] = glm::vec2(1, 0);
+    uvs[5] = glm::vec2(0, 0);
+    uvs[6] = glm::vec2(0, 1);
+    uvs[7] = glm::vec2(1, 1);
+    uvs[8] = glm::vec2(1, 0);
+    uvs[9] = glm::vec2(0, 0);
+    uvs[10] = glm::vec2(0, 1);
+    uvs[11] = glm::vec2(1, 1);
+    uvs[12] = glm::vec2(1, 0);
+    uvs[13] = glm::vec2(0, 0);
+    uvs[14] = glm::vec2(0, 1);
+    uvs[15] = glm::vec2(1, 1);
+    uvs[16] = glm::vec2(1, 0);
+    uvs[17] = glm::vec2(0, 0);
+    uvs[18] = glm::vec2(0, 1);
+    uvs[19] = glm::vec2(1, 1);
+    uvs[20] = glm::vec2(1, 0);
+    uvs[21] = glm::vec2(0, 0);
+    uvs[22] = glm::vec2(0, 1);
+    uvs[23] = glm::vec2(1, 1);
 
     rtcCommitGeometry(mesh);
     auto geomID = rtcAttachGeometry(scene, mesh);
@@ -127,29 +175,38 @@ unsigned int addGroundPlane(RTCDevice device, RTCScene scene) {
     auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
     /* set vertices */
-    auto *vertices = (glm::vec3 *)rtcSetNewGeometryBuffer(
+    auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
         4);
-    vertices[0] = glm::vec3(-10, -2, -10);
-    vertices[1] = glm::vec3(-10, -2, +10);
-    vertices[2] = glm::vec3(+10, -2, -10);
-    vertices[3] = glm::vec3(+10, -2, +10);
+    positions[0] = glm::vec3(-10, -2, -10);
+    positions[1] = glm::vec3(-10, -2, +10);
+    positions[2] = glm::vec3(+10, -2, -10);
+    positions[3] = glm::vec3(+10, -2, +10);
 
     /* set triangles */
-    auto *triangles = (glm::uvec3 *)rtcSetNewGeometryBuffer(
+    auto *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
         2);
-    triangles[0] = glm::uvec3(0, 1, 2);
-    triangles[1] = glm::uvec3(1, 3, 2);
+    indices[0] = glm::uvec3(0, 1, 2);
+    indices[1] = glm::uvec3(1, 3, 2);
 
-    rtcSetGeometryVertexAttributeCount(mesh, 1);
-    auto *vertex_colors = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT,
+    rtcSetGeometryVertexAttributeCount(mesh, 2);
+
+    auto *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
+        mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
         sizeof(glm::vec3), 4);
-    vertex_colors[0] = glm::vec3(0.25f);
-    vertex_colors[1] = glm::vec3(0.25f);
-    vertex_colors[2] = glm::vec3(0.25f);
-    vertex_colors[3] = glm::vec3(0.25f);
+    normals[0] = glm::vec3(0.0f, 1.0f, 0.0f);
+    normals[1] = glm::vec3(0.0f, 1.0f, 0.0f);
+    normals[2] = glm::vec3(0.0f, 1.0f, 0.0f);
+    normals[3] = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    auto *uvs = (glm::vec2 *)rtcSetNewGeometryBuffer(
+        mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT2,
+        sizeof(glm::vec2), 4);
+    uvs[0] = glm::vec2(0.0f, 0.0f);
+    uvs[1] = glm::vec2(0.0f, 1.0f);
+    uvs[2] = glm::vec2(1.0f, 0.0f);
+    uvs[3] = glm::vec2(1.0f, 1.0f);
 
     rtcCommitGeometry(mesh);
     auto geomID = rtcAttachGeometry(scene, mesh);
@@ -173,7 +230,7 @@ static void addMesh(const RTCDevice device, const RTCScene rtcScene,
         assert(mode == TINYGLTF_MODE_TRIANGLES);
 
         auto rtcMesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-        rtcSetGeometryVertexAttributeCount(rtcMesh, 1);
+        rtcSetGeometryVertexAttributeCount(rtcMesh, 2);
         auto allSemantics = 0;
 
         const auto &indexAccessor = model.accessors[primitive.indices];
@@ -226,16 +283,16 @@ static void addMesh(const RTCDevice device, const RTCScene rtcScene,
                     break;
             }
 
-			int semantics = 0;
+            int semantics = 0;
             if (it->first.compare("POSITION") == 0) {
-				semantics = 1 << 0;
-            } else if (it->first.compare("NORMAL") == 0){
-				semantics = 1 << 1;
-            } else if (it->first.compare("TEXCOORD_0") == 0){
-				semantics = 1 << 2;
-			}
+                semantics = 1 << 0;
+            } else if (it->first.compare("NORMAL") == 0) {
+                semantics = 1 << 1;
+            } else if (it->first.compare("TEXCOORD_0") == 0) {
+                semantics = 1 << 2;
+            }
 
-			allSemantics |= semantics;
+            allSemantics |= semantics;
 
             // it->first would be "POSITION", "NORMAL", "TEXCOORD_0", ...
             if (semantics > 0) {
@@ -251,12 +308,14 @@ static void addMesh(const RTCDevice device, const RTCScene rtcScene,
                     case TINYGLTF_COMPONENT_TYPE_FLOAT: {
                         float *geometryBuffer = nullptr;
 
-						switch (semantics) {
+                        switch (semantics) {
                             case 1: {
-								geometryBuffer = (float *)rtcSetNewGeometryBuffer(
-									rtcMesh, RTC_BUFFER_TYPE_VERTEX, 0,
-									(RTCFormat)((int)RTC_FORMAT_FLOAT + size - 1),
-									sizeof(float) * size, accessor.count);
+                                geometryBuffer =
+                                    (float *)rtcSetNewGeometryBuffer(
+                                        rtcMesh, RTC_BUFFER_TYPE_VERTEX, 0,
+                                        (RTCFormat)((int)RTC_FORMAT_FLOAT +
+                                                    size - 1),
+                                        sizeof(float) * size, accessor.count);
                             } break;
                             case 2: {
                                 geometryBuffer =
@@ -325,11 +384,25 @@ static void addMesh(const RTCDevice device, const RTCScene rtcScene,
             }
         }
 
+        if (!(allSemantics & 2)) {
+            auto normals = (float *)rtcSetNewGeometryBuffer(
+                rtcMesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
+                (RTCFormat)(RTC_FORMAT_FLOAT3), sizeof(glm::vec3),
+                indexAccessor.count / 3);
+        }
+
+        if (!(allSemantics & 4)) {
+            auto uvs = (float *)rtcSetNewGeometryBuffer(
+                rtcMesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1,
+                (RTCFormat)(RTC_FORMAT_FLOAT2), sizeof(glm::vec3),
+                indexAccessor.count / 2);
+        }
+
         rtcCommitGeometry(rtcMesh);
         auto geomID = rtcAttachGeometry(rtcScene, rtcMesh);
         rtcReleaseGeometry(rtcMesh);
 
-		geomIds.push_back(geomID);
+        geomIds.push_back(geomID);
     }
 }
 
@@ -365,7 +438,8 @@ static void addNode(const RTCDevice device, const RTCScene scene,
     }
 
     if (node.mesh > -1) {
-        addMesh(device, scene, model, model.meshes[node.mesh], world * matrix, geomIds);
+        addMesh(device, scene, model, model.meshes[node.mesh], world * matrix,
+                geomIds);
     }
 
     // Draw child nodes.
@@ -376,9 +450,8 @@ static void addNode(const RTCDevice device, const RTCScene scene,
 }
 
 std::vector<int> addModel(const RTCDevice device, const RTCScene rtcScene,
-              const tinygltf::Model &model) {
-
-	std::vector<int> geomIds;
+                          const tinygltf::Model &model) {
+    std::vector<int> geomIds;
     const auto sceneToDisplay =
         model.defaultScene > -1 ? model.defaultScene : 0;
     const tinygltf::Scene &gltfScene = model.scenes[sceneToDisplay];
@@ -389,7 +462,7 @@ std::vector<int> addModel(const RTCDevice device, const RTCScene rtcScene,
         addNode(device, rtcScene, model, node, matrix, geomIds);
     }
 
-	return geomIds;
+    return geomIds;
 }
 
 void copyPixelsToTexture(const glm::u8vec3 pixels[], GLuint fbo, GLuint texture,
@@ -417,10 +490,11 @@ glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
 
 int main(void) {
     auto device = rtcNewDevice("verbose=1");
-    auto rtcScene = rtcNewScene(device);
+    auto scene = rtcNewScene(device);
 
     // auto cube = addCube(device, rtcScene);
-    auto plane = addGroundPlane(device, rtcScene);
+    auto plane = addGroundPlane(device, scene);
+    // auto cube = addCube(device, scene);
 
     // add model
     tinygltf::Model model;
@@ -428,7 +502,7 @@ int main(void) {
     std::string err;
     std::string warn;
     const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn, "Box.glb");
-    const auto box = addModel(device, rtcScene, model);
+    const auto box = addModel(device, scene, model);
 
     auto raytracer = RayTracer();
     const auto width = 640u;
@@ -440,11 +514,11 @@ int main(void) {
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.lookAt(eye, target, up);
 
-    rtcCommitScene(rtcScene);
+    rtcCommitScene(scene);
 
     auto pixels = std::make_unique<glm::u8vec3[]>(width * height);
 
-    raytracer.render(rtcScene, camera, pixels.get());
+    raytracer.render(scene, camera, pixels.get());
 
     stbi_flip_vertically_on_write(true);
     stbi_write_png("hello_embree.png", width, height, 3, pixels.get(),
@@ -529,7 +603,7 @@ int main(void) {
             camera.setCameraOrigin(camera.getCameraOrigin() - side * dt);
         }
 
-        raytracer.render(rtcScene, camera, pixels.get());
+        raytracer.render(scene, camera, pixels.get());
 
         copyPixelsToTexture(pixels.get(), fbo, texture, width, height);
 
@@ -552,7 +626,7 @@ int main(void) {
 
     glfwTerminate();
 
-    rtcReleaseScene(rtcScene);
+    rtcReleaseScene(scene);
     rtcReleaseDevice(device);
     return 0;
 }
