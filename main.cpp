@@ -259,10 +259,6 @@ static void addMesh(const RTCDevice device, const RTCScene rtcScene,
             triangles[i] = *buffer;
         }
 
-        // for (auto i = 0; i < indexAccessor.count; i++) {
-        //    printf("%d: %d\n", i, triangles[i]);
-        //}
-
         for (; it != itEnd; it++) {
             const auto &accessor = model.accessors[it->second];
             const auto bufferView = model.bufferViews[accessor.bufferView];
@@ -393,13 +389,6 @@ static void addMesh(const RTCDevice device, const RTCScene rtcScene,
                                 } break;
                             }
                         }
-
-                        // for (auto i = 0; i < accessor.count; i++) {
-                        //    printf("%d: %f, %f, %f\n", i, geometryBuffer[i *
-                        //    size + 0],
-                        //           geometryBuffer[i * size + 1],
-                        //           geometryBuffer[i * size + 2]);
-                        //}
                     } break;
                 }
             }
@@ -522,7 +511,7 @@ int main(void) {
     tinygltf::TinyGLTF loader;
     std::string err;
     std::string warn;
-    const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn, "Box.glb");
+    const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn, "Buggy.glb");
     const auto box = addModel(device, scene, model);
 
     auto raytracer = RayTracer();
@@ -530,7 +519,7 @@ int main(void) {
     const auto height = 480u;
 
     auto camera = RayTracerCamera(width, height, 120.0f, 0.001f, 1000.0f);
-    const auto eye = glm::vec3(1.5f, 1.5f, -1.5f);
+    const auto eye = glm::vec3(100.0f, 100.0f, -100.0f);
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.lookAt(eye, target, up);
@@ -598,6 +587,7 @@ int main(void) {
         const auto side = camera.getCameraSide();
         const auto up = camera.getCameraUp(side);
         const auto lbtn = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
+        const auto controlSpeed = 100.0f;
         if (lbtn == GLFW_PRESS) {
             camera.setCameraDir(glm::rotate(
                 glm::rotate(camera.getCameraDir(), -mouseDelta.y, side),
@@ -606,22 +596,22 @@ int main(void) {
 
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             const auto dir = camera.getCameraDir();
-            camera.setCameraOrigin(camera.getCameraOrigin() + dir * dt);
+            camera.setCameraOrigin(camera.getCameraOrigin() + dir * controlSpeed * dt);
         }
 
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
             const auto dir = camera.getCameraDir();
-            camera.setCameraOrigin(camera.getCameraOrigin() - dir * dt);
+            camera.setCameraOrigin(camera.getCameraOrigin() - dir * controlSpeed * dt);
         }
 
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
             const auto dir = camera.getCameraDir();
-            camera.setCameraOrigin(camera.getCameraOrigin() + side * dt);
+            camera.setCameraOrigin(camera.getCameraOrigin() + side * controlSpeed * dt);
         }
 
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
             const auto dir = camera.getCameraDir();
-            camera.setCameraOrigin(camera.getCameraOrigin() - side * dt);
+            camera.setCameraOrigin(camera.getCameraOrigin() - side * controlSpeed * dt);
         }
 
         raytracer.render(scene, camera, pixels.get());
