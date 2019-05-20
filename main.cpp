@@ -56,7 +56,7 @@ void EnableOpenGLDebugExtention() {
 }
 
 /* adds a cube to the scene */
-unsigned int addCube(RTCDevice device, RTCScene scene) {
+unsigned int addCube(RTCDevice device, RTCScene scene, glm::mat4 transform = glm::mat4(1.0f)) {
     /* create a triangulated cube with 12 triangles and 8 vertices */
     auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
@@ -64,30 +64,30 @@ unsigned int addCube(RTCDevice device, RTCScene scene) {
     auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
         24);
-    positions[0] = glm::vec3(1, 1, -1);
-    positions[1] = glm::vec3(1, 1, 1);
-    positions[2] = glm::vec3(1, -1, 1);
-    positions[3] = glm::vec3(1, -1, -1);
-    positions[4] = glm::vec3(-1, 1, 1);
-    positions[5] = glm::vec3(-1, 1, -1);
-    positions[6] = glm::vec3(-1, -1, -1);
-    positions[7] = glm::vec3(-1, -1, 1);
-    positions[8] = glm::vec3(-1, 1, 1);
-    positions[9] = glm::vec3(1, 1, 1);
-    positions[10] = glm::vec3(1, 1, -1);
-    positions[11] = glm::vec3(-1, 1, -1);
-    positions[12] = glm::vec3(-1, -1, -1);
-    positions[13] = glm::vec3(1, -1, -1);
-    positions[14] = glm::vec3(1, -1, 1);
-    positions[15] = glm::vec3(-1, -1, 1);
-    positions[16] = glm::vec3(1, 1, 1);
-    positions[17] = glm::vec3(-1, 1, 1);
-    positions[18] = glm::vec3(-1, -1, 1);
-    positions[19] = glm::vec3(1, -1, 1);
-    positions[20] = glm::vec3(-1, 1, -1);
-    positions[21] = glm::vec3(1, 1, -1);
-    positions[22] = glm::vec3(1, -1, -1);
-    positions[23] = glm::vec3(-1, -1, -1);
+    positions[0] = transform * glm::vec4(glm::vec3(1, 1, -1), 1.0f);
+    positions[1] = transform * glm::vec4(glm::vec3(1, 1, 1), 1.0f);
+    positions[2] = transform * glm::vec4(glm::vec3(1, -1, 1), 1.0f);
+    positions[3] = transform * glm::vec4(glm::vec3(1, -1, -1), 1.0f);
+    positions[4] = transform * glm::vec4(glm::vec3(-1, 1, 1), 1.0f);
+    positions[5] = transform * glm::vec4(glm::vec3(-1, 1, -1), 1.0f);
+    positions[6] = transform * glm::vec4(glm::vec3(-1, -1, -1), 1.0f);
+    positions[7] = transform * glm::vec4(glm::vec3(-1, -1, 1), 1.0f);
+    positions[8] = transform * glm::vec4(glm::vec3(-1, 1, 1), 1.0f);
+    positions[9] = transform * glm::vec4(glm::vec3(1, 1, 1), 1.0f);
+    positions[10] = transform * glm::vec4(glm::vec3(1, 1, -1), 1.0f);
+    positions[11] = transform * glm::vec4(glm::vec3(-1, 1, -1), 1.0f);
+    positions[12] = transform * glm::vec4(glm::vec3(-1, -1, -1), 1.0f);
+    positions[13] = transform * glm::vec4(glm::vec3(1, -1, -1), 1.0f);
+    positions[14] = transform * glm::vec4(glm::vec3(1, -1, 1), 1.0f);
+    positions[15] = transform * glm::vec4(glm::vec3(-1, -1, 1), 1.0f);
+    positions[16] = transform * glm::vec4(glm::vec3(1, 1, 1), 1.0f);
+    positions[17] = transform * glm::vec4(glm::vec3(-1, 1, 1), 1.0f);
+    positions[18] = transform * glm::vec4(glm::vec3(-1, -1, 1), 1.0f);
+    positions[19] = transform * glm::vec4(glm::vec3(1, -1, 1), 1.0f);
+    positions[20] = transform * glm::vec4(glm::vec3(-1, 1, -1), 1.0f);
+    positions[21] = transform * glm::vec4(glm::vec3(1, 1, -1), 1.0f);
+    positions[22] = transform * glm::vec4(glm::vec3(1, -1, -1), 1.0f);
+    positions[23] = transform * glm::vec4(glm::vec3(-1, -1, -1), 1.0f);
 
     /* set triangles and face colors */
     glm::uvec3 *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
@@ -110,30 +110,31 @@ unsigned int addCube(RTCDevice device, RTCScene scene) {
     glm::vec3 *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
         sizeof(glm::vec3), 24);
-    normals[0] = glm::vec3(1, 0, 0);
-    normals[1] = glm::vec3(1, 0, 0);
-    normals[2] = glm::vec3(1, 0, 0);
-    normals[3] = glm::vec3(1, 0, 0);
-    normals[4] = glm::vec3(-1, 0, 0);
-    normals[5] = glm::vec3(-1, 0, 0);
-    normals[6] = glm::vec3(-1, 0, 0);
-    normals[7] = glm::vec3(-1, 0, 0);
-    normals[8] = glm::vec3(0, 1, 0);
-    normals[9] = glm::vec3(0, 1, 0);
-    normals[10] = glm::vec3(0, 1, 0);
-    normals[11] = glm::vec3(0, 1, 0);
-    normals[12] = glm::vec3(0, -1, 0);
-    normals[13] = glm::vec3(0, -1, 0);
-    normals[14] = glm::vec3(0, -1, 0);
-    normals[15] = glm::vec3(0, -1, 0);
-    normals[16] = glm::vec3(0, 0, 1);
-    normals[17] = glm::vec3(0, 0, 1);
-    normals[18] = glm::vec3(0, 0, 1);
-    normals[19] = glm::vec3(0, 0, 1);
-    normals[20] = glm::vec3(0, 0, -1);
-    normals[21] = glm::vec3(0, 0, -1);
-    normals[22] = glm::vec3(0, 0, -1);
-    normals[23] = glm::vec3(0, 0, -1);
+    const auto inverseTranspose = glm::transpose(glm::inverse(transform));
+    normals[0] = inverseTranspose * glm::vec4(1, 0, 0, 1);
+    normals[1] = inverseTranspose * glm::vec4(1, 0, 0, 1);
+    normals[2] = inverseTranspose * glm::vec4(1, 0, 0, 1);
+    normals[3] = inverseTranspose * glm::vec4(1, 0, 0, 1);
+    normals[4] = inverseTranspose * glm::vec4(-1, 0, 0, 1);
+    normals[5] = inverseTranspose * glm::vec4(-1, 0, 0, 1);
+    normals[6] = inverseTranspose * glm::vec4(-1, 0, 0, 1);
+    normals[7] = inverseTranspose * glm::vec4(-1, 0, 0, 1);
+    normals[8] = inverseTranspose * glm::vec4(0, 1, 0, 1);
+    normals[9] = inverseTranspose * glm::vec4(0, 1, 0, 1);
+    normals[10] = inverseTranspose * glm::vec4(0, 1, 0, 1);
+    normals[11] = inverseTranspose * glm::vec4(0, 1, 0, 1);
+    normals[12] = inverseTranspose * glm::vec4(0, -1, 0, 1);
+    normals[13] = inverseTranspose * glm::vec4(0, -1, 0, 1);
+    normals[14] = inverseTranspose * glm::vec4(0, -1, 0, 1);
+    normals[15] = inverseTranspose * glm::vec4(0, -1, 0, 1);
+    normals[16] = inverseTranspose * glm::vec4(0, 0, 1, 1);
+    normals[17] = inverseTranspose * glm::vec4(0, 0, 1, 1);
+    normals[18] = inverseTranspose * glm::vec4(0, 0, 1, 1);
+    normals[19] = inverseTranspose * glm::vec4(0, 0, 1, 1);
+    normals[20] = inverseTranspose * glm::vec4(0, 0, -1, 1);
+    normals[21] = inverseTranspose * glm::vec4(0, 0, -1, 1);
+    normals[22] = inverseTranspose * glm::vec4(0, 0, -1, 1);
+    normals[23] = inverseTranspose * glm::vec4(0, 0, -1, 1);
 
     glm::vec2 *uvs = (glm::vec2 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT3,
@@ -475,6 +476,98 @@ std::vector<int> addModel(const RTCDevice device, const RTCScene rtcScene,
     return geomIds;
 }
 
+int addSphere(const RTCDevice device, const RTCScene scene, float radius = 1.0f,
+              uint32_t widthSegments = 8, uint32_t heightSegments = 6) {
+    const auto pi = 3.14159265358979323846f;
+    auto index = 0;
+    auto grid = std::vector<std::vector<uint32_t>>();
+
+    auto vertex = glm::vec3();
+    auto normal = glm::vec3();
+
+    auto indices = std::vector<glm::uvec3>();
+    auto vertices = std::vector<glm::vec3>();
+    auto normals = std::vector<glm::vec3>();
+    auto uvs = std::vector<glm::vec2>();
+
+    for (auto iy = 0; iy <= heightSegments; iy++) {
+        auto verticesRow = std::vector<uint32_t>();
+
+        auto v = (float)iy / heightSegments;
+
+        auto uOffset = 0;
+
+        if (iy == 0) {
+            uOffset = 0.5 / widthSegments;
+
+        } else if (iy == heightSegments) {
+            uOffset = -0.5 / widthSegments;
+        }
+
+        for (auto ix = 0; ix <= widthSegments; ix++) {
+            auto u = (float)ix / widthSegments;
+            vertex.x = -radius * std::cos(u * 2 * pi) * std::sin(v * pi);
+            vertex.y = radius * std::cos(v * pi);
+            vertex.z = radius * std::sin(u * 2 * pi) * std::sin(v * pi);
+            vertices.push_back(vertex);
+            normal = glm::normalize(vertex);
+            normals.push_back(normal);
+            uvs.push_back(glm::vec2(u + uOffset, 1.0f - v));
+            verticesRow.push_back(index++);
+        }
+        grid.push_back(verticesRow);
+    }
+    for (auto iy = 0; iy < heightSegments; iy++) {
+        for (auto ix = 0; ix < widthSegments; ix++) {
+            auto a = grid[iy][ix + 1];
+            auto b = grid[iy][ix];
+            auto c = grid[iy + 1][ix];
+            auto d = grid[iy + 1][ix + 1];
+
+            if (iy != 0) indices.push_back(glm::uvec3(a, b, d));
+            if (iy != heightSegments - 1)
+                indices.push_back(glm::uvec3(b, c, d));
+        }
+    }
+
+    auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+
+    auto *_vertices = (glm::vec3 *)rtcSetNewGeometryBuffer(
+        mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
+        vertices.size());
+    for (auto i = 0; i < vertices.size(); i++) {
+        _vertices[i] = vertices[i];
+    }
+
+    auto *_indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
+        mesh, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
+        indices.size());
+    for (auto i = 0; i < indices.size(); i++) {
+        _indices[i] = indices[i];
+    }
+
+    rtcSetGeometryVertexAttributeCount(mesh, 2);
+
+    auto *_normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
+        mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
+        sizeof(glm::vec3), normals.size());
+    for (auto i = 0; i < normals.size(); i++) {
+        _normals[i] = normals[i];
+    }
+
+    auto *_uvs = (glm::vec2 *)rtcSetNewGeometryBuffer(
+        mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT2,
+        sizeof(glm::vec2), uvs.size());
+    for (auto i = 0; i < uvs.size(); i++) {
+        _uvs[i] = uvs[i];
+    }
+
+    rtcCommitGeometry(mesh);
+    auto geomID = rtcAttachGeometry(scene, mesh);
+    rtcReleaseGeometry(mesh);
+    return geomID;
+}
+
 void copyPixelsToTexture(const glm::u8vec3 pixels[], GLuint fbo, GLuint texture,
                          int32_t width, int32_t height) {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
@@ -502,24 +595,26 @@ int main(void) {
     auto device = rtcNewDevice("verbose=1");
     auto scene = rtcNewScene(device);
 
-    // auto cube = addCube(device, rtcScene);
     auto plane = addGroundPlane(device, scene);
-    // auto cube = addCube(device, scene);
+    auto cube = addCube(device, scene);
+    // auto sphere = addSphere(device, scene, 1.0f, 800, 600);
 
     // add model
-    tinygltf::Model model;
-    tinygltf::TinyGLTF loader;
-    std::string err;
-    std::string warn;
-    const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn, "Buggy.glb");
-    const auto box = addModel(device, scene, model);
+    // tinygltf::Model model;
+    // tinygltf::TinyGLTF loader;
+    // std::string err;
+    // std::string warn;
+    // const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn,
+    // "Buggy.glb"); if (ret) {
+    //    const auto box = addModel(device, scene, model);
+    //}
 
     auto raytracer = RayTracer();
     const auto width = 640u;
     const auto height = 480u;
 
     auto camera = RayTracerCamera(width, height, 120.0f, 0.001f, 1000.0f);
-    const auto eye = glm::vec3(100.0f, 100.0f, -100.0f);
+    const auto eye = glm::vec3(1.5f, 1.5f, -1.5f);
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.lookAt(eye, target, up);
@@ -587,7 +682,7 @@ int main(void) {
         const auto side = camera.getCameraSide();
         const auto up = camera.getCameraUp(side);
         const auto lbtn = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-        const auto controlSpeed = 100.0f;
+        const auto controlSpeed = 1.0f;
         if (lbtn == GLFW_PRESS) {
             camera.setCameraDir(glm::rotate(
                 glm::rotate(camera.getCameraDir(), -mouseDelta.y, side),
@@ -596,22 +691,26 @@ int main(void) {
 
         if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
             const auto dir = camera.getCameraDir();
-            camera.setCameraOrigin(camera.getCameraOrigin() + dir * controlSpeed * dt);
+            camera.setCameraOrigin(camera.getCameraOrigin() +
+                                   dir * controlSpeed * dt);
         }
 
         if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
             const auto dir = camera.getCameraDir();
-            camera.setCameraOrigin(camera.getCameraOrigin() - dir * controlSpeed * dt);
+            camera.setCameraOrigin(camera.getCameraOrigin() -
+                                   dir * controlSpeed * dt);
         }
 
         if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
             const auto dir = camera.getCameraDir();
-            camera.setCameraOrigin(camera.getCameraOrigin() + side * controlSpeed * dt);
+            camera.setCameraOrigin(camera.getCameraOrigin() +
+                                   side * controlSpeed * dt);
         }
 
         if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
             const auto dir = camera.getCameraDir();
-            camera.setCameraOrigin(camera.getCameraOrigin() - side * controlSpeed * dt);
+            camera.setCameraOrigin(camera.getCameraOrigin() -
+                                   side * controlSpeed * dt);
         }
 
         raytracer.render(scene, camera, pixels.get());
