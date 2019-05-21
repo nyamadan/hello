@@ -2,6 +2,7 @@
 #include <tbb/parallel_for.h>
 #include <algorithm>
 #include <glm/ext.hpp>
+#include <random>
 
 glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                                  float x, float y) {
@@ -29,10 +30,12 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
     /* intersect ray with scene */
     rtcIntersect1(scene, &context, &ray);
 
+    const auto orig = cameraFrom + ray.ray.tfar * rayDir;
     const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
 
     /* shade pixels */
     auto color = glm::vec3(0.0f);
+
     if (ray.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
         auto diffuse = glm::vec3(0.0f);
         rtcInterpolate0(rtcGetGeometry(scene, ray.hit.geomID), ray.hit.primID,
@@ -43,7 +46,6 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
         glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
 
         /* initialize shadow ray */
-        glm::vec3 shadowOrg = cameraFrom + ray.ray.tfar * rayDir;
         RTCRay shadow;
         shadow.org_x = ray.ray.org_x + ray.ray.tfar * ray.ray.dir_x;
         shadow.org_y = ray.ray.org_y + ray.ray.tfar * ray.ray.dir_y;
@@ -64,7 +66,21 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                                                            glm::normalize(Ng)),
                                                  0.0f, 1.0f);
         }
+
+        if(0){
+            std::random_device rnd;
+            std::mt19937 mt(rnd());
+            glm::vec3 p;
+            auto r = 1.0f;
+            auto randomFloat = std::uniform_real_distribution<float>(0.0f, 1.0f);
+            auto r2 = r * r;
+
+            do {
+                p = 2.0f * r * glm::vec3(randomFloat(mt), randomFloat(mt), randomFloat(mt)) - glm::vec3(r);
+            } while (glm::dot(p, p) >= r2);
+        }
     }
+
     return color;
 }
 
