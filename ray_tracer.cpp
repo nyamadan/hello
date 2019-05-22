@@ -44,12 +44,16 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
         color = color + diffuse * 0.5f;
 
         glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
+        glm::vec3 hitOrig =
+            glm::vec3(ray.ray.org_x + ray.ray.tfar * ray.ray.dir_x,
+                      ray.ray.org_y + ray.ray.tfar * ray.ray.dir_y,
+                      ray.ray.org_z + ray.ray.tfar * ray.ray.dir_z);
 
         /* initialize shadow ray */
         RTCRay shadow;
-        shadow.org_x = ray.ray.org_x + ray.ray.tfar * ray.ray.dir_x;
-        shadow.org_y = ray.ray.org_y + ray.ray.tfar * ray.ray.dir_y;
-        shadow.org_z = ray.ray.org_z + ray.ray.tfar * ray.ray.dir_z;
+        shadow.org_x = hitOrig.x;
+        shadow.org_y = hitOrig.y;
+        shadow.org_z = hitOrig.z;
         shadow.dir_x = -lightDir.x;
         shadow.dir_y = -lightDir.y;
         shadow.dir_z = -lightDir.z;
@@ -67,17 +71,51 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                                                  0.0f, 1.0f);
         }
 
-        if(0){
+        {
             std::random_device rnd;
             std::mt19937 mt(rnd());
             glm::vec3 p;
             auto r = 1.0f;
-            auto randomFloat = std::uniform_real_distribution<float>(0.0f, 1.0f);
+            auto randomFloat =
+                std::uniform_real_distribution<float>(0.0f, 1.0f);
             auto r2 = r * r;
 
-            do {
-                p = 2.0f * r * glm::vec3(randomFloat(mt), randomFloat(mt), randomFloat(mt)) - glm::vec3(r);
-            } while (glm::dot(p, p) >= r2);
+            auto samples = 10;
+            auto hit = 0;
+            for (auto i = 0; i < samples; i++) {
+                do {
+                    p = 2.0f * r *
+                            glm::vec3(randomFloat(mt), randomFloat(mt),
+                                      randomFloat(mt)) -
+                        glm::vec3(r, r, r);
+                } while (glm::dot(p, p) >= r2);
+
+                auto org = hitOrig;
+                auto target = p + r * Ng + org;
+                auto dir = glm::normalize(target - org);
+
+                RTCRay occ;
+                auto tnear = 0.0001f;
+                auto tfar = glm::length(target - org);
+                occ.org_x = org.x;
+                occ.org_y = org.y;
+                occ.org_z = org.z;
+                occ.dir_x = dir.x;
+                occ.dir_y = dir.y;
+                occ.dir_z = dir.z;
+                occ.tnear = tnear;
+                occ.tfar = tfar;
+                occ.time = 0.0f;
+
+                /* trace shadow ray */
+                rtcOccluded1(scene, &context, &occ);
+
+                if (occ.tfar != tfar) {
+                    hit++;
+                }
+            }
+
+            color = glm::vec3(1.0f - (float)hit / (float)samples);
         }
     }
 
