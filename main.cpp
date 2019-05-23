@@ -596,25 +596,25 @@ int main(void) {
     auto scene = rtcNewScene(device);
 
     auto plane = addGroundPlane(device, scene);
-    auto cube = addCube(device, scene);
-    // auto sphere = addSphere(device, scene, 1.0f, 800, 600);
+    // auto cube = addCube(device, scene);
+    // auto sphere = addSphere(device, scene, 1.8f, 80, 60);
 
     // add model
-    // tinygltf::Model model;
-    // tinygltf::TinyGLTF loader;
-    // std::string err;
-    // std::string warn;
-    // const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn,
-    // "Buggy.glb"); if (ret) {
-    //    const auto box = addModel(device, scene, model);
-    //}
+     tinygltf::Model model;
+     tinygltf::TinyGLTF loader;
+     std::string err;
+     std::string warn;
+     const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn,
+     "Buggy.glb"); if (ret) {
+        const auto box = addModel(device, scene, model);
+    }
 
     auto raytracer = RayTracer();
     const auto width = 640u;
     const auto height = 480u;
 
     auto camera = RayTracerCamera(width, height, 120.0f, 0.001f, 1000.0f);
-    const auto eye = glm::vec3(1.5f, 1.5f, -1.5f);
+    const auto eye = glm::vec3(80, 80, -90);
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.lookAt(eye, target, up);
