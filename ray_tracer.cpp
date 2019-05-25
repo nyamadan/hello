@@ -30,8 +30,9 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
     /* intersect ray with scene */
     rtcIntersect1(scene, &context, &ray);
 
-    const auto orig = cameraFrom + ray.ray.tfar * rayDir;
     const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
+    const auto orig = cameraFrom + ray.ray.tfar * rayDir;
+    const auto normal = glm::normalize(Ng);
 
     /* shade pixels */
     auto color = glm::vec3(0.0f);
@@ -66,36 +67,30 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
 
         /* add light contribution */
         if (shadow.tfar == tfar) {
-            color = color + diffuse * std::clamp(-glm::dot(lightDir,
-                                                           glm::normalize(Ng)),
-                                                 0.0f, 1.0f);
+            color = color + diffuse * std::clamp(-glm::dot(lightDir, normal), 0.0f, 1.0f);
         }
 
-        {
+        if (true) {
             std::random_device rnd;
             std::mt19937 mt(rnd());
             glm::vec3 p;
             auto r = 1.0f;
-            auto randomFloat =
-                std::uniform_real_distribution<float>(0.0f, 1.0f);
+            auto randomFloat = std::uniform_real_distribution<float>(0.0f, 1.0f);
             auto r2 = r * r;
 
-            auto samples = 10;
+            auto samples = 100;
             auto hit = 0;
             for (auto i = 0; i < samples; i++) {
                 do {
-                    p = 2.0f * r *
-                            glm::vec3(randomFloat(mt), randomFloat(mt),
-                                      randomFloat(mt)) -
-                        glm::vec3(r, r, r);
-                } while (glm::dot(p, p) >= r2);
+                    p = 2.0f * r * glm::vec3(randomFloat(mt), randomFloat(mt), randomFloat(mt)) - glm::vec3(r, r, r);
+                } while (glm::length2(p) >= r2);
 
                 auto org = hitOrig;
-                auto target = p + r * Ng + org;
+                auto target = p + r * normal + org;
                 auto dir = glm::normalize(target - org);
 
                 RTCRay occ;
-                auto tnear = 0.0001f;
+                auto tnear = 0.00001f;
                 auto tfar = glm::length(target - org);
                 occ.org_x = org.x;
                 occ.org_y = org.y;

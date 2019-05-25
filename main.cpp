@@ -24,9 +24,20 @@
 #include <tiny_gltf.h>
 
 #include "ray_tracer.hpp"
+#include "fps_camera_controller.hpp"
+#include "mouse_camera_controller.hpp"
+
+const auto PI = 3.14159265358979323846f;
+
+auto wheelDelta = glm::dvec2(0.0, 0.0f);
 
 void glfwErrorCallback(int error, const char *description) {
     fprintf(stderr, "error %d: %s\n", error, description);
+}
+
+void glfwScrollCallback(GLFWwindow *window, double xoffset, double yoffset) {
+    wheelDelta.x += xoffset;
+    wheelDelta.y += yoffset;
 }
 
 void glDebugOutput(GLenum source, GLenum type, GLuint eid, GLenum severity,
@@ -56,7 +67,8 @@ void EnableOpenGLDebugExtention() {
 }
 
 /* adds a cube to the scene */
-unsigned int addCube(RTCDevice device, RTCScene scene, glm::mat4 transform = glm::mat4(1.0f)) {
+unsigned int addCube(RTCDevice device, RTCScene scene,
+                     glm::mat4 transform = glm::mat4(1.0f)) {
     /* create a triangulated cube with 12 triangles and 8 vertices */
     auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
@@ -64,30 +76,30 @@ unsigned int addCube(RTCDevice device, RTCScene scene, glm::mat4 transform = glm
     auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
         24);
-    positions[0] = transform * glm::vec4(glm::vec3(1, 1, -1), 1.0f);
-    positions[1] = transform * glm::vec4(glm::vec3(1, 1, 1), 1.0f);
-    positions[2] = transform * glm::vec4(glm::vec3(1, -1, 1), 1.0f);
-    positions[3] = transform * glm::vec4(glm::vec3(1, -1, -1), 1.0f);
-    positions[4] = transform * glm::vec4(glm::vec3(-1, 1, 1), 1.0f);
-    positions[5] = transform * glm::vec4(glm::vec3(-1, 1, -1), 1.0f);
-    positions[6] = transform * glm::vec4(glm::vec3(-1, -1, -1), 1.0f);
-    positions[7] = transform * glm::vec4(glm::vec3(-1, -1, 1), 1.0f);
-    positions[8] = transform * glm::vec4(glm::vec3(-1, 1, 1), 1.0f);
-    positions[9] = transform * glm::vec4(glm::vec3(1, 1, 1), 1.0f);
-    positions[10] = transform * glm::vec4(glm::vec3(1, 1, -1), 1.0f);
-    positions[11] = transform * glm::vec4(glm::vec3(-1, 1, -1), 1.0f);
-    positions[12] = transform * glm::vec4(glm::vec3(-1, -1, -1), 1.0f);
-    positions[13] = transform * glm::vec4(glm::vec3(1, -1, -1), 1.0f);
-    positions[14] = transform * glm::vec4(glm::vec3(1, -1, 1), 1.0f);
-    positions[15] = transform * glm::vec4(glm::vec3(-1, -1, 1), 1.0f);
-    positions[16] = transform * glm::vec4(glm::vec3(1, 1, 1), 1.0f);
-    positions[17] = transform * glm::vec4(glm::vec3(-1, 1, 1), 1.0f);
-    positions[18] = transform * glm::vec4(glm::vec3(-1, -1, 1), 1.0f);
-    positions[19] = transform * glm::vec4(glm::vec3(1, -1, 1), 1.0f);
-    positions[20] = transform * glm::vec4(glm::vec3(-1, 1, -1), 1.0f);
-    positions[21] = transform * glm::vec4(glm::vec3(1, 1, -1), 1.0f);
-    positions[22] = transform * glm::vec4(glm::vec3(1, -1, -1), 1.0f);
-    positions[23] = transform * glm::vec4(glm::vec3(-1, -1, -1), 1.0f);
+    positions[0] = transform * glm::vec4(1, 1, -1, 1.0f);
+    positions[1] = transform * glm::vec4(1, 1, 1, 1.0f);
+    positions[2] = transform * glm::vec4(1, -1, 1, 1.0f);
+    positions[3] = transform * glm::vec4(1, -1, -1, 1.0f);
+    positions[4] = transform * glm::vec4(-1, 1, 1, 1.0f);
+    positions[5] = transform * glm::vec4(-1, 1, -1, 1.0f);
+    positions[6] = transform * glm::vec4(-1, -1, -1, 1.0f);
+    positions[7] = transform * glm::vec4(-1, -1, 1, 1.0f);
+    positions[8] = transform * glm::vec4(-1, 1, 1, 1.0f);
+    positions[9] = transform * glm::vec4(1, 1, 1, 1.0f);
+    positions[10] = transform * glm::vec4(1, 1, -1, 1.0f);
+    positions[11] = transform * glm::vec4(-1, 1, -1, 1.0f);
+    positions[12] = transform * glm::vec4(-1, -1, -1, 1.0f);
+    positions[13] = transform * glm::vec4(1, -1, -1, 1.0f);
+    positions[14] = transform * glm::vec4(1, -1, 1, 1.0f);
+    positions[15] = transform * glm::vec4(-1, -1, 1, 1.0f);
+    positions[16] = transform * glm::vec4(1, 1, 1, 1.0f);
+    positions[17] = transform * glm::vec4(-1, 1, 1, 1.0f);
+    positions[18] = transform * glm::vec4(-1, -1, 1, 1.0f);
+    positions[19] = transform * glm::vec4(1, -1, 1, 1.0f);
+    positions[20] = transform * glm::vec4(-1, 1, -1, 1.0f);
+    positions[21] = transform * glm::vec4(1, 1, -1, 1.0f);
+    positions[22] = transform * glm::vec4(1, -1, -1, 1.0f);
+    positions[23] = transform * glm::vec4(-1, -1, -1, 1.0f);
 
     /* set triangles and face colors */
     glm::uvec3 *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
@@ -135,6 +147,9 @@ unsigned int addCube(RTCDevice device, RTCScene scene, glm::mat4 transform = glm
     normals[21] = inverseTranspose * glm::vec4(0, 0, -1, 1);
     normals[22] = inverseTranspose * glm::vec4(0, 0, -1, 1);
     normals[23] = inverseTranspose * glm::vec4(0, 0, -1, 1);
+    for (auto i = 0; i < 24; i++) {
+        normals[i] = glm::normalize(normals[i]);
+    }
 
     glm::vec2 *uvs = (glm::vec2 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT3,
@@ -171,7 +186,8 @@ unsigned int addCube(RTCDevice device, RTCScene scene, glm::mat4 transform = glm
 }
 
 /* adds a ground plane to the scene */
-unsigned int addGroundPlane(RTCDevice device, RTCScene scene) {
+unsigned int addGroundPlane(RTCDevice device, RTCScene scene,
+                            const glm::mat4 transform = glm::mat4(1.0f)) {
     /* create a triangulated plane with 2 triangles and 4 vertices */
     auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
@@ -179,10 +195,10 @@ unsigned int addGroundPlane(RTCDevice device, RTCScene scene) {
     auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
         4);
-    positions[0] = glm::vec3(-10, -2, -10);
-    positions[1] = glm::vec3(-10, -2, +10);
-    positions[2] = glm::vec3(+10, -2, -10);
-    positions[3] = glm::vec3(+10, -2, +10);
+    positions[0] = transform * glm::vec4(-1, 0, -1, 1);
+    positions[1] = transform * glm::vec4(-1, 0, +1, 1);
+    positions[2] = transform * glm::vec4(+1, 0, -1, 1);
+    positions[3] = transform * glm::vec4(+1, 0, +1, 1);
 
     /* set triangles */
     auto *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
@@ -193,13 +209,17 @@ unsigned int addGroundPlane(RTCDevice device, RTCScene scene) {
 
     rtcSetGeometryVertexAttributeCount(mesh, 2);
 
+    const auto inverseTranspose = glm::transpose(glm::inverse(transform));
     auto *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
         sizeof(glm::vec3), 4);
-    normals[0] = glm::vec3(0.0f, 1.0f, 0.0f);
-    normals[1] = glm::vec3(0.0f, 1.0f, 0.0f);
-    normals[2] = glm::vec3(0.0f, 1.0f, 0.0f);
-    normals[3] = glm::vec3(0.0f, 1.0f, 0.0f);
+    normals[0] = inverseTranspose * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+    normals[1] = inverseTranspose * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+    normals[2] = inverseTranspose * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+    normals[3] = inverseTranspose * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
+    for (auto i = 0; i < 4; i++) {
+        normals[i] = glm::normalize(normals[i]);
+    }
 
     auto *uvs = (glm::vec2 *)rtcSetNewGeometryBuffer(
         mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT2,
@@ -477,8 +497,8 @@ std::vector<int> addModel(const RTCDevice device, const RTCScene rtcScene,
 }
 
 int addSphere(const RTCDevice device, const RTCScene scene, float radius = 1.0f,
-              uint32_t widthSegments = 8, uint32_t heightSegments = 6) {
-    const auto pi = 3.14159265358979323846f;
+              uint32_t widthSegments = 8, uint32_t heightSegments = 6,
+              const glm::mat4 transform = glm::mat4(1.0f)) {
     auto index = 0;
     auto grid = std::vector<std::vector<uint32_t>>();
 
@@ -489,6 +509,8 @@ int addSphere(const RTCDevice device, const RTCScene scene, float radius = 1.0f,
     auto vertices = std::vector<glm::vec3>();
     auto normals = std::vector<glm::vec3>();
     auto uvs = std::vector<glm::vec2>();
+
+    const auto inverseTranspose = glm::transpose(glm::inverse(transform));
 
     for (auto iy = 0; iy <= heightSegments; iy++) {
         auto verticesRow = std::vector<uint32_t>();
@@ -506,11 +528,12 @@ int addSphere(const RTCDevice device, const RTCScene scene, float radius = 1.0f,
 
         for (auto ix = 0; ix <= widthSegments; ix++) {
             auto u = (float)ix / widthSegments;
-            vertex.x = -radius * std::cos(u * 2 * pi) * std::sin(v * pi);
-            vertex.y = radius * std::cos(v * pi);
-            vertex.z = radius * std::sin(u * 2 * pi) * std::sin(v * pi);
+            vertex.x = -radius * std::cos(u * 2 * PI) * std::sin(v * PI);
+            vertex.y = radius * std::cos(v * PI);
+            vertex.z = radius * std::sin(u * 2 * PI) * std::sin(v * PI);
+            vertex = transform * glm::vec4(vertex, 1.0f);
             vertices.push_back(vertex);
-            normal = glm::normalize(vertex);
+            normal = glm::normalize((glm::vec3)(inverseTranspose * glm::vec4(vertex, 1.0f)));
             normals.push_back(normal);
             uvs.push_back(glm::vec2(u + uOffset, 1.0f - v));
             verticesRow.push_back(index++);
@@ -595,26 +618,29 @@ int main(void) {
     auto device = rtcNewDevice("verbose=1");
     auto scene = rtcNewScene(device);
 
-    auto plane = addGroundPlane(device, scene);
+    auto plane = addGroundPlane(device, scene,
+                                glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)) *
+                                    glm::scale(glm::vec3(10.0f)));
     // auto cube = addCube(device, scene);
-    // auto sphere = addSphere(device, scene, 1.8f, 80, 60);
+    auto sphere = addSphere(device, scene, 1.0f, 8, 6);
 
     // add model
-     tinygltf::Model model;
-     tinygltf::TinyGLTF loader;
-     std::string err;
-     std::string warn;
-     const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn,
-     "Buggy.glb"); if (ret) {
-        const auto box = addModel(device, scene, model);
-    }
+    // tinygltf::Model model;
+    // tinygltf::TinyGLTF loader;
+    // std::string err;
+    // std::string warn;
+    // const auto ret =
+    //    loader.LoadBinaryFromFile(&model, &err, &warn, "Buggy.glb");
+    // if (ret) {
+    //    const auto box = addModel(device, scene, model);
+    //}
 
     auto raytracer = RayTracer();
     const auto width = 640u;
     const auto height = 480u;
 
     auto camera = RayTracerCamera(width, height, 120.0f, 0.001f, 1000.0f);
-    const auto eye = glm::vec3(80, 80, -90);
+    const auto eye = glm::vec3(1.5f, 1.5f, -1.5f);
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.lookAt(eye, target, up);
@@ -653,6 +679,8 @@ int main(void) {
 
     glfwMakeContextCurrent(window);
 
+    glfwSetScrollCallback(window, glfwScrollCallback);
+
     // Initialize OpenGL loader
     if (gl3wInit() != 0) {
         return 1;
@@ -676,43 +704,10 @@ int main(void) {
         auto t = glfwGetTime();
         auto dt = t - t0;
         glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
-
         glm::vec2 mouseDelta = mousePos - prevMousePos;
 
-        const auto side = camera.getCameraSide();
-        const auto up = camera.getCameraUp(side);
-        const auto lbtn = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
-        const auto controlSpeed = 1.0f;
-        if (lbtn == GLFW_PRESS) {
-            camera.setCameraDir(glm::rotate(
-                glm::rotate(camera.getCameraDir(), -mouseDelta.y, side),
-                mouseDelta.x, up));
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-            const auto dir = camera.getCameraDir();
-            camera.setCameraOrigin(camera.getCameraOrigin() +
-                                   dir * controlSpeed * dt);
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-            const auto dir = camera.getCameraDir();
-            camera.setCameraOrigin(camera.getCameraOrigin() -
-                                   dir * controlSpeed * dt);
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-            const auto dir = camera.getCameraDir();
-            camera.setCameraOrigin(camera.getCameraOrigin() +
-                                   side * controlSpeed * dt);
-        }
-
-        if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-            const auto dir = camera.getCameraDir();
-            camera.setCameraOrigin(camera.getCameraOrigin() -
-                                   side * controlSpeed * dt);
-        }
-
+        // controllCameraFPS(window, camera, dt, mouseDelta);
+        controllCameraMouse(window, camera, dt, mouseDelta, wheelDelta);
         raytracer.render(scene, camera, pixels.get());
 
         copyPixelsToTexture(pixels.get(), fbo, texture, width, height);
@@ -724,10 +719,13 @@ int main(void) {
                           GL_COLOR_BUFFER_BIT, GL_LINEAR);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
+
+        wheelDelta = glm::dvec2(0.0, 0.0);
+        prevMousePos = mousePos;
+
         glfwSwapBuffers(window);
         glfwPollEvents();
 
-        prevMousePos = mousePos;
         t0 = t;
     }
 

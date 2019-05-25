@@ -57,6 +57,8 @@ add_executable(
     "${PROJECT_SOURCE_DIR}/main.cpp"
     "${PROJECT_SOURCE_DIR}/ray_tracer.cpp"
     "${PROJECT_SOURCE_DIR}/ray_tracer_camera.cpp"
+    "${PROJECT_SOURCE_DIR}/fps_camera_controller.cpp"
+    "${PROJECT_SOURCE_DIR}/mouse_camera_controller.cpp"
     "${PROJECT_SOURCE_DIR}/stb_image.cpp"
     "${PROJECT_SOURCE_DIR}/stb_image_write.cpp"
     "${PROJECT_SOURCE_DIR}/tiny_gltf.cpp"
