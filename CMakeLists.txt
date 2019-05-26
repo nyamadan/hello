@@ -55,6 +55,7 @@ link_directories(
 add_executable(
     hello_embree
     "${PROJECT_SOURCE_DIR}/main.cpp"
+    "${PROJECT_SOURCE_DIR}/geometry.cpp"
     "${PROJECT_SOURCE_DIR}/ray_tracer.cpp"
     "${PROJECT_SOURCE_DIR}/ray_tracer_camera.cpp"
     "${PROJECT_SOURCE_DIR}/fps_camera_controller.cpp"

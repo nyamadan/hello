@@ -9,6 +9,8 @@ class RayTracer {
     const int32_t TILE_SIZE_X = 128;
     const int32_t TILE_SIZE_Y = 128;
 
+	const int32_t aoSample = 0;
+
     glm::vec3 renderPixel(RTCScene scene, const RayTracerCamera &camera,
                           float x, float y);
     void renderTile(RTCScene scene, const RayTracerCamera &camera,

@@ -70,7 +70,7 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
             color = color + diffuse * std::clamp(-glm::dot(lightDir, normal), 0.0f, 1.0f);
         }
 
-        if (true) {
+        if (aoSample > 0) {
             std::random_device rnd;
             std::mt19937 mt(rnd());
             glm::vec3 p;
