@@ -71,38 +71,38 @@ glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
 }
 
 void addGeometryToScene(RTCDevice device, RTCScene scene) {
-    auto plane = addGroundPlane(device, scene,
+     auto plane = addGroundPlane(device, scene,
                                 glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)) *
                                     glm::scale(glm::vec3(10.0f)));
-    auto cube =
-        addCube(device, scene, glm::translate(glm::vec3(-3.0f, 0.0f, 0.0f)));
-    auto sphere = addSphere(device, scene, 1.0f, 8, 6,
-                            glm::translate(glm::vec3(3.0f, 0.0f, 0.0f)));
+    // auto cube =
+    //    addCube(device, scene, glm::translate(glm::vec3(-3.0f, 0.0f, 0.0f)));
+    // auto sphere = addSphere(device, scene, 1.0f, 8, 6,
+    //                        glm::translate(glm::vec3(3.0f, 0.0f, 0.0f)));
 
-    //// add model
-    //tinygltf::Model model;
-    //tinygltf::TinyGLTF loader;
-    //std::string err;
-    //std::string warn;
-    //const auto ret =
-    //    loader.LoadBinaryFromFile(&model, &err, &warn, "Buggy.glb");
-    //if (ret) {
-    //    const auto box = addModel(device, scene, model);
-    //}
+    // add model
+    tinygltf::Model model;
+    tinygltf::TinyGLTF loader;
+    std::string err;
+    std::string warn;
+    const auto ret =
+        loader.LoadBinaryFromFile(&model, &err, &warn, "Box.glb");
+    if (ret) {
+        const auto box = addModel(device, scene, model);
+    }
 }
 
 int main(void) {
     auto device = rtcNewDevice("verbose=1");
     auto scene = rtcNewScene(device);
 
-	addGeometryToScene(device, scene);
+    addGeometryToScene(device, scene);
 
     auto raytracer = RayTracer();
     const auto width = 640u;
     const auto height = 480u;
 
     auto camera = RayTracerCamera(width, height, 120.0f, 0.001f, 1000.0f);
-    const auto eye = glm::vec3(1.5f, 1.5f, -1.5f);
+    const auto eye = glm::vec3(1.0f, 1.0f, -1.0f);
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.lookAt(eye, target, up);

@@ -2,6 +2,7 @@
 #include <embree3/rtcore.h>
 #include <glm/glm.hpp>
 
+#include "xorshift128plus.hpp"
 #include "ray_tracer_camera.hpp"
 
 class RayTracer {
@@ -9,13 +10,13 @@ class RayTracer {
     const int32_t TILE_SIZE_X = 256;
     const int32_t TILE_SIZE_Y = 256;
 
-	const int32_t aoSample = 100;
+    const int32_t aoSample = 10;
 
     glm::vec3 renderPixel(RTCScene scene, const RayTracerCamera &camera,
-                          float x, float y);
+                          xorshift128plus_state &randomState, float x, float y);
     void renderTile(RTCScene scene, const RayTracerCamera &camera,
-                    glm::u8vec3 *pixels, int tileIndex, const int numTilesX,
-                    const int numTilesY);
+                    xorshift128plus_state &randomState, glm::u8vec3 *pixels,
+                    int tileIndex, const int numTilesX, const int numTilesY);
 
   public:
     void render(RTCScene scene, const RayTracerCamera &camera,

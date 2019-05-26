@@ -280,6 +280,32 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
 
         if (primitive.indices < 0) return;
 
+        auto gltfMaterial = model.materials[primitive.material];
+
+        auto baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        auto metallicFactor = 0.5f;
+        for (auto it = gltfMaterial.values.begin();
+             it != gltfMaterial.values.end(); ++it) {
+            const auto &name = it->first;
+            const auto &param = it->second;
+
+            if (name == "baseColorFactor") {
+                switch (param.number_array.size()) {
+                    case 4:
+                        baseColorFactor.a = param.number_array[3];
+                    case 3:
+                        baseColorFactor.b = param.number_array[2];
+                        baseColorFactor.g = param.number_array[1];
+                        baseColorFactor.r = param.number_array[0];
+                        break;
+                }
+            } else if (name == "metallicFactor") {
+                if (param.has_number_value) {
+                    metallicFactor = param.number_value;
+                }
+            }
+        }
+
         auto it(primitive.attributes.begin());
         auto itEnd(primitive.attributes.end());
 
@@ -309,11 +335,11 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
                 indexAccessor.byteOffset + indexBufferView.byteOffset;
             const auto componentType = indexAccessor.componentType;
             const auto normalized = indexAccessor.normalized;
-            const auto buffer =
-                (uint16_t *)(model.buffers[indexBufferView.buffer].data.data() +
-                             byteOffset + byteStride * i);
+            const auto buffer = *(
+                uint16_t *)(model.buffers[indexBufferView.buffer].data.data() +
+                            byteOffset + byteStride * i);
 
-            triangles[i] = *buffer;
+            triangles[i] = buffer;
         }
 
         for (; it != itEnd; it++) {
@@ -469,7 +495,9 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
         auto geomID = rtcAttachGeometry(rtcScene, rtcMesh);
         rtcReleaseGeometry(rtcMesh);
 
-        meshs.push_back(std::make_shared<Mesh>(geomID));
+        meshs.push_back(std::make_shared<Mesh>(
+            geomID,
+            std::make_shared<Material>(baseColorFactor, metallicFactor)));
     }
 }
 

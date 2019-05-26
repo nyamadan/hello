@@ -8,7 +8,26 @@
 #include <embree3/rtcore.h>
 #include <tiny_gltf.h>
 
-class Material {};
+class Material {
+  public:
+    glm::vec4 baseColorFactor;
+    float metallicFactor;
+
+    Material() {
+        this->baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        this->metallicFactor = 0.0f;
+    }
+
+    Material(const glm::vec4& baseColorFactor) {
+        this->baseColorFactor = baseColorFactor;
+        this->metallicFactor = 0.0f;
+    }
+
+    Material(const glm::vec4& baseColorFactor, float metallicFactor) {
+        this->baseColorFactor = baseColorFactor;
+        this->metallicFactor = metallicFactor;
+    }
+};
 
 class Mesh {
   private:
