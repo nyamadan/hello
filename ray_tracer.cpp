@@ -1,8 +1,10 @@
-#include "ray_tracer.hpp"
 #include <tbb/parallel_for.h>
 #include <algorithm>
 #include <glm/ext.hpp>
 #include <random>
+
+#include "xorshift128plus.hpp"
+#include "ray_tracer.hpp"
 
 glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                                  float x, float y) {
@@ -71,18 +73,28 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
         }
 
         if (aoSample > 0) {
-            std::random_device rnd;
-            std::mt19937 mt(rnd());
+            xorshift128plus_state state;
+            state.a = 0x8a5cd789635d2dff;
+            state.b = 0x0000000000000000;
+
+            //std::random_device rnd;
+            //std::mt19937 mt(rnd());
+            //auto randomFloat = std::uniform_real_distribution<float>(0.0f, 1.0f);
+
             glm::vec3 p;
             auto r = 1.0f;
-            auto randomFloat = std::uniform_real_distribution<float>(0.0f, 1.0f);
             auto r2 = r * r;
 
-            auto samples = 100;
             auto hit = 0;
-            for (auto i = 0; i < samples; i++) {
+            for (auto i = 0; i < aoSample; i++) {
                 do {
-                    p = 2.0f * r * glm::vec3(randomFloat(mt), randomFloat(mt), randomFloat(mt)) - glm::vec3(r, r, r);
+                    //p = 2.0f * r * glm::vec3(randomFloat(mt), randomFloat(mt), randomFloat(mt)) - glm::vec3(r, r, r);
+
+                    const auto range = 1.8446744e+19;
+                    p = 2.0f * r * glm::vec3(
+                                (float)(xorshift128plus(&state) / range),
+                                (float)(xorshift128plus(&state) / range),
+                                (float)(xorshift128plus(&state) / range)) - glm::vec3(r, r, r);
                 } while (glm::length2(p) >= r2);
 
                 auto org = hitOrig;
@@ -110,7 +122,7 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                 }
             }
 
-            color = glm::vec3(1.0f - (float)hit / (float)samples);
+            color = glm::vec3(1.0f - (float)hit / (float)aoSample);
         }
     }
 

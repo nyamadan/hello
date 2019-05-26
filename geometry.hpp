@@ -1,5 +1,6 @@
 #pragma once
 
+#include <memory>
 #include <vector>
 
 #include <glm/glm.hpp>
@@ -7,26 +8,55 @@
 #include <embree3/rtcore.h>
 #include <tiny_gltf.h>
 
-int addSphere(const RTCDevice device, const RTCScene scene, float radius = 1.0f,
-              uint32_t widthSegments = 8, uint32_t heightSegments = 6,
-              const glm::mat4 transform = glm::mat4(1.0f));
+class Material {};
+
+class Mesh {
+  private:
+    uint32_t geomId;
+    std::shared_ptr<Material> material;
+
+  public:
+    Mesh() {
+        this->geomId = 0;
+        this->material = nullptr;
+    }
+
+    Mesh(uint32_t geomId) {
+        this->geomId = geomId;
+        this->material = nullptr;
+    }
+
+    Mesh(uint32_t geomId, std::shared_ptr<Material> material) {
+        this->geomId = geomId;
+        this->material = material;
+    }
+
+    uint32_t getGeometryId() const { return this->geomId; }
+    const std::shared_ptr<Material> getMaterial() const { return this->material; }
+};
+
+std::shared_ptr<Mesh> addSphere(const RTCDevice device, const RTCScene scene,
+                                float radius = 1.0f, uint32_t widthSegments = 8,
+                                uint32_t heightSegments = 6,
+                                const glm::mat4 transform = glm::mat4(1.0f));
 
 /* adds a cube to the scene */
-unsigned int addCube(RTCDevice device, RTCScene scene,
-                     glm::mat4 transform = glm::mat4(1.0f));
+std::shared_ptr<Mesh> addCube(RTCDevice device, RTCScene scene,
+                              glm::mat4 transform = glm::mat4(1.0f));
 
 /* adds a ground plane to the scene */
-unsigned int addGroundPlane(RTCDevice device, RTCScene scene,
-                            const glm::mat4 transform = glm::mat4(1.0f));
+std::shared_ptr<Mesh> addGroundPlane(
+    RTCDevice device, RTCScene scene,
+    const glm::mat4 transform = glm::mat4(1.0f));
 
-static void addMesh(const RTCDevice device, const RTCScene rtcScene,
-                    const tinygltf::Model &model,
-                    const tinygltf::Mesh &gltfMesh, const glm::mat4 &world,
-                    std::vector<int> &geomIds);
+void addMesh(const RTCDevice device, const RTCScene rtcScene,
+             const tinygltf::Model &model, const tinygltf::Mesh &gltfMesh,
+             const glm::mat4 &world, std::vector<std::shared_ptr<Mesh>> &meshs);
 
-static void addNode(const RTCDevice device, const RTCScene scene,
-                    const tinygltf::Model &model, const tinygltf::Node &node,
-                    const glm::mat4 world, std::vector<int> &geomIds);
+void addNode(const RTCDevice device, const RTCScene scene,
+             const tinygltf::Model &model, const tinygltf::Node &node,
+             const glm::mat4 world, std::vector<std::shared_ptr<Mesh>> &meshs);
 
-std::vector<int> addModel(const RTCDevice device, const RTCScene rtcScene,
-                          const tinygltf::Model &model);
+std::vector<std::shared_ptr<Mesh>> addModel(const RTCDevice device,
+                                            const RTCScene rtcScene,
+                                            const tinygltf::Model &model);

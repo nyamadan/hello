@@ -6,10 +6,10 @@
 
 class RayTracer {
   private:
-    const int32_t TILE_SIZE_X = 128;
-    const int32_t TILE_SIZE_Y = 128;
+    const int32_t TILE_SIZE_X = 256;
+    const int32_t TILE_SIZE_Y = 256;
 
-	const int32_t aoSample = 0;
+	const int32_t aoSample = 100;
 
     glm::vec3 renderPixel(RTCScene scene, const RayTracerCamera &camera,
                           float x, float y);

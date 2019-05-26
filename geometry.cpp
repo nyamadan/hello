@@ -4,9 +4,10 @@
 
 const auto PI = 3.14159265358979323846f;
 
-int addSphere(const RTCDevice device, const RTCScene scene, float radius,
-              uint32_t widthSegments, uint32_t heightSegments,
-              const glm::mat4 transform) {
+std::shared_ptr<Mesh> addSphere(const RTCDevice device, const RTCScene scene,
+                                float radius, uint32_t widthSegments,
+                                uint32_t heightSegments,
+                                const glm::mat4 transform) {
     auto index = 0;
     auto grid = std::vector<std::vector<uint32_t>>();
 
@@ -20,21 +21,21 @@ int addSphere(const RTCDevice device, const RTCScene scene, float radius,
 
     const auto inverseTranspose = glm::transpose(glm::inverse(transform));
 
-    for (auto iy = 0; iy <= heightSegments; iy++) {
+    for (auto iy = 0; iy <= (int32_t)heightSegments; iy++) {
         auto verticesRow = std::vector<uint32_t>();
 
-        auto v = (float)iy / heightSegments;
+        auto v = (float)iy / (float)heightSegments;
 
-        auto uOffset = 0;
+        auto uOffset = 0.0f;
 
         if (iy == 0) {
-            uOffset = 0.5 / widthSegments;
+            uOffset = 0.5f / (float)widthSegments;
 
         } else if (iy == heightSegments) {
-            uOffset = -0.5 / widthSegments;
+            uOffset = -0.5f / (float)widthSegments;
         }
 
-        for (auto ix = 0; ix <= widthSegments; ix++) {
+        for (auto ix = 0; ix <= (int32_t)widthSegments; ix++) {
             auto u = (float)ix / widthSegments;
             vertex.x = -radius * std::cos(u * 2 * PI) * std::sin(v * PI);
             vertex.y = radius * std::cos(v * PI);
@@ -49,8 +50,8 @@ int addSphere(const RTCDevice device, const RTCScene scene, float radius,
         }
         grid.push_back(verticesRow);
     }
-    for (auto iy = 0; iy < heightSegments; iy++) {
-        for (auto ix = 0; ix < widthSegments; ix++) {
+    for (auto iy = 0; iy < (int32_t)heightSegments; iy++) {
+        for (auto ix = 0; ix < (int32_t)widthSegments; ix++) {
             auto a = grid[iy][ix + 1];
             auto b = grid[iy][ix];
             auto c = grid[iy + 1][ix];
@@ -97,11 +98,13 @@ int addSphere(const RTCDevice device, const RTCScene scene, float radius,
     rtcCommitGeometry(mesh);
     auto geomID = rtcAttachGeometry(scene, mesh);
     rtcReleaseGeometry(mesh);
-    return geomID;
+
+    return std::make_shared<Mesh>(geomID);
 }
 
 /* adds a cube to the scene */
-unsigned int addCube(RTCDevice device, RTCScene scene, glm::mat4 transform) {
+std::shared_ptr<Mesh> addCube(RTCDevice device, RTCScene scene,
+                              glm::mat4 transform) {
     /* create a triangulated cube with 12 triangles and 8 vertices */
     auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
@@ -215,12 +218,12 @@ unsigned int addCube(RTCDevice device, RTCScene scene, glm::mat4 transform) {
     rtcCommitGeometry(mesh);
     auto geomID = rtcAttachGeometry(scene, mesh);
     rtcReleaseGeometry(mesh);
-    return geomID;
+    return std::make_shared<Mesh>(geomID);
 }
 
 /* adds a ground plane to the scene */
-unsigned int addGroundPlane(RTCDevice device, RTCScene scene,
-                            const glm::mat4 transform) {
+std::shared_ptr<Mesh> addGroundPlane(RTCDevice device, RTCScene scene,
+                                     const glm::mat4 transform) {
     /* create a triangulated plane with 2 triangles and 4 vertices */
     auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
@@ -265,13 +268,13 @@ unsigned int addGroundPlane(RTCDevice device, RTCScene scene,
     rtcCommitGeometry(mesh);
     auto geomID = rtcAttachGeometry(scene, mesh);
     rtcReleaseGeometry(mesh);
-    return geomID;
+    return std::make_shared<Mesh>(geomID);
 }
 
-static void addMesh(const RTCDevice device, const RTCScene rtcScene,
-                    const tinygltf::Model &model,
-                    const tinygltf::Mesh &gltfMesh, const glm::mat4 &world,
-                    std::vector<int> &geomIds) {
+void addMesh(const RTCDevice device, const RTCScene rtcScene,
+             const tinygltf::Model &model, const tinygltf::Mesh &gltfMesh,
+             const glm::mat4 &world,
+             std::vector<std::shared_ptr<Mesh>> &meshs) {
     for (size_t i = 0; i < gltfMesh.primitives.size(); i++) {
         const auto &primitive = gltfMesh.primitives[i];
 
@@ -466,13 +469,13 @@ static void addMesh(const RTCDevice device, const RTCScene rtcScene,
         auto geomID = rtcAttachGeometry(rtcScene, rtcMesh);
         rtcReleaseGeometry(rtcMesh);
 
-        geomIds.push_back(geomID);
+        meshs.push_back(std::make_shared<Mesh>(geomID));
     }
 }
 
-static void addNode(const RTCDevice device, const RTCScene scene,
-                    const tinygltf::Model &model, const tinygltf::Node &node,
-                    const glm::mat4 world, std::vector<int> &geomIds) {
+void addNode(const RTCDevice device, const RTCScene scene,
+             const tinygltf::Model &model, const tinygltf::Node &node,
+             const glm::mat4 world, std::vector<std::shared_ptr<Mesh>> &meshs) {
     glm::mat4 matrix(1.0f);
     if (node.matrix.size() == 16) {
         // Use `matrix' attribute
@@ -503,19 +506,20 @@ static void addNode(const RTCDevice device, const RTCScene scene,
 
     if (node.mesh > -1) {
         addMesh(device, scene, model, model.meshes[node.mesh], world * matrix,
-                geomIds);
+                meshs);
     }
 
     // Draw child nodes.
     for (auto i = 0; i < node.children.size(); i++) {
         addNode(device, scene, model, model.nodes[node.children[i]],
-                world * matrix, geomIds);
+                world * matrix, meshs);
     }
 }
 
-std::vector<int> addModel(const RTCDevice device, const RTCScene rtcScene,
-                          const tinygltf::Model &model) {
-    std::vector<int> geomIds;
+std::vector<std::shared_ptr<Mesh>> addModel(const RTCDevice device,
+                                            const RTCScene rtcScene,
+                                            const tinygltf::Model &model) {
+    std::vector<std::shared_ptr<Mesh>> meshs;
     const auto sceneToDisplay =
         model.defaultScene > -1 ? model.defaultScene : 0;
     const tinygltf::Scene &gltfScene = model.scenes[sceneToDisplay];
@@ -523,8 +527,8 @@ std::vector<int> addModel(const RTCDevice device, const RTCScene rtcScene,
     for (size_t i = 0; i < gltfScene.nodes.size(); i++) {
         auto matrix = glm::mat4(1.0f);
         const auto &node = model.nodes[gltfScene.nodes[i]];
-        addNode(device, rtcScene, model, node, matrix, geomIds);
+        addNode(device, rtcScene, model, node, matrix, meshs);
     }
 
-    return geomIds;
+    return meshs;
 }
