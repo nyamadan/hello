@@ -292,16 +292,16 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
             if (name == "baseColorFactor") {
                 switch (param.number_array.size()) {
                     case 4:
-                        baseColorFactor.a = param.number_array[3];
+                        baseColorFactor.a = (float)param.number_array[3];
                     case 3:
-                        baseColorFactor.b = param.number_array[2];
-                        baseColorFactor.g = param.number_array[1];
-                        baseColorFactor.r = param.number_array[0];
+                        baseColorFactor.b = (float)param.number_array[2];
+                        baseColorFactor.g = (float)param.number_array[1];
+                        baseColorFactor.r = (float)param.number_array[0];
                         break;
                 }
             } else if (name == "metallicFactor") {
                 if (param.has_number_value) {
-                    metallicFactor = param.number_value;
+                    metallicFactor = (float)param.number_value;
                 }
             }
         }
@@ -491,13 +491,18 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
                 indexAccessor.count / 2);
         }
 
-        rtcCommitGeometry(rtcMesh);
-        auto geomID = rtcAttachGeometry(rtcScene, rtcMesh);
-        rtcReleaseGeometry(rtcMesh);
+        {
+            auto material = std::make_shared<Material>(baseColorFactor, metallicFactor);
 
-        meshs.push_back(std::make_shared<Mesh>(
-            geomID,
-            std::make_shared<Material>(baseColorFactor, metallicFactor)));
+            rtcSetGeometryUserData(rtcMesh, material.get());
+
+            rtcCommitGeometry(rtcMesh);
+            auto geomID = rtcAttachGeometry(rtcScene, rtcMesh);
+            rtcReleaseGeometry(rtcMesh);
+
+            meshs.push_back(std::make_shared<Mesh>(
+                geomID, material));
+        }
     }
 }
 

@@ -3,6 +3,7 @@
 #include <glm/ext.hpp>
 #include <random>
 
+#include "geometry.hpp"
 #include "ray_tracer.hpp"
 
 glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
@@ -41,9 +42,19 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
 
     if (ray.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
         auto diffuse = glm::vec3(0.0f);
-        rtcInterpolate0(rtcGetGeometry(scene, ray.hit.geomID), ray.hit.primID,
-                        ray.hit.u, ray.hit.v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                        0, glm::value_ptr(diffuse), 3);
+        auto geom = rtcGetGeometry(scene, ray.hit.geomID);
+        auto material = (Material *)rtcGetGeometryUserData(geom);
+
+        //rtcInterpolate0(geom, ray.hit.primID,
+        //                ray.hit.u, ray.hit.v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+        //                0, glm::value_ptr(diffuse), 3);
+
+        if (material != nullptr) {
+            diffuse = material->baseColorFactor;
+        } else {
+            diffuse = glm::vec3(1.0f);
+        }
+
         color = color + diffuse * 0.5f;
 
         glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
@@ -116,7 +127,7 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                 }
             }
 
-            color = glm::vec3(1.0f - (float)hit / (float)aoSample);
+            color = glm::vec3( color * (1.0f - (float)hit / (float)aoSample) );
         }
     }
 
