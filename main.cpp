@@ -5,6 +5,10 @@
 
 #include <glm/ext.hpp>
 
+#include <imgui.h>
+#include <examples/imgui_impl_glfw.h>
+#include <examples/imgui_impl_opengl3.h>
+
 #include "fps_camera_controller.hpp"
 #include "geometry.hpp"
 #include "mouse_camera_controller.hpp"
@@ -108,7 +112,7 @@ int main(void) {
     const auto height = 480u;
 
     auto camera = RayTracerCamera(width, height, 120.0f, 0.001f, 1000.0f);
-    const auto eye = glm::vec3(1.0f, 1.0f, -1.0f);
+    const auto eye = glm::vec3(1.0f, 1.0f, 1.0f) * 100.0f;
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.lookAt(eye, target, up);
@@ -158,6 +162,10 @@ int main(void) {
     EnableOpenGLDebugExtention();
 #endif
 
+    ImGui::SetCurrentContext(ImGui::CreateContext());
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330 core\n");
+
     GLuint texture = 0;
     GLuint fbo = 0;
     glGenFramebuffers(1, &fbo);
@@ -167,8 +175,15 @@ int main(void) {
 
     glm::dvec2 prevMousePos = getWindowMousePos(window, windowSize);
 
+    bool showImGuiDemoWindow = true;
+
     auto t0 = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
+        ImGui_ImplOpenGL3_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        ImGui::ShowDemoWindow(&showImGuiDemoWindow);
+
         auto t = glfwGetTime();
         auto dt = t - t0;
         glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
@@ -180,6 +195,10 @@ int main(void) {
 
         copyPixelsToTexture(pixels.get(), fbo, texture, width, height);
 
+        // Rendering
+        ImGui::Render();
+        glfwMakeContextCurrent(window);
+
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
@@ -188,10 +207,12 @@ int main(void) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
+        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+        glfwMakeContextCurrent(window);
+        glfwSwapBuffers(window);
+
         wheelDelta = glm::dvec2(0.0, 0.0);
         prevMousePos = mousePos;
-
-        glfwSwapBuffers(window);
         glfwPollEvents();
 
         t0 = t;
