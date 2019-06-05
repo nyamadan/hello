@@ -16,7 +16,7 @@
 
 auto wheelDelta = glm::dvec2(0.0, 0.0f);
 
-void glfwErrorCallback(int error, const char *description) {
+void WINAPI glfwErrorCallback(int error, const char *description) {
     fprintf(stderr, "error %d: %s\n", error, description);
 }
 
@@ -182,7 +182,10 @@ int main(void) {
         ImGui_ImplOpenGL3_NewFrame();
         ImGui_ImplGlfw_NewFrame();
         ImGui::NewFrame();
-        ImGui::ShowDemoWindow(&showImGuiDemoWindow);
+
+        if (showImGuiDemoWindow) {
+            ImGui::ShowDemoWindow(&showImGuiDemoWindow);
+        }
 
         auto t = glfwGetTime();
         auto dt = t - t0;
