@@ -9,7 +9,7 @@
             "type": "cppvsdbg",
             "request": "launch",
             "preLaunchTask": "build",
-            "program": "${workspaceFolder}/Build/hello_embree.exe",
+            "program": "${workspaceFolder}/Build/Debug/hello_embree.exe",
             "args": [],
             "stopAtEntry": true,
             "cwd": "${workspaceFolder}",
