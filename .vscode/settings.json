@@ -1,0 +1,8 @@
+{
+  "cmake.configureSettings": {
+    "EMBREE_INCLUDE_DIR": "${workspaceFolder}/Intel/embree-3.5.2.x64.vc14.windows\\include",
+    "EMBREE_LIBRARY_DIR": "${workspaceFolder}/Intel/embree-3.5.2.x64.vc14.windows\\lib",
+    "TBB_INCLUDE_DIR": "${workspaceFolder}/Intel/tbb2019_20190605oss/include",
+    "TBB_LIBRARY_DIR": "${workspaceFolder}/Intel/tbb2019_20190605oss/lib/intel64/vc14",
+  }
+}

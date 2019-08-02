@@ -92,7 +92,9 @@ std::vector<std::shared_ptr<Mesh>> addGeometryToScene(RTCDevice device,
     tinygltf::TinyGLTF loader;
     std::string err;
     std::string warn;
-    const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn, "Buggy.glb");
+
+    const auto buggyGLB = "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb"; 
+    const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn, buggyGLB);
     if (ret) {
         auto x = addModel(device, scene, model);
         v.insert(v.cend(), x.cbegin(), x.cend());
@@ -102,7 +104,11 @@ std::vector<std::shared_ptr<Mesh>> addGeometryToScene(RTCDevice device,
 }
 
 int main(void) {
+#ifdef NDEBUG
+    auto device = rtcNewDevice(nullptr);
+#else
     auto device = rtcNewDevice("verbose=1");
+#endif
     auto scene = rtcNewScene(device);
 
     auto meshs = addGeometryToScene(device, scene);

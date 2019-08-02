@@ -1,4 +1,10 @@
-*.dll
+### Embree
+/Intel
+/embree3.dll
+/tbb*.dll
+
+### Imgui
+/imgui.ini
 
 ### CMake
 

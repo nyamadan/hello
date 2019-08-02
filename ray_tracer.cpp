@@ -174,7 +174,7 @@ void RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
 
     tbb::parallel_for(size_t(0), size_t(numTilesX * numTilesY),
                       [&](size_t tileIndex) {
-                          std::mt19937 mt(tileIndex);
+                          std::mt19937 mt(static_cast<unsigned int>(tileIndex));
                           auto randomInt64 = std::uniform_int<int64_t>(1, INT64_MAX);
 
                           xorshift128plus_state randomState;
@@ -182,6 +182,6 @@ void RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
                           randomState.b = 0;
 
                           renderTile(scene, camera, randomState, pixels,
-                                     tileIndex, numTilesX, numTilesY);
+                                     static_cast<int>(tileIndex), numTilesX, numTilesY);
                       });
 }
