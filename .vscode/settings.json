@@ -1,4 +1,6 @@
 {
+  "cmake.generator": "Ninja",
+  "cmake.buildArgs": ["-w", "dupbuild=warn"],
   "cmake.configureSettings": {
     "EMBREE_INCLUDE_DIR": "${workspaceFolder}/Intel/embree-3.5.2.x64.vc14.windows\\include",
     "EMBREE_LIBRARY_DIR": "${workspaceFolder}/Intel/embree-3.5.2.x64.vc14.windows\\lib",

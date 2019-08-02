@@ -27,7 +27,13 @@ if(NOT TBB_LIBRARY_DIR)
     message(FATAL_ERROR "REQUIRED: TBB_LIBRARY_DIR") 
 endif()
 
+execute_process(
+  COMMAND "python" "gl3w_gen.py"
+  WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/gl3w"
+)
+
 add_subdirectory("${PROJECT_SOURCE_DIR}/glfw")
+
 include_directories(
     "${EMBREE_INCLUDE_DIR}"
     "${TBB_INCLUDE_DIR}"
