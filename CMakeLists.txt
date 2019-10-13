@@ -77,6 +77,5 @@ target_link_libraries(hello_embree glfw
     "${EMBREE_LIBRARY_DIR}/embree3.lib"
     "${TBB_LIBRARY_DIR}/tbb.lib"
 )
-
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
