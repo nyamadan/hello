@@ -6,6 +6,7 @@
 #include <glm/ext.hpp>
 
 #include <imgui.h>
+
 #include <examples/imgui_impl_glfw.h>
 #include <examples/imgui_impl_opengl3.h>
 
@@ -74,18 +75,22 @@ glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
     return glm::dvec2(aspect * (x / size.x - 0.5f), 1.0f - y / size.y);
 }
 
-std::vector<std::shared_ptr<Mesh>> addGeometryToScene(RTCDevice device,
-                                                        RTCScene scene) {
+const std::vector<std::shared_ptr<const Mesh>> addGeometryToScene(
+    RTCDevice device, RTCScene scene) {
+    std::vector<std::shared_ptr<const Mesh>> meshs;
+
     auto plane = addGroundPlane(device, scene,
                                 glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)) *
                                     glm::scale(glm::vec3(10.0f)));
-    std::vector<std::shared_ptr<Mesh>> v;
+    meshs.insert(meshs.cend(), plane);
+
     auto cube =
         addCube(device, scene, glm::translate(glm::vec3(-3.0f, 0.0f, 0.0f)));
-    v.insert(v.cend(), cube);
+    meshs.insert(meshs.cend(), cube);
+
     auto sphere = addSphere(device, scene, 1.0f, 8, 6,
                             glm::translate(glm::vec3(3.0f, 0.0f, 0.0f)));
-    v.insert(v.cend(), sphere);
+    meshs.insert(meshs.cend(), sphere);
 
     // add model
     tinygltf::Model model;
@@ -93,14 +98,23 @@ std::vector<std::shared_ptr<Mesh>> addGeometryToScene(RTCDevice device,
     std::string err;
     std::string warn;
 
-    const auto buggyGLB = "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb"; 
+    const auto buggyGLB = "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb";
     const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn, buggyGLB);
     if (ret) {
-        auto x = addModel(device, scene, model);
-        v.insert(v.cend(), x.cbegin(), x.cend());
+        const auto x = addModel(device, scene, model);
+        meshs.insert(meshs.cend(), x.cbegin(), x.cend());
     }
 
-    return v;
+    return std::move(meshs);
+}
+
+void detachAllMeshGeometry(
+    RTCScene scene, const std::vector<std::shared_ptr<const Mesh>> &meshs) {
+    for (auto it = meshs.cbegin(); it != meshs.cend(); it++) {
+        const auto pMesh = *it;
+        auto geomId = pMesh->getGeometryId();
+        rtcDetachGeometry(scene, geomId);
+    }
 }
 
 int main(void) {
@@ -111,7 +125,7 @@ int main(void) {
 #endif
     auto scene = rtcNewScene(device);
 
-    auto meshs = addGeometryToScene(device, scene);
+    auto &meshs = addGeometryToScene(device, scene);
 
     auto raytracer = RayTracer();
     const auto width = 640u;
@@ -181,7 +195,7 @@ int main(void) {
 
     glm::dvec2 prevMousePos = getWindowMousePos(window, windowSize);
 
-    bool showImGuiDemoWindow = true;
+    bool showImGuiDemoWindow = false;
 
     auto t0 = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
@@ -191,6 +205,19 @@ int main(void) {
 
         if (showImGuiDemoWindow) {
             ImGui::ShowDemoWindow(&showImGuiDemoWindow);
+        }
+
+        if (ImGui::BeginMainMenuBar()) {
+            if (ImGui::BeginMenu("File")) {
+                if (ImGui::MenuItem("Open", "Ctrl+O")) {
+                }
+                if (ImGui::MenuItem("Save", "Ctrl+S")) {
+                }
+                if (ImGui::MenuItem("Quit", "Alt+F4")) {
+                }
+                ImGui::EndMenu();
+            }
+            ImGui::EndMainMenuBar();
         }
 
         auto t = glfwGetTime();
@@ -217,6 +244,7 @@ int main(void) {
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
         ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+
         glfwMakeContextCurrent(window);
         glfwSwapBuffers(window);
 
@@ -227,12 +255,16 @@ int main(void) {
         t0 = t;
     }
 
+    detachAllMeshGeometry(scene, meshs);
+    rtcCommitScene(scene);
+
+    rtcReleaseScene(scene);
+    rtcReleaseDevice(device);
+
     glDeleteFramebuffers(1, &fbo);
     glDeleteTextures(1, &texture);
 
     glfwTerminate();
 
-    rtcReleaseScene(scene);
-    rtcReleaseDevice(device);
     return 0;
 }
