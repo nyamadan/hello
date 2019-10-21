@@ -5,7 +5,6 @@
 void controllCameraMouse(GLFWwindow *window, RayTracerCamera &camera,
                          float deltaT, const glm::vec2 &mouseDelta,
                          const glm::vec2 &scrollDelta) {
-    const auto lbtn = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_LEFT);
     const auto rbtn = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
 
     const auto side = camera.getCameraSide();
