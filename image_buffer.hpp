@@ -13,12 +13,7 @@ class ImageBuffer {
     uint32_t height;
 
   public:
-    ImageBuffer(uint32_t width, uint32_t height) {
-        this->width = width;
-        this->height = height;
-        this->buffer = std::shared_ptr<glm::u8vec3[]>(
-            new glm::u8vec3[(uint64_t)width * height]);
-    }
+    ImageBuffer(uint32_t width, uint32_t height);
 
     auto getWidth() const { return this->width; }
 

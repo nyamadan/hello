@@ -6,12 +6,14 @@
 
 #include <glm/ext.hpp>
 
+#include <stb_image_write.h>
+
+#include "debug_gui.hpp"
 #include "fps_camera_controller.hpp"
 #include "geometry.hpp"
+#include "image_buffer.hpp"
 #include "mouse_camera_controller.hpp"
 #include "ray_tracer.hpp"
-#include "image_buffer.hpp"
-#include "debug_gui.hpp"
 
 auto wheelDelta = glm::dvec2(0.0, 0.0f);
 
@@ -73,8 +75,8 @@ glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
     return glm::dvec2(aspect * (x / size.x - 0.5f), 1.0f - y / size.y);
 }
 
-const std::list<std::shared_ptr<const Mesh>> addGeometryToScene(
-    RTCDevice device, RTCScene scene) {
+const std::list<std::shared_ptr<const Mesh>> addMeshsToScene(RTCDevice device,
+                                                             RTCScene scene) {
     std::list<std::shared_ptr<const Mesh>> meshs;
 
     auto plane = addGroundPlane(device, scene,
@@ -106,8 +108,8 @@ const std::list<std::shared_ptr<const Mesh>> addGeometryToScene(
     return std::move(meshs);
 }
 
-void detachMeshList(
-    RTCScene scene, const std::list<std::shared_ptr<const Mesh>> &meshs) {
+void detachMeshs(RTCScene scene,
+                 const std::list<std::shared_ptr<const Mesh>> &meshs) {
     for (auto it = meshs.cbegin(); it != meshs.cend(); it++) {
         const auto pMesh = *it;
         auto geomId = pMesh->getGeometryId();
@@ -128,7 +130,7 @@ int main(void) {
 #endif
     auto scene = rtcNewScene(device);
 
-    auto &meshs = addGeometryToScene(device, scene);
+    auto &meshs = addMeshsToScene(device, scene);
 
     auto image = std::shared_ptr<ImageBuffer>(new ImageBuffer(width, height));
     auto raytracer = RayTracer();
@@ -220,6 +222,22 @@ int main(void) {
 
         glfwSwapBuffers(window);
 
+        {
+            auto path = debugGui->pullSavingImagePath();
+            if (!path.empty()) {
+                stbi_flip_vertically_on_write(true);
+                stbi_write_png(
+                    path.c_str(), image->getWidth(), image->getHeight(), 3,
+                    image->GetReadonlyBuffer(), 3 * image->getWidth());
+            }
+        }
+
+        {
+            auto path = debugGui->pullOpeningGLBPath();
+            if (!path.empty()) {
+            }
+        }
+
         wheelDelta = glm::dvec2(0.0, 0.0);
         prevMousePos = mousePos;
         glfwPollEvents();
@@ -227,7 +245,7 @@ int main(void) {
         t0 = t;
     }
 
-    detachMeshList(scene, meshs);
+    detachMeshs(scene, meshs);
     rtcCommitScene(scene);
 
     rtcReleaseScene(scene);
