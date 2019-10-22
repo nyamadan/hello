@@ -73,9 +73,9 @@ glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
     return glm::dvec2(aspect * (x / size.x - 0.5f), 1.0f - y / size.y);
 }
 
-const std::vector<std::shared_ptr<const Mesh>> addGeometryToScene(
+const std::list<std::shared_ptr<const Mesh>> addGeometryToScene(
     RTCDevice device, RTCScene scene) {
-    std::vector<std::shared_ptr<const Mesh>> meshs;
+    std::list<std::shared_ptr<const Mesh>> meshs;
 
     auto plane = addGroundPlane(device, scene,
                                 glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)) *
@@ -107,7 +107,7 @@ const std::vector<std::shared_ptr<const Mesh>> addGeometryToScene(
 }
 
 void detachMeshList(
-    RTCScene scene, const std::vector<std::shared_ptr<const Mesh>> &meshs) {
+    RTCScene scene, const std::list<std::shared_ptr<const Mesh>> &meshs) {
     for (auto it = meshs.cbegin(); it != meshs.cend(); it++) {
         const auto pMesh = *it;
         auto geomId = pMesh->getGeometryId();
@@ -138,8 +138,6 @@ int main(void) {
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.lookAt(eye, target, up);
-
-    detachMeshList(scene, meshs);
 
     rtcCommitScene(scene);
 
