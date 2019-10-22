@@ -1,7 +1,7 @@
 #pragma once
 
+#include <list>
 #include <memory>
-#include <vector>
 
 #include <glm/glm.hpp>
 
@@ -56,14 +56,14 @@ class Mesh {
     }
 };
 
-std::shared_ptr<const Mesh> addSphere(const RTCDevice device, const RTCScene scene,
-                                float radius = 1.0f, uint32_t widthSegments = 8,
-                                uint32_t heightSegments = 6,
-                                const glm::mat4 transform = glm::mat4(1.0f));
+std::shared_ptr<const Mesh> addSphere(
+    const RTCDevice device, const RTCScene scene, float radius = 1.0f,
+    uint32_t widthSegments = 8, uint32_t heightSegments = 6,
+    const glm::mat4 transform = glm::mat4(1.0f));
 
 /* adds a cube to the scene */
 std::shared_ptr<const Mesh> addCube(RTCDevice device, RTCScene scene,
-                              glm::mat4 transform = glm::mat4(1.0f));
+                                    glm::mat4 transform = glm::mat4(1.0f));
 
 /* adds a ground plane to the scene */
 std::shared_ptr<const Mesh> addGroundPlane(
@@ -72,12 +72,12 @@ std::shared_ptr<const Mesh> addGroundPlane(
 
 void addMesh(const RTCDevice device, const RTCScene rtcScene,
              const tinygltf::Model &model, const tinygltf::Mesh &gltfMesh,
-             const glm::mat4 &world, std::vector<std::shared_ptr<Mesh>> &meshs);
+             const glm::mat4 &world, std::list<std::shared_ptr<Mesh>> &meshs);
 
 void addNode(const RTCDevice device, const RTCScene scene,
              const tinygltf::Model &model, const tinygltf::Node &node,
-             const glm::mat4 world, std::vector<std::shared_ptr<Mesh>> &meshs);
+             const glm::mat4 world, std::list<std::shared_ptr<Mesh>> &meshs);
 
-std::vector<std::shared_ptr<const Mesh>> addModel(const RTCDevice device,
-                                                  const RTCScene rtcScene,
-                                                  const tinygltf::Model &model);
+std::list<std::shared_ptr<const Mesh>> addModel(const RTCDevice device,
+                                                const RTCScene rtcScene,
+                                                const tinygltf::Model &model);

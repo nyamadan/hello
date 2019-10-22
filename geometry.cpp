@@ -275,7 +275,7 @@ std::shared_ptr<const Mesh> addGroundPlane(RTCDevice device, RTCScene scene,
 void addMesh(const RTCDevice device, const RTCScene rtcScene,
              const tinygltf::Model &model, const tinygltf::Mesh &gltfMesh,
              const glm::mat4 &world,
-             std::vector<std::shared_ptr<const Mesh>> &meshs) {
+             std::list<std::shared_ptr<const Mesh>> &meshs) {
     for (size_t i = 0; i < gltfMesh.primitives.size(); i++) {
         const auto &primitive = gltfMesh.primitives[i];
 
@@ -509,7 +509,7 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
 void addNode(const RTCDevice device, const RTCScene scene,
              const tinygltf::Model &model, const tinygltf::Node &node,
              const glm::mat4 world,
-             std::vector<std::shared_ptr<const Mesh>> &meshs) {
+             std::list<std::shared_ptr<const Mesh>> &meshs) {
     glm::mat4 matrix(1.0f);
     if (node.matrix.size() == 16) {
         // Use `matrix' attribute
@@ -550,10 +550,10 @@ void addNode(const RTCDevice device, const RTCScene scene,
     }
 }
 
-std::vector<std::shared_ptr<const Mesh>> addModel(
-    const RTCDevice device, const RTCScene rtcScene,
-    const tinygltf::Model &model) {
-    std::vector<std::shared_ptr<const Mesh>> meshs;
+std::list<std::shared_ptr<const Mesh>> addModel(const RTCDevice device,
+                                                const RTCScene rtcScene,
+                                                const tinygltf::Model &model) {
+    std::list<std::shared_ptr<const Mesh>> meshs;
     const auto sceneToDisplay =
         model.defaultScene > -1 ? model.defaultScene : 0;
     const tinygltf::Scene &gltfScene = model.scenes[sceneToDisplay];
