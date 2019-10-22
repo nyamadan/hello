@@ -75,8 +75,8 @@ glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
     return glm::dvec2(aspect * (x / size.x - 0.5f), 1.0f - y / size.y);
 }
 
-const std::list<std::shared_ptr<const Mesh>> addMeshsToScene(RTCDevice device,
-                                                             RTCScene scene) {
+const std::list<std::shared_ptr<const Mesh>> addMeshsToScene(
+    RTCDevice device, RTCScene scene, const char const *path) {
     std::list<std::shared_ptr<const Mesh>> meshs;
 
     auto plane = addGroundPlane(device, scene,
@@ -98,8 +98,7 @@ const std::list<std::shared_ptr<const Mesh>> addMeshsToScene(RTCDevice device,
     std::string err;
     std::string warn;
 
-    const auto buggyGLB = "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb";
-    const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn, buggyGLB);
+    const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn, path);
     if (ret) {
         const auto x = addModel(device, scene, model);
         meshs.insert(meshs.cend(), x.cbegin(), x.cend());
@@ -109,11 +108,39 @@ const std::list<std::shared_ptr<const Mesh>> addMeshsToScene(RTCDevice device,
 }
 
 void detachMeshs(RTCScene scene,
-                 const std::list<std::shared_ptr<const Mesh>> &meshs) {
+                 std::list<std::shared_ptr<const Mesh>> &meshs) {
     for (auto it = meshs.cbegin(); it != meshs.cend(); it++) {
         const auto pMesh = *it;
         auto geomId = pMesh->getGeometryId();
         rtcDetachGeometry(scene, geomId);
+    }
+
+    meshs.clear();
+}
+
+void handleDebugOperation(RTCDevice device, RTCScene scene,
+                          std::shared_ptr<DebugGUI> debugGui,
+                          std::shared_ptr<const ImageBuffer> image,
+                          std::list<std::shared_ptr<const Mesh>> &meshs) {
+    {
+        auto path = debugGui->pullSavingImagePath();
+        if (!path.empty()) {
+            stbi_flip_vertically_on_write(true);
+            stbi_write_png(path.c_str(), image->getWidth(), image->getHeight(),
+                           image->getChannels(), image->GetReadonlyBuffer(),
+                           image->getChannels() * image->getWidth());
+        }
+    }
+
+    {
+        auto path = debugGui->pullOpeningGLBPath();
+        if (!path.empty()) {
+            detachMeshs(scene, meshs);
+
+            meshs = addMeshsToScene(device, scene, path.c_str());
+
+            rtcCommitScene(scene);
+        }
     }
 }
 
@@ -130,7 +157,8 @@ int main(void) {
 #endif
     auto scene = rtcNewScene(device);
 
-    auto &meshs = addMeshsToScene(device, scene);
+    const auto buggyGLB = "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb";
+    auto meshs = addMeshsToScene(device, scene, buggyGLB);
 
     auto image = std::shared_ptr<ImageBuffer>(new ImageBuffer(width, height));
     auto raytracer = RayTracer();
@@ -222,21 +250,7 @@ int main(void) {
 
         glfwSwapBuffers(window);
 
-        {
-            auto path = debugGui->pullSavingImagePath();
-            if (!path.empty()) {
-                stbi_flip_vertically_on_write(true);
-                stbi_write_png(
-                    path.c_str(), image->getWidth(), image->getHeight(), 3,
-                    image->GetReadonlyBuffer(), 3 * image->getWidth());
-            }
-        }
-
-        {
-            auto path = debugGui->pullOpeningGLBPath();
-            if (!path.empty()) {
-            }
-        }
+        handleDebugOperation(device, scene, debugGui, image, meshs);
 
         wheelDelta = glm::dvec2(0.0, 0.0);
         prevMousePos = mousePos;

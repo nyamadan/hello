@@ -14,12 +14,9 @@ class ImageBuffer {
 
   public:
     ImageBuffer(uint32_t width, uint32_t height);
-
+    auto getChannels() const { return 3; }
     auto getWidth() const { return this->width; }
-
     auto getHeight() const { return this->height; }
-
     auto getBuffer() { return this->buffer.get(); }
-
     const auto GetReadonlyBuffer() const { return this->buffer.get(); }
 };
