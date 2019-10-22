@@ -1,19 +1,17 @@
-#include <stb_image_write.h>
 #include <tbb/parallel_for.h>
 
 #include <GL/gl3w.h>
 
+#include <glm/glm.hpp>
+
 #include <glm/ext.hpp>
-
-#include <imgui.h>
-
-#include <examples/imgui_impl_glfw.h>
-#include <examples/imgui_impl_opengl3.h>
 
 #include "fps_camera_controller.hpp"
 #include "geometry.hpp"
 #include "mouse_camera_controller.hpp"
 #include "ray_tracer.hpp"
+#include "image_buffer.hpp"
+#include "debug_gui.hpp"
 
 auto wheelDelta = glm::dvec2(0.0, 0.0f);
 
@@ -108,7 +106,7 @@ const std::vector<std::shared_ptr<const Mesh>> addGeometryToScene(
     return std::move(meshs);
 }
 
-void detachAllMeshGeometry(
+void detachMeshList(
     RTCScene scene, const std::vector<std::shared_ptr<const Mesh>> &meshs) {
     for (auto it = meshs.cbegin(); it != meshs.cend(); it++) {
         const auto pMesh = *it;
@@ -118,6 +116,11 @@ void detachAllMeshGeometry(
 }
 
 int main(void) {
+    const auto width = 640u;
+    const auto height = 480u;
+
+    auto debugGui = std::make_shared<DebugGUI>();
+
 #ifdef NDEBUG
     auto device = rtcNewDevice(nullptr);
 #else
@@ -127,9 +130,8 @@ int main(void) {
 
     auto &meshs = addGeometryToScene(device, scene);
 
+    auto image = std::shared_ptr<ImageBuffer>(new ImageBuffer(width, height));
     auto raytracer = RayTracer();
-    const auto width = 640u;
-    const auto height = 480u;
 
     auto camera = RayTracerCamera(width, height, 120.0f, 0.001f, 1000.0f);
     const auto eye = glm::vec3(1.0f, 1.0f, 1.0f) * 100.0f;
@@ -137,15 +139,11 @@ int main(void) {
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.lookAt(eye, target, up);
 
+    detachMeshList(scene, meshs);
+
     rtcCommitScene(scene);
 
-    auto pixels = std::make_unique<glm::u8vec3[]>(width * height);
-
-    raytracer.render(scene, camera, pixels.get());
-
-    stbi_flip_vertically_on_write(true);
-    stbi_write_png("hello_embree.png", width, height, 3, pixels.get(),
-                   3 * width);
+    raytracer.render(scene, camera, image->getBuffer());
 
     if (!glfwInit()) return -1;
 
@@ -182,9 +180,7 @@ int main(void) {
     EnableOpenGLDebugExtention();
 #endif
 
-    ImGui::SetCurrentContext(ImGui::CreateContext());
-    ImGui_ImplGlfw_InitForOpenGL(window, true);
-    ImGui_ImplOpenGL3_Init("#version 330 core\n");
+    debugGui->setup(window, image);
 
     GLuint texture = 0;
     GLuint fbo = 0;
@@ -195,30 +191,9 @@ int main(void) {
 
     glm::dvec2 prevMousePos = getWindowMousePos(window, windowSize);
 
-    bool showImGuiDemoWindow = false;
-
     auto t0 = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
-        ImGui_ImplOpenGL3_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-
-        if (showImGuiDemoWindow) {
-            ImGui::ShowDemoWindow(&showImGuiDemoWindow);
-        }
-
-        if (ImGui::BeginMainMenuBar()) {
-            if (ImGui::BeginMenu("File")) {
-                if (ImGui::MenuItem("Open", "Ctrl+O")) {
-                }
-                if (ImGui::MenuItem("Save", "Ctrl+S")) {
-                }
-                if (ImGui::MenuItem("Quit", "Alt+F4")) {
-                }
-                ImGui::EndMenu();
-            }
-            ImGui::EndMainMenuBar();
-        }
+        debugGui->beginFrame();
 
         auto t = glfwGetTime();
         auto dt = t - t0;
@@ -227,12 +202,11 @@ int main(void) {
 
         // controllCameraFPS(window, camera, dt, mouseDelta);
         controllCameraMouse(window, camera, (float)dt, mouseDelta, wheelDelta);
-        raytracer.render(scene, camera, pixels.get());
+        raytracer.render(scene, camera, image->getBuffer());
 
-        copyPixelsToTexture(pixels.get(), fbo, texture, width, height);
+        copyPixelsToTexture(image->getBuffer(), fbo, texture, width, height);
 
         // Rendering
-        ImGui::Render();
         glfwMakeContextCurrent(window);
 
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -242,10 +216,10 @@ int main(void) {
                           GL_COLOR_BUFFER_BIT, GL_LINEAR);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-
-        ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
         glfwMakeContextCurrent(window);
+
+        debugGui->renderFrame();
+
         glfwSwapBuffers(window);
 
         wheelDelta = glm::dvec2(0.0, 0.0);
@@ -255,7 +229,7 @@ int main(void) {
         t0 = t;
     }
 
-    detachAllMeshGeometry(scene, meshs);
+    detachMeshList(scene, meshs);
     rtcCommitScene(scene);
 
     rtcReleaseScene(scene);

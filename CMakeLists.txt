@@ -54,6 +54,7 @@ link_directories(
 add_executable(
     hello_embree
     "${PROJECT_SOURCE_DIR}/main.cpp"
+    "${PROJECT_SOURCE_DIR}/debug_gui.cpp"
     "${PROJECT_SOURCE_DIR}/xorshift128plus.cpp"
     "${PROJECT_SOURCE_DIR}/geometry.cpp"
     "${PROJECT_SOURCE_DIR}/ray_tracer.cpp"
