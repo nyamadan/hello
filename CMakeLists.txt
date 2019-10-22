@@ -43,6 +43,7 @@ include_directories(
     "${PROJECT_SOURCE_DIR}/glfw/include"
     "${PROJECT_SOURCE_DIR}/tinygltf"
     "${PROJECT_SOURCE_DIR}/imgui"
+    "${PROJECT_SOURCE_DIR}/nativefiledialog/src/include"
 )
 
 link_directories(
@@ -76,6 +77,7 @@ add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 target_link_libraries(hello_embree glfw
     "${EMBREE_LIBRARY_DIR}/embree3.lib"
     "${TBB_LIBRARY_DIR}/tbb.lib"
+    "${PROJECT_SOURCE_DIR}/nfd.lib"
 )
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

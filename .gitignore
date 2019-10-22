@@ -9,6 +9,9 @@
 ### Imgui
 /imgui.ini
 
+### nfd
+nfd.lib
+
 ### CMake
 
 CMakeLists.txt.user
