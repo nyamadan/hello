@@ -1,31 +1,44 @@
 cmake_minimum_required(VERSION 3.0.0)
+project(hello_embree VERSION 0.1.0)
+set(CPACK_PROJECT_NAME ${PROJECT_NAME})
+set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 
 enable_language(CXX)
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-project(hello_embree VERSION 0.1.0)
+include(ExternalProject)
 
-if(NOT EMBREE_INCLUDE_DIR)
-    set(EMBREE_INCLUDE_DIR "EMBREE_INCLUDE_DIR-NOTFOUND" CACHE PATH "EMBREE_INCLUDE_DIR")
-    message(FATAL_ERROR "REQUIRED: EMBREE_INCLUDE_DIR") 
-endif()
+set(EXTERNAL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external)
+set(EMBREE_DIR ${EXTERNAL_DIR}/src/embree)
+set(EMBREE_LIBRARY_DIR ${EMBREE_DIR}/lib)
+set(EMBREE_BINARY_DIR ${EMBREE_DIR}/bin)
+set(EMBREE_INCLUDE_DIR ${EMBREE_DIR}/include)
+set(TBB_DIR ${EXTERNAL_DIR}/src/tbb/tbb)
+set(TBB_LIBRARY_DIR ${TBB_DIR}/lib/intel64/vc14)
+set(TBB_BINARY_DIR ${TBB_DIR}/bin/intel64/vc14)
+set(TBB_INCLUDE_DIR ${TBB_DIR}/include)
 
-if(NOT EMBREE_LIBRARY_DIR)
-    set(EMBREE_LIBRARY_DIR "EMBREE_LIBRARY_DIR-NOTFOUND" CACHE PATH "EMBREE_LIBRARY_DIR")
-    message(FATAL_ERROR "REQUIRED: EMBREE_LIBRARY_DIR") 
-endif()
+ExternalProject_Add(embree
+    PREFIX              ${EXTERNAL_DIR}
+    URL                 https://github.com/embree/embree/releases/download/v3.10.0/embree-3.10.0.x64.vc14.windows.zip
+    BUILD_IN_SOURCE     True
+    UPDATE_COMMAND      ""
+    CONFIGURE_COMMAND   ""
+    BUILD_COMMAND       ""
+    INSTALL_COMMAND     COMMAND ${CMAKE_COMMAND} -E copy "${EMBREE_BINARY_DIR}/embree3.dll" "${PROJECT_SOURCE_DIR}/"
+)
 
-if(NOT TBB_INCLUDE_DIR)
-    set(TBB_INCLUDE_DIR "TBB_INCLUDE_DIR-NOTFOUND" CACHE PATH "TBB_INCLUDE_DIR")
-    message(FATAL_ERROR "REQUIRED: TBB_INCLUDE_DIR") 
-endif()
-
-if(NOT TBB_LIBRARY_DIR)
-    set(TBB_LIBRARY_DIR "TBB_LIBRARY_DIR-NOTFOUND" CACHE PATH "TBB_LIBRARY_DIR")
-    message(FATAL_ERROR "REQUIRED: TBB_LIBRARY_DIR") 
-endif()
+ExternalProject_Add(tbb
+    PREFIX              ${EXTERNAL_DIR}
+    URL                 https://github.com/oneapi-src/oneTBB/releases/download/v2020.2/tbb-2020.2-win.zip
+    BUILD_IN_SOURCE     True
+    UPDATE_COMMAND      ""
+    CONFIGURE_COMMAND   ""
+    BUILD_COMMAND       ""
+    INSTALL_COMMAND     COMMAND ${CMAKE_COMMAND} -E copy "${TBB_BINARY_DIR}/tbb.dll" "${TBB_BINARY_DIR}/tbb_debug.dll" "${PROJECT_SOURCE_DIR}/"
+)
 
 execute_process(
   COMMAND "python" "gl3w_gen.py"
@@ -74,10 +87,5 @@ add_executable(
 )
 
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
-
-target_link_libraries(hello_embree glfw
-    "${EMBREE_LIBRARY_DIR}/embree3.lib"
-    "${TBB_LIBRARY_DIR}/tbb.lib"
-)
-set(CPACK_PROJECT_NAME ${PROJECT_NAME})
-set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
+add_dependencies(hello_embree glfw embree tbb)
+target_link_libraries(hello_embree glfw embree3)
