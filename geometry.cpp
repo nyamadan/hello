@@ -4,11 +4,9 @@
 
 const auto PI = 3.14159265358979323846f;
 
-std::shared_ptr<const Mesh> addSphere(const RTCDevice device,
-                                      const RTCScene scene, float radius,
-                                      uint32_t widthSegments,
-                                      uint32_t heightSegments,
-                                      const glm::mat4 transform) {
+ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
+                        float radius, uint32_t widthSegments,
+                        uint32_t heightSegments, const glm::mat4 transform) {
     auto index = 0;
     auto grid = std::vector<std::vector<uint32_t>>();
 
@@ -104,8 +102,7 @@ std::shared_ptr<const Mesh> addSphere(const RTCDevice device,
 }
 
 /* adds a cube to the scene */
-std::shared_ptr<const Mesh> addCube(RTCDevice device, RTCScene scene,
-                                    glm::mat4 transform) {
+ConstantPMesh addCube(RTCDevice device, RTCScene scene, glm::mat4 transform) {
     /* create a triangulated cube with 12 triangles and 8 vertices */
     auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
@@ -223,8 +220,8 @@ std::shared_ptr<const Mesh> addCube(RTCDevice device, RTCScene scene,
 }
 
 /* adds a ground plane to the scene */
-std::shared_ptr<const Mesh> addGroundPlane(RTCDevice device, RTCScene scene,
-                                           const glm::mat4 transform) {
+ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
+                             const glm::mat4 transform) {
     /* create a triangulated plane with 2 triangles and 4 vertices */
     auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
@@ -274,8 +271,7 @@ std::shared_ptr<const Mesh> addGroundPlane(RTCDevice device, RTCScene scene,
 
 void addMesh(const RTCDevice device, const RTCScene rtcScene,
              const tinygltf::Model &model, const tinygltf::Mesh &gltfMesh,
-             const glm::mat4 &world,
-             std::list<std::shared_ptr<const Mesh>> &meshs) {
+             const glm::mat4 &world, ConstantPMeshList &meshs) {
     for (size_t i = 0; i < gltfMesh.primitives.size(); i++) {
         const auto &primitive = gltfMesh.primitives[i];
 
@@ -508,8 +504,7 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
 
 void addNode(const RTCDevice device, const RTCScene scene,
              const tinygltf::Model &model, const tinygltf::Node &node,
-             const glm::mat4 world,
-             std::list<std::shared_ptr<const Mesh>> &meshs) {
+             const glm::mat4 world, ConstantPMeshList &meshs) {
     glm::mat4 matrix(1.0f);
     if (node.matrix.size() == 16) {
         // Use `matrix' attribute
@@ -550,10 +545,9 @@ void addNode(const RTCDevice device, const RTCScene scene,
     }
 }
 
-std::list<std::shared_ptr<const Mesh>> addModel(const RTCDevice device,
-                                                const RTCScene rtcScene,
-                                                const tinygltf::Model &model) {
-    std::list<std::shared_ptr<const Mesh>> meshs;
+ConstantPMeshList addModel(const RTCDevice device, const RTCScene rtcScene,
+                           const tinygltf::Model &model) {
+    ConstantPMeshList meshs;
     const auto sceneToDisplay =
         model.defaultScene > -1 ? model.defaultScene : 0;
     const tinygltf::Scene &gltfScene = model.scenes[sceneToDisplay];

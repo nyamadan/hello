@@ -1,19 +1,13 @@
 /build
-/out
 
 ### Embree
-/Intel
 /embree3.dll
 /tbb*.dll
 
 ### Imgui
 /imgui.ini
 
-### nfd
-nfd.lib
-
 ### CMake
-
 CMakeLists.txt.user
 CMakeCache.txt
 CMakeSettings.json

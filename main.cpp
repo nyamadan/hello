@@ -75,9 +75,9 @@ glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
     return glm::dvec2(aspect * (x / size.x - 0.5f), 1.0f - y / size.y);
 }
 
-const std::list<std::shared_ptr<const Mesh>> addMeshsToScene(
-    RTCDevice device, RTCScene scene, const char const *path) {
-    std::list<std::shared_ptr<const Mesh>> meshs;
+const ConstantPMeshList addMeshsToScene(
+    RTCDevice device, RTCScene scene, const char *const path) {
+    ConstantPMeshList meshs;
 
     auto plane = addGroundPlane(device, scene,
                                 glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)) *
@@ -108,7 +108,7 @@ const std::list<std::shared_ptr<const Mesh>> addMeshsToScene(
 }
 
 void detachMeshs(RTCScene scene,
-                 std::list<std::shared_ptr<const Mesh>> &meshs) {
+                 ConstantPMeshList &meshs) {
     for (auto it = meshs.cbegin(); it != meshs.cend(); it++) {
         const auto pMesh = *it;
         auto geomId = pMesh->getGeometryId();
@@ -121,7 +121,7 @@ void detachMeshs(RTCScene scene,
 void handleDebugOperation(RTCDevice device, RTCScene scene,
                           std::shared_ptr<DebugGUI> debugGui,
                           std::shared_ptr<const ImageBuffer> image,
-                          std::list<std::shared_ptr<const Mesh>> &meshs) {
+                          ConstantPMeshList &meshs) {
     {
         auto path = debugGui->pullSavingImagePath();
         if (!path.empty()) {
@@ -160,7 +160,7 @@ int main(void) {
     const auto buggyGLB = "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb";
     auto meshs = addMeshsToScene(device, scene, buggyGLB);
 
-    auto image = std::shared_ptr<ImageBuffer>(new ImageBuffer(width, height));
+    auto image = std::make_shared<ImageBuffer>(width, height);
     auto raytracer = RayTracer();
 
     auto camera = RayTracerCamera(width, height, 120.0f, 0.001f, 1000.0f);

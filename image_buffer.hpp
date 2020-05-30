@@ -20,3 +20,5 @@ class ImageBuffer {
     auto getBuffer() { return this->buffer.get(); }
     const auto GetReadonlyBuffer() const { return this->buffer.get(); }
 };
+
+using PImageBuffer = std::shared_ptr<ImageBuffer>;
