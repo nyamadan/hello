@@ -2,13 +2,107 @@
 #include <algorithm>
 #include <glm/ext.hpp>
 #include <random>
+#include <stb.h>
 
 #include "geometry.hpp"
 #include "ray_tracer.hpp"
 
-glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
-                                 xorshift128plus_state &randomState, float x,
-                                 float y) {
+glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
+                              xorshift128plus_state &randomState,
+                              RTCRayHit &ray, int32_t depth) {
+    const auto cDepthLimit = 64;
+    const auto cDepth = 5;
+    const auto cEPS = 0.001f;
+
+    const auto tnear = camera.getNear();
+    const auto tfar = camera.getFar();
+
+    auto result = glm::vec3(0.0f);
+
+    RTCIntersectContext context;
+    rtcInitIntersectContext(&context);
+
+    /* intersect ray with scene */
+    rtcIntersect1(scene, &context, &ray);
+
+    if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
+        return glm::vec3(0.0f);
+    }
+
+    auto geom = rtcGetGeometry(scene, ray.hit.geomID);
+    auto material = *(const Material *)rtcGetGeometryUserData(geom);
+
+    auto russianRouletteProbability = std::max(
+        material.baseColorFactor.x,
+        std::max(material.baseColorFactor.y, material.baseColorFactor.z));
+
+    if (depth > cDepthLimit) {
+        russianRouletteProbability *= pow(0.5f, depth - cDepthLimit);
+    }
+
+    if(depth > cDepth) {
+        if(xorshift128plus01(randomState) >= russianRouletteProbability) {
+            return material.emissiveFactor;
+        }
+    } else {
+        russianRouletteProbability = 1.0f;
+    }
+
+    const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
+    const auto orig =
+        glm::vec3(ray.ray.org_x, ray.ray.org_y, ray.ray.org_z) +
+        ray.ray.tfar * glm::vec3(ray.ray.dir_x, ray.ray.dir_y, ray.ray.dir_z);
+    const auto normal = glm::normalize(Ng);
+
+    auto incomingRadiance = glm::vec3(0.0f);
+    auto weight = glm::vec3(1.0f);
+
+    glm::vec3 w, u, v;
+    w = normal;
+
+    if (fabs(w.x) > cEPS) 
+    {
+        u = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), w));
+    } else {
+        u = glm::normalize(glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), w));
+    }
+
+    v = glm::cross(w, u);
+
+    const float r1 = 2.0f * M_PI * static_cast<float>(xorshift128plus01(randomState));
+    const float r2 = static_cast<float>(xorshift128plus01(randomState)), r2s = sqrt(r2);
+    auto dir = glm::normalize(
+        glm::vec3(u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1.0 - r2)));
+
+    /* initialize ray */
+    auto nextRay = RTCRayHit();
+    nextRay.ray.dir_x = dir.x;
+    nextRay.ray.dir_y = dir.y;
+    nextRay.ray.dir_z = dir.z;
+    nextRay.ray.org_x = orig.x;
+    nextRay.ray.org_y = orig.y;
+    nextRay.ray.org_z = orig.z;
+    nextRay.ray.tnear = tnear;
+    nextRay.ray.tfar = tfar;
+    nextRay.ray.time = 0.0f;
+    nextRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+    incomingRadiance = radiance(scene, camera, randomState, nextRay, depth + 1);
+    // レンダリング方程式に対するモンテカルロ積分を考えると、outgoing_radiance =
+    // weight * incoming_radiance。 ここで、weight = (ρ/π) * cosθ / pdf(ω) / R
+    // になる。
+    // ρ/πは完全拡散面のBRDFでρは反射率、cosθはレンダリング方程式におけるコサイン項、pdf(ω)はサンプリング方向についての確率密度関数。
+    // Rはロシアンルーレットの確率。
+    // 今、コサイン項に比例した確率密度関数によるサンプリングを行っているため、pdf(ω)
+    // = cosθ/π よって、weight = ρ/ R。
+    weight = material.baseColorFactor / russianRouletteProbability;
+
+    return result;
+}
+
+glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
+                                        const RayTracerCamera &camera,
+                                        xorshift128plus_state &randomState,
+                                        float x, float y) {
     const auto tnear = camera.getNear();
     const auto tfar = camera.getFar();
     const auto cameraFrom = camera.getCameraOrigin();
@@ -47,9 +141,9 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
 
         auto normal = glm::vec3(0.0f);
 
-        rtcInterpolate0(geom, ray.hit.primID,
-                        ray.hit.u, ray.hit.v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                        0, glm::value_ptr(normal), 3);
+        rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
+                        glm::value_ptr(normal), 3);
 
         if (material != nullptr) {
             diffuse = material->baseColorFactor;
@@ -126,17 +220,23 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                 }
             }
 
-            color = glm::vec3( color * (1.0f - (float)hit / (float)aoSample) );
+            color = glm::vec3(color * (1.0f - (float)hit / (float)aoSample));
         }
     }
 
     return color;
 }
 
+glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
+                                 xorshift128plus_state &randomState, float x,
+                                 float y) {
+    return renderPixelClassic(scene, camera, randomState, x, y);
+}
+
 /* renders a single screen tile */
 void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
                            xorshift128plus_state &randomState,
-                           ImageBuffer& image, int tileIndex, int numTilesX,
+                           ImageBuffer &image, int tileIndex, int numTilesX,
                            int numTilesY) {
     const auto width = image.getWidth();
     const auto height = image.getHeight();
@@ -172,16 +272,16 @@ void RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
     const auto numTilesX = (width + TILE_SIZE_X - 1) / TILE_SIZE_X;
     const auto numTilesY = (height + TILE_SIZE_Y - 1) / TILE_SIZE_Y;
 
-    tbb::parallel_for(size_t(0), size_t(numTilesX * numTilesY),
-                      [&](size_t tileIndex) {
-                          std::mt19937 mt(static_cast<unsigned int>(tileIndex));
-                          auto randomInt64 = std::uniform_int<int64_t>(1, INT64_MAX);
+    tbb::parallel_for(
+        size_t(0), size_t(numTilesX * numTilesY), [&](size_t tileIndex) {
+            std::mt19937 mt(static_cast<unsigned int>(tileIndex));
+            auto randomInt64 = std::uniform_int<int64_t>(1, INT64_MAX);
 
-                          xorshift128plus_state randomState;
-                          randomState.a = randomInt64(mt);
-                          randomState.b = 0;
+            xorshift128plus_state randomState;
+            randomState.a = randomInt64(mt);
+            randomState.b = 0;
 
-                          renderTile(scene, camera, randomState, image,
-                                     static_cast<int>(tileIndex), numTilesX, numTilesY);
-                      });
+            renderTile(scene, camera, randomState, image,
+                       static_cast<int>(tileIndex), numTilesX, numTilesY);
+        });
 }

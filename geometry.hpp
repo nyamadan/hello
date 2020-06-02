@@ -1,5 +1,6 @@
 #pragma once
 
+#include <iostream>
 #include <list>
 #include <memory>
 
@@ -26,7 +27,8 @@ class Material {
         this->metallicFactor = 0.0f;
     }
 
-    Material(const glm::vec4 &baseColorFactor, float metallicFactor, const glm::vec3 &emissiveFactor) {
+    Material(const glm::vec4 &baseColorFactor, float metallicFactor,
+             const glm::vec3 &emissiveFactor) {
         this->baseColorFactor = baseColorFactor;
         this->metallicFactor = metallicFactor;
         this->emissiveFactor = emissiveFactor;
@@ -35,8 +37,15 @@ class Material {
 
 using PMaterial = std::shared_ptr<Material>;
 using ConstantPMaterial = std::shared_ptr<const Material>;
+using ConstantPMaterialList = std::list<ConstantPMaterial>;
 
 class Mesh {
+  public:
+    void *operator new(size_t size) { return aligned_alloc(size, 16); }
+    void operator delete(void *ptr) { aligned_free(ptr); }
+    void *operator new[](size_t size) { return aligned_alloc(size, 16); }
+    void operator delete[](void *ptr) { aligned_free(ptr); }
+
   private:
     uint32_t geomId;
     ConstantPMaterial material;
@@ -52,15 +61,13 @@ class Mesh {
         this->material = nullptr;
     }
 
-    Mesh(uint32_t geomId, PMaterial material) {
+    Mesh(uint32_t geomId, ConstantPMaterial material) {
         this->geomId = geomId;
         this->material = material;
     }
 
     uint32_t getGeometryId() const { return this->geomId; }
-    const ConstantPMaterial getMaterial() const {
-        return this->material;
-    }
+    const ConstantPMaterial getMaterial() const { return this->material; }
 };
 
 using PMesh = std::shared_ptr<Mesh>;
@@ -68,16 +75,18 @@ using ConstantPMesh = std::shared_ptr<const Mesh>;
 using ConstantPMeshList = std::list<ConstantPMesh>;
 
 ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
-                        float radius = 1.0f, uint32_t widthSegments = 8,
-                        uint32_t heightSegments = 6,
+                        ConstantPMaterial material, float radius = 1.0f,
+                        uint32_t widthSegments = 8, uint32_t heightSegments = 6,
                         const glm::mat4 transform = glm::mat4(1.0f));
 
 /* adds a cube to the scene */
 ConstantPMesh addCube(RTCDevice device, RTCScene scene,
+                      ConstantPMaterial material,
                       glm::mat4 transform = glm::mat4(1.0f));
 
 /* adds a ground plane to the scene */
 ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
+                             ConstantPMaterial material,
                              const glm::mat4 transform = glm::mat4(1.0f));
 
 void addMesh(const RTCDevice device, const RTCScene rtcScene,

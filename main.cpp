@@ -56,12 +56,13 @@ void copyPixelsToTexture(const ImageBuffer &image, GLuint fbo, GLuint texture) {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.getWidth(), image.getHeight(),
-                 0, GL_RGB, GL_UNSIGNED_BYTE, image.GetReadonlyBuffer());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.getWidth(), image.getHeight(),
+                 0, GL_RGB, GL_UNSIGNED_BYTE, image.GetReadonlyBuffer());
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -78,18 +79,34 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
                                               RTCScene scene) {
     ConstantPMeshList meshs;
 
-    auto plane = addGroundPlane(device, scene,
-                                glm::translate(glm::vec3(0.0f, -2.0f, 0.0f)) *
-                                    glm::scale(glm::vec3(10.0f)));
+    auto plane =
+        addGroundPlane(device, scene,
+                       PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                                              1.0f, glm::vec3(0.0f))),
+                       glm::translate(glm::vec3(0.0f, -1.0f, 0.0f)) *
+                           glm::scale(glm::vec3(10.0f)));
     meshs.insert(meshs.cend(), plane);
 
     auto cube =
-        addCube(device, scene, glm::translate(glm::vec3(-3.0f, 0.0f, 0.0f)));
+        addCube(device, scene,
+                PMaterial(new Material(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 1.0f,
+                                       glm::vec3(0.0f))),
+                glm::translate(glm::vec3(-3.0f, 0.0f, 0.0f)));
     meshs.insert(meshs.cend(), cube);
 
-    auto sphere = addSphere(device, scene, 1.0f, 8, 6,
-                            glm::translate(glm::vec3(3.0f, 0.0f, 0.0f)));
+    auto sphere =
+        addSphere(device, scene,
+                  PMaterial(new Material(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
+                                             1.0f, glm::vec3(0.0f))),
+                  1.0f, 8, 6, glm::translate(glm::vec3(3.0f, 0.0f, 0.0f)));
     meshs.insert(meshs.cend(), sphere);
+
+    auto light =
+        addSphere(device, scene,
+                  PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                                             1.0f, glm::vec3(0.0f))),
+                  1.0f, 8, 6, glm::translate(glm::vec3(0.0f, 5.0f, 0.0f)));
+    meshs.insert(meshs.cend(), light);
 
     return meshs;
 }
@@ -148,7 +165,7 @@ void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
 }
 
 int main(void) {
-    auto windowSize = glm::i32vec2(512, 512);
+    auto windowSize = glm::i32vec2(640, 480);
 
     auto debugGui = DebugGUI();
 

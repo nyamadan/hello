@@ -5,8 +5,9 @@
 const auto PI = 3.14159265358979323846f;
 
 ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
-                        float radius, uint32_t widthSegments,
-                        uint32_t heightSegments, const glm::mat4 transform) {
+                        ConstantPMaterial material, float radius,
+                        uint32_t widthSegments, uint32_t heightSegments,
+                        const glm::mat4 transform) {
     auto index = 0;
     auto grid = std::vector<std::vector<uint32_t>>();
 
@@ -94,15 +95,17 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
         _uvs[i] = uvs[i];
     }
 
+    rtcSetGeometryUserData(mesh, (void *)material.get());
+
     rtcCommitGeometry(mesh);
     auto geomID = rtcAttachGeometry(scene, mesh);
     rtcReleaseGeometry(mesh);
 
-    return std::make_shared<Mesh>(geomID);
+    return std::make_shared<Mesh>(geomID, material);
 }
 
 /* adds a cube to the scene */
-ConstantPMesh addCube(RTCDevice device, RTCScene scene, glm::mat4 transform) {
+ConstantPMesh addCube(RTCDevice device, RTCScene scene, ConstantPMaterial material, glm::mat4 transform) {
     /* create a triangulated cube with 12 triangles and 8 vertices */
     auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
@@ -213,14 +216,17 @@ ConstantPMesh addCube(RTCDevice device, RTCScene scene, glm::mat4 transform) {
     uvs[22] = glm::vec2(0, 1);
     uvs[23] = glm::vec2(1, 1);
 
+    rtcSetGeometryUserData(mesh, (void *)material.get());
+
     rtcCommitGeometry(mesh);
     auto geomID = rtcAttachGeometry(scene, mesh);
     rtcReleaseGeometry(mesh);
-    return std::make_shared<Mesh>(geomID);
+    return std::make_shared<Mesh>(geomID, material);
 }
 
 /* adds a ground plane to the scene */
 ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
+                             ConstantPMaterial material,
                              const glm::mat4 transform) {
     /* create a triangulated plane with 2 triangles and 4 vertices */
     auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
@@ -263,10 +269,12 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
     uvs[2] = glm::vec2(1.0f, 0.0f);
     uvs[3] = glm::vec2(1.0f, 1.0f);
 
+    rtcSetGeometryUserData(mesh, (void *)material.get());
+
     rtcCommitGeometry(mesh);
     auto geomID = rtcAttachGeometry(scene, mesh);
     rtcReleaseGeometry(mesh);
-    return std::make_shared<Mesh>(geomID);
+    return std::make_shared<Mesh>(geomID, material);
 }
 
 void addMesh(const RTCDevice device, const RTCScene rtcScene,
@@ -489,10 +497,10 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
         }
 
         {
-            auto material =
-                std::make_shared<Material>(baseColorFactor, metallicFactor, emissiveFactor);
+            auto material = ConstantPMaterial(
+                new Material(baseColorFactor, metallicFactor, emissiveFactor));
 
-            rtcSetGeometryUserData(rtcMesh, material.get());
+            rtcSetGeometryUserData(rtcMesh, (void *)material.get());
 
             rtcCommitGeometry(rtcMesh);
             auto geomID = rtcAttachGeometry(rtcScene, rtcMesh);
