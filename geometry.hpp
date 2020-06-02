@@ -8,36 +8,28 @@
 #include <embree3/rtcore.h>
 #include <tiny_gltf.h>
 
+#include "alloc.hpp"
+
 class Material {
   public:
-#if defined(_MSC_VER)
-    void *operator new(size_t size) { return _aligned_malloc(size, 16); }
-    void operator delete(void *ptr) { _aligned_free(ptr); }
-    void *operator new[](size_t size) { return _aligned_malloc(size, 16); }
-    void operator delete[](void *ptr) { _aligned_free(ptr); }
-#else
     void *operator new(size_t size) { return aligned_alloc(size, 16); }
     void operator delete(void *ptr) { aligned_free(ptr); }
     void *operator new[](size_t size) { return aligned_alloc(size, 16); }
     void operator delete[](void *ptr) { aligned_free(ptr); }
-#endif
 
     glm::vec4 baseColorFactor;
     float metallicFactor;
+    glm::vec3 emissiveFactor;
 
     Material() {
         this->baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         this->metallicFactor = 0.0f;
     }
 
-    Material(const glm::vec4 &baseColorFactor) {
-        this->baseColorFactor = baseColorFactor;
-        this->metallicFactor = 0.0f;
-    }
-
-    Material(const glm::vec4 &baseColorFactor, float metallicFactor) {
+    Material(const glm::vec4 &baseColorFactor, float metallicFactor, const glm::vec3 &emissiveFactor) {
         this->baseColorFactor = baseColorFactor;
         this->metallicFactor = metallicFactor;
+        this->emissiveFactor = emissiveFactor;
     }
 };
 

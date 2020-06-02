@@ -281,26 +281,26 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
 
         auto baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         auto metallicFactor = 0.5f;
-        for (auto it = gltfMaterial.values.begin();
-             it != gltfMaterial.values.end(); ++it) {
-            const auto &name = it->first;
-            const auto &param = it->second;
+        auto emissiveFactor = glm::vec3(0.0f, 0.0f, 0.0f);
 
-            if (name == "baseColorFactor") {
-                switch (param.number_array.size()) {
-                    case 4:
-                        baseColorFactor.a = (float)param.number_array[3];
-                    case 3:
-                        baseColorFactor.b = (float)param.number_array[2];
-                        baseColorFactor.g = (float)param.number_array[1];
-                        baseColorFactor.r = (float)param.number_array[0];
-                        break;
-                }
-            } else if (name == "metallicFactor") {
-                if (param.has_number_value) {
-                    metallicFactor = (float)param.number_value;
-                }
-            }
+        const auto &pbr = gltfMaterial.pbrMetallicRoughness;
+        switch (pbr.baseColorFactor.size()) {
+            case 4:
+                baseColorFactor.a = (float)pbr.baseColorFactor[3];
+            case 3:
+                baseColorFactor.b = (float)pbr.baseColorFactor[2];
+                baseColorFactor.g = (float)pbr.baseColorFactor[1];
+                baseColorFactor.r = (float)pbr.baseColorFactor[0];
+                break;
+        }
+        metallicFactor = (float)pbr.metallicFactor;
+
+        if(gltfMaterial.emissiveFactor.size() == 3) {
+            emissiveFactor = glm::vec3(
+                gltfMaterial.emissiveFactor[0],
+                gltfMaterial.emissiveFactor[1],
+                gltfMaterial.emissiveFactor[2]
+            );
         }
 
         auto it(primitive.attributes.begin());
@@ -490,7 +490,7 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
 
         {
             auto material =
-                std::make_shared<Material>(baseColorFactor, metallicFactor);
+                std::make_shared<Material>(baseColorFactor, metallicFactor, emissiveFactor);
 
             rtcSetGeometryUserData(rtcMesh, material.get());
 
@@ -558,5 +558,5 @@ ConstantPMeshList addModel(const RTCDevice device, const RTCScene rtcScene,
         addNode(device, rtcScene, model, node, matrix, meshs);
     }
 
-    return std::move(meshs);
+    return meshs;
 }
