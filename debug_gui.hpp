@@ -10,7 +10,7 @@ class DebugGUI {
   public:
     DebugGUI();
 
-    void setup(GLFWwindow *window, std::shared_ptr<const ImageBuffer> image);
+    void setup(GLFWwindow *window);
     void beginFrame();
     void renderFrame();
 

@@ -55,10 +55,7 @@ bool DebugGUI::saveFileDialog(std::string &path, const char *const filter,
 
 DebugGUI::DebugGUI() {}
 
-void DebugGUI::setup(GLFWwindow *window,
-                     std::shared_ptr<const ImageBuffer> image) {
-    this->image = image;
-
+void DebugGUI::setup(GLFWwindow *window) {
     ImGui::SetCurrentContext(ImGui::CreateContext());
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core\n");
@@ -84,6 +81,7 @@ void DebugGUI::beginFrame() {
                 this->onSaveImage();
             }
             if (ImGui::MenuItem("Quit", "Alt+F4")) {
+                glfwSetWindowShouldClose(glfwGetCurrentContext(), GLFW_TRUE);
             }
             ImGui::EndMenu();
         }

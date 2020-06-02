@@ -52,13 +52,12 @@ void EnableOpenGLDebugExtention() {
     }
 }
 
-void copyPixelsToTexture(const glm::u8vec3 pixels[], GLuint fbo, GLuint texture,
-                         int32_t width, int32_t height) {
+void copyPixelsToTexture(const ImageBuffer &image, GLuint fbo, GLuint texture) {
     glBindFramebuffer(GL_FRAMEBUFFER, fbo);
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, texture);
-    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
-                 GL_UNSIGNED_BYTE, pixels);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.getWidth(), image.getHeight(),
+                 0, GL_RGB, GL_UNSIGNED_BYTE, image.GetReadonlyBuffer());
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
@@ -75,7 +74,8 @@ glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
     return glm::dvec2(aspect * (x / size.x - 0.5f), 1.0f - y / size.y);
 }
 
-const ConstantPMeshList addDefaultMeshToScene(RTCDevice device, RTCScene scene) {
+const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
+                                              RTCScene scene) {
     ConstantPMeshList meshs;
 
     auto plane = addGroundPlane(device, scene,
@@ -94,8 +94,8 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device, RTCScene scene) 
     return meshs;
 }
 
-const ConstantPMeshList addMeshsToScene(
-    RTCDevice device, RTCScene scene, const char *const path) {
+const ConstantPMeshList addMeshsToScene(RTCDevice device, RTCScene scene,
+                                        const char *const path) {
     ConstantPMeshList meshs = addDefaultMeshToScene(device, scene);
 
     // add model
@@ -113,8 +113,7 @@ const ConstantPMeshList addMeshsToScene(
     return meshs;
 }
 
-void detachMeshs(RTCScene scene,
-                 ConstantPMeshList &meshs) {
+void detachMeshs(RTCScene scene, ConstantPMeshList &meshs) {
     for (auto it = meshs.cbegin(); it != meshs.cend(); it++) {
         const auto pMesh = *it;
         auto geomId = pMesh->getGeometryId();
@@ -124,22 +123,20 @@ void detachMeshs(RTCScene scene,
     meshs.clear();
 }
 
-void handleDebugOperation(RTCDevice device, RTCScene scene,
-                          std::shared_ptr<DebugGUI> debugGui,
-                          std::shared_ptr<const ImageBuffer> image,
-                          ConstantPMeshList &meshs) {
+void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
+                          const ImageBuffer image, ConstantPMeshList &meshs) {
     {
-        auto path = debugGui->pullSavingImagePath();
+        auto path = debugGui.pullSavingImagePath();
         if (!path.empty()) {
             stbi_flip_vertically_on_write(true);
-            stbi_write_png(path.c_str(), image->getWidth(), image->getHeight(),
-                           image->getChannels(), image->GetReadonlyBuffer(),
-                           image->getChannels() * image->getWidth());
+            stbi_write_png(path.c_str(), image.getWidth(), image.getHeight(),
+                           image.getChannels(), image.GetReadonlyBuffer(),
+                           image.getChannels() * image.getWidth());
         }
     }
 
     {
-        auto path = debugGui->pullOpeningGLBPath();
+        auto path = debugGui.pullOpeningGLBPath();
         if (!path.empty()) {
             detachMeshs(scene, meshs);
 
@@ -151,10 +148,9 @@ void handleDebugOperation(RTCDevice device, RTCScene scene,
 }
 
 int main(void) {
-    const auto width = 640u;
-    const auto height = 480u;
+    auto windowSize = glm::i32vec2(512, 512);
 
-    auto debugGui = std::make_shared<DebugGUI>();
+    auto debugGui = DebugGUI();
 
 #ifdef NDEBUG
     auto device = rtcNewDevice(nullptr);
@@ -163,15 +159,16 @@ int main(void) {
 #endif
     auto scene = rtcNewScene(device);
 
-    // const auto buggyGLB = "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb";
-    // auto meshs = addMeshsToScene(device, scene, buggyGLB);
+    // const auto buggyGLB =
+    // "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb"; auto meshs =
+    // addMeshsToScene(device, scene, buggyGLB);
 
     auto meshs = addDefaultMeshToScene(device, scene);
 
-    auto image = std::make_shared<ImageBuffer>(width, height);
+    auto image = ImageBuffer(windowSize);
     auto raytracer = RayTracer();
 
-    auto camera = RayTracerCamera(width, height, 120.0f, 0.001f, 1000.0f);
+    auto camera = RayTracerCamera(120.0f, 0.001f, 1000.0f);
     const auto eyeDistance = 5.0f;
     const auto eye = glm::vec3(1.0f, 1.0f, 1.0f) * eyeDistance;
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
@@ -180,7 +177,7 @@ int main(void) {
 
     rtcCommitScene(scene);
 
-    raytracer.render(scene, camera, image->getBuffer());
+    raytracer.render(scene, camera, image);
 
     if (!glfwInit()) return -1;
 
@@ -194,9 +191,8 @@ int main(void) {
     glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, 1);
 #endif
 
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-    const auto windowSize = glm::u32vec2(width, height);
     const auto window = glfwCreateWindow(windowSize.x, windowSize.y,
                                          "Hello Embree", NULL, NULL);
     if (!window) {
@@ -217,12 +213,13 @@ int main(void) {
     EnableOpenGLDebugExtention();
 #endif
 
-    debugGui->setup(window, image);
+    debugGui.setup(window);
 
     GLuint texture = 0;
     GLuint fbo = 0;
     glGenFramebuffers(1, &fbo);
     glGenTextures(1, &texture);
+
     glViewport(0, 0, windowSize.x, windowSize.y);
     glClearColor(1.0f, 0.0f, 0.0f, 1.0f);
 
@@ -230,7 +227,16 @@ int main(void) {
 
     auto t0 = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
-        debugGui->beginFrame();
+        {
+            int32_t w, h;
+            glfwGetWindowSize(window, &w, &h);
+            if (w != windowSize.x || h != windowSize.y) {
+                windowSize = glm::i32vec2(w, h);
+                image.resize(windowSize);
+                glViewport(0, 0, windowSize.x, windowSize.y);
+            }
+        }
+        debugGui.beginFrame();
 
         auto t = glfwGetTime();
         auto dt = t - t0;
@@ -239,9 +245,9 @@ int main(void) {
 
         // controllCameraFPS(window, camera, dt, mouseDelta);
         controllCameraMouse(window, camera, (float)dt, mouseDelta, wheelDelta);
-        raytracer.render(scene, camera, image->getBuffer());
+        raytracer.render(scene, camera, image);
 
-        copyPixelsToTexture(image->getBuffer(), fbo, texture, width, height);
+        copyPixelsToTexture(image, fbo, texture);
 
         // Rendering
         glfwMakeContextCurrent(window);
@@ -249,13 +255,13 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-        glBlitFramebuffer(0, 0, width, height, 0, 0, windowSize.x, windowSize.y,
-                          GL_COLOR_BUFFER_BIT, GL_LINEAR);
+        glBlitFramebuffer(0, 0, image.getWidth(), image.getHeight(), 0, 0,
+                          windowSize.x, windowSize.y, GL_COLOR_BUFFER_BIT,
+                          GL_LINEAR);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
-        glfwMakeContextCurrent(window);
 
-        debugGui->renderFrame();
+        debugGui.renderFrame();
 
         glfwSwapBuffers(window);
 

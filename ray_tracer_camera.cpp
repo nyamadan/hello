@@ -1,10 +1,7 @@
 #pragma once
 #include "ray_tracer_camera.hpp"
 
-RayTracerCamera::RayTracerCamera(int32_t width, int32_t height, float fov,
-                                 float tnear, float tfar) {
-    this->width = width;
-    this->height = height;
+RayTracerCamera::RayTracerCamera(float fov, float tnear, float tfar) {
     this->fov = fov;
     this->tnear = tnear;
     this->tfar = tfar;
@@ -13,6 +10,7 @@ RayTracerCamera::RayTracerCamera(int32_t width, int32_t height, float fov,
     this->dir = glm::vec3(-0.577350259f, -0.577350259f, 0.577350259f);
     this->up = glm::vec3(0.0f, 1.0f, 0.0f);
 }
+
 glm::vec3 RayTracerCamera::getCameraSide() const {
     return glm::normalize(glm::cross(dir, up));
 }

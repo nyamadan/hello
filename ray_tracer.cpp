@@ -136,20 +136,21 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
 /* renders a single screen tile */
 void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
                            xorshift128plus_state &randomState,
-                           glm::u8vec3 *pixels, int tileIndex, int numTilesX,
+                           ImageBuffer& image, int tileIndex, int numTilesX,
                            int numTilesY) {
-    const auto width = camera.getWidth();
-    const auto height = camera.getHeight();
-    const auto aspect = camera.getAspect();
-    const unsigned int tileY = tileIndex / numTilesX;
-    const unsigned int tileX = tileIndex - tileY * numTilesX;
-    const unsigned int x0 = tileX * TILE_SIZE_X;
-    const unsigned int x1 = std::min(x0 + TILE_SIZE_X, width);
-    const unsigned int y0 = tileY * TILE_SIZE_Y;
-    const unsigned int y1 = std::min(y0 + TILE_SIZE_Y, height);
+    const auto width = image.getWidth();
+    const auto height = image.getHeight();
+    const auto aspect = image.getAspect();
+    const auto pixels = image.getBuffer();
+    const auto tileY = tileIndex / numTilesX;
+    const auto tileX = tileIndex - tileY * numTilesX;
+    const auto x0 = tileX * TILE_SIZE_X;
+    const auto x1 = std::min(x0 + TILE_SIZE_X, width);
+    const auto y0 = tileY * TILE_SIZE_Y;
+    const auto y1 = std::min(y0 + TILE_SIZE_Y, height);
 
-    for (unsigned int y = y0; y < y1; y++)
-        for (unsigned int x = x0; x < x1; x++) {
+    for (auto y = y0; y < y1; y++)
+        for (auto x = x0; x < x1; x++) {
             /* calculate pixel color */
             glm::vec3 color =
                 renderPixel(scene, camera, randomState,
@@ -165,9 +166,9 @@ void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
 }
 
 void RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
-                       glm::u8vec3 *pixels) {
-    const auto width = camera.getWidth();
-    const auto height = camera.getHeight();
+                       ImageBuffer &image) {
+    const auto width = image.getWidth();
+    const auto height = image.getHeight();
     const auto numTilesX = (width + TILE_SIZE_X - 1) / TILE_SIZE_X;
     const auto numTilesY = (height + TILE_SIZE_Y - 1) / TILE_SIZE_Y;
 
@@ -180,7 +181,7 @@ void RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
                           randomState.a = randomInt64(mt);
                           randomState.b = 0;
 
-                          renderTile(scene, camera, randomState, pixels,
+                          renderTile(scene, camera, randomState, image,
                                      static_cast<int>(tileIndex), numTilesX, numTilesY);
                       });
 }

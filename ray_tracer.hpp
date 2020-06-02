@@ -4,6 +4,7 @@
 
 #include "xorshift128plus.hpp"
 #include "ray_tracer_camera.hpp"
+#include "image_buffer.hpp"
 
 class RayTracer {
   private:
@@ -15,10 +16,10 @@ class RayTracer {
     glm::vec3 renderPixel(RTCScene scene, const RayTracerCamera &camera,
                           xorshift128plus_state &randomState, float x, float y);
     void renderTile(RTCScene scene, const RayTracerCamera &camera,
-                    xorshift128plus_state &randomState, glm::u8vec3 *pixels,
+                    xorshift128plus_state &randomState, ImageBuffer &image,
                     int tileIndex, const int numTilesX, const int numTilesY);
 
   public:
     void render(RTCScene scene, const RayTracerCamera &camera,
-                glm::u8vec3 *pixels);
+                ImageBuffer &image);
 };

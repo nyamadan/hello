@@ -1,8 +1,11 @@
 #include "image_buffer.hpp"
 
-ImageBuffer::ImageBuffer(uint32_t width, uint32_t height) {
-    this->width = width;
-    this->height = height;
+ImageBuffer::ImageBuffer(const glm::i32vec2 &size) {
+    this->resize(size);
+}
+
+void ImageBuffer::resize(const glm::i32vec2 &size) {
+    this->size = size;
     this->buffer = std::shared_ptr<glm::u8vec3[]>(
-        new glm::u8vec3[(uint64_t)width * height]);
+        new glm::u8vec3[(uint64_t)size.x * size.y]);
 }

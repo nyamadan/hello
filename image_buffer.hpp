@@ -9,16 +9,21 @@
 class ImageBuffer {
   private:
     std::shared_ptr<glm::u8vec3[]> buffer;
-    uint32_t width;
-    uint32_t height;
+    glm::i32vec2 size;
 
   public:
-    ImageBuffer(uint32_t width, uint32_t height);
+    ImageBuffer(const glm::i32vec2 &size);
+    void resize(const glm::i32vec2 &size);
     auto getChannels() const { return 3; }
-    auto getWidth() const { return this->width; }
-    auto getHeight() const { return this->height; }
+    auto getWidth() const { return this->size.x; }
+    auto getHeight() const { return this->size.y; }
+    auto getAspect() const {
+        return static_cast<float>(getWidth()) / getHeight();
+    }
     auto getBuffer() { return this->buffer.get(); }
-    const auto GetReadonlyBuffer() const { return this->buffer.get(); }
+    const auto GetReadonlyBuffer() const {
+        return static_cast<const glm::u8vec3 *>(this->buffer.get());
+    }
 };
 
 using PImageBuffer = std::shared_ptr<ImageBuffer>;
