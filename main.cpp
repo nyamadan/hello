@@ -75,8 +75,7 @@ glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
     return glm::dvec2(aspect * (x / size.x - 0.5f), 1.0f - y / size.y);
 }
 
-const ConstantPMeshList addMeshsToScene(
-    RTCDevice device, RTCScene scene, const char *const path) {
+const ConstantPMeshList addDefaultMeshToScene(RTCDevice device, RTCScene scene) {
     ConstantPMeshList meshs;
 
     auto plane = addGroundPlane(device, scene,
@@ -92,6 +91,13 @@ const ConstantPMeshList addMeshsToScene(
                             glm::translate(glm::vec3(3.0f, 0.0f, 0.0f)));
     meshs.insert(meshs.cend(), sphere);
 
+    return meshs;
+}
+
+const ConstantPMeshList addMeshsToScene(
+    RTCDevice device, RTCScene scene, const char *const path) {
+    ConstantPMeshList meshs = addDefaultMeshToScene(device, scene);
+
     // add model
     tinygltf::Model model;
     tinygltf::TinyGLTF loader;
@@ -104,7 +110,7 @@ const ConstantPMeshList addMeshsToScene(
         meshs.insert(meshs.cend(), x.cbegin(), x.cend());
     }
 
-    return std::move(meshs);
+    return meshs;
 }
 
 void detachMeshs(RTCScene scene,
@@ -157,14 +163,17 @@ int main(void) {
 #endif
     auto scene = rtcNewScene(device);
 
-    const auto buggyGLB = "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb";
-    auto meshs = addMeshsToScene(device, scene, buggyGLB);
+    // const auto buggyGLB = "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb";
+    // auto meshs = addMeshsToScene(device, scene, buggyGLB);
+
+    auto meshs = addDefaultMeshToScene(device, scene);
 
     auto image = std::make_shared<ImageBuffer>(width, height);
     auto raytracer = RayTracer();
 
     auto camera = RayTracerCamera(width, height, 120.0f, 0.001f, 1000.0f);
-    const auto eye = glm::vec3(1.0f, 1.0f, 1.0f) * 100.0f;
+    const auto eyeDistance = 5.0f;
+    const auto eye = glm::vec3(1.0f, 1.0f, 1.0f) * eyeDistance;
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.lookAt(eye, target, up);

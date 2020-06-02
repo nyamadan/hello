@@ -43,11 +43,13 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
     if (ray.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
         auto diffuse = glm::vec3(0.0f);
         auto geom = rtcGetGeometry(scene, ray.hit.geomID);
-        auto material = (Material *)rtcGetGeometryUserData(geom);
+        auto material = (const Material *)rtcGetGeometryUserData(geom);
 
-        //rtcInterpolate0(geom, ray.hit.primID,
-        //                ray.hit.u, ray.hit.v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        //                0, glm::value_ptr(diffuse), 3);
+        auto normal = glm::vec3(0.0f);
+
+        rtcInterpolate0(geom, ray.hit.primID,
+                        ray.hit.u, ray.hit.v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                        0, glm::value_ptr(normal), 3);
 
         if (material != nullptr) {
             diffuse = material->baseColorFactor;
@@ -55,7 +57,7 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
             diffuse = glm::vec3(1.0f);
         }
 
-        color = color + diffuse * 0.5f;
+        color = diffuse * 0.5f;
 
         glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
         glm::vec3 hitOrig =
@@ -93,12 +95,9 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                 do {
                     const auto range = UINT64_MAX;
                     p = 2.0f * r *
-                            glm::vec3((float)(xorshift128plus(&randomState) /
-                                              (double)(UINT64_MAX)),
-                                      (float)(xorshift128plus(&randomState) /
-                                              (double)(UINT64_MAX)),
-                                      (float)(xorshift128plus(&randomState) /
-                                              (double)(UINT64_MAX))) -
+                            glm::vec3(xorshift128plus01(randomState),
+                                      xorshift128plus01(randomState),
+                                      xorshift128plus01(randomState)) -
                         glm::vec3(r, r, r);
                 } while (glm::length2(p) >= r2);
 

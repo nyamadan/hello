@@ -10,7 +10,7 @@
 bool DebugGUI::openFileDialog(std::string &path, const char *const filter) {
     OPENFILENAMEA ofn;
     char szFile[MAX_PATH + 1] = "";
-    ZeroMemory(&ofn, sizeof(ofn));
+    memset(&ofn, 0, sizeof(ofn));
     ofn.lStructSize = sizeof(OPENFILENAME);
     ofn.lpstrFilter = filter;
     ofn.lpstrFile = szFile;

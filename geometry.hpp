@@ -10,6 +10,18 @@
 
 class Material {
   public:
+#if defined(_MSC_VER)
+    void *operator new(size_t size) { return _aligned_malloc(size, 16); }
+    void operator delete(void *ptr) { _aligned_free(ptr); }
+    void *operator new[](size_t size) { return _aligned_malloc(size, 16); }
+    void operator delete[](void *ptr) { _aligned_free(ptr); }
+#else
+    void *operator new(size_t size) { return aligned_alloc(size, 16); }
+    void operator delete(void *ptr) { aligned_free(ptr); }
+    void *operator new[](size_t size) { return aligned_alloc(size, 16); }
+    void operator delete[](void *ptr) { aligned_free(ptr); }
+#endif
+
     glm::vec4 baseColorFactor;
     float metallicFactor;
 
