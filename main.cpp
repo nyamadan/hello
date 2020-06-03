@@ -104,7 +104,7 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
     auto light =
         addSphere(device, scene,
                   PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                                             1.0f, glm::vec3(0.0f))),
+                                             1.0f, glm::vec3(10.0f))),
                   1.0f, 8, 6, glm::translate(glm::vec3(0.0f, 5.0f, 0.0f)));
     meshs.insert(meshs.cend(), light);
 

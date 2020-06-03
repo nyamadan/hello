@@ -1,8 +1,8 @@
+#include <stb.h>
 #include <tbb/parallel_for.h>
 #include <algorithm>
 #include <glm/ext.hpp>
 #include <random>
-#include <stb.h>
 
 #include "geometry.hpp"
 #include "ray_tracer.hpp"
@@ -10,9 +10,9 @@
 glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
                               xorshift128plus_state &randomState,
                               RTCRayHit &ray, int32_t depth) {
-    const auto cDepthLimit = 64;
-    const auto cDepth = 5;
-    const auto cEPS = 0.001f;
+    const auto kDepthLimit = 64;
+    const auto kDepth = 5;
+    const auto kEPS = 0.001f;
 
     const auto tnear = camera.getNear();
     const auto tfar = camera.getFar();
@@ -36,12 +36,12 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         material.baseColorFactor.x,
         std::max(material.baseColorFactor.y, material.baseColorFactor.z));
 
-    if (depth > cDepthLimit) {
-        russianRouletteProbability *= pow(0.5f, depth - cDepthLimit);
+    if (depth > kDepthLimit) {
+        russianRouletteProbability *= pow(0.5f, depth - kDepthLimit);
     }
 
-    if(depth > cDepth) {
-        if(xorshift128plus01(randomState) >= russianRouletteProbability) {
+    if (depth > kDepth) {
+        if (xorshift128plus01(randomState) >= russianRouletteProbability) {
             return material.emissiveFactor;
         }
     } else {
@@ -60,8 +60,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     glm::vec3 w, u, v;
     w = normal;
 
-    if (fabs(w.x) > cEPS) 
-    {
+    if (fabs(w.x) > kEPS) {
         u = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), w));
     } else {
         u = glm::normalize(glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), w));
@@ -69,8 +68,10 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
     v = glm::cross(w, u);
 
-    const float r1 = 2.0f * M_PI * static_cast<float>(xorshift128plus01(randomState));
-    const float r2 = static_cast<float>(xorshift128plus01(randomState)), r2s = sqrt(r2);
+    const float r1 =
+        2.0f * M_PI * static_cast<float>(xorshift128plus01(randomState));
+    const float r2 = static_cast<float>(xorshift128plus01(randomState)),
+                r2s = sqrt(r2);
     auto dir = glm::normalize(
         glm::vec3(u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1.0 - r2)));
 
@@ -87,16 +88,10 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     nextRay.ray.time = 0.0f;
     nextRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
     incomingRadiance = radiance(scene, camera, randomState, nextRay, depth + 1);
-    // レンダリング方程式に対するモンテカルロ積分を考えると、outgoing_radiance =
-    // weight * incoming_radiance。 ここで、weight = (ρ/π) * cosθ / pdf(ω) / R
-    // になる。
-    // ρ/πは完全拡散面のBRDFでρは反射率、cosθはレンダリング方程式におけるコサイン項、pdf(ω)はサンプリング方向についての確率密度関数。
-    // Rはロシアンルーレットの確率。
-    // 今、コサイン項に比例した確率密度関数によるサンプリングを行っているため、pdf(ω)
-    // = cosθ/π よって、weight = ρ/ R。
+
     weight = material.baseColorFactor / russianRouletteProbability;
 
-    return result;
+    return material.emissiveFactor + weight * incomingRadiance;
 }
 
 glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
@@ -230,7 +225,30 @@ glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
 glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                                  xorshift128plus_state &randomState, float x,
                                  float y) {
-    return renderPixelClassic(scene, camera, randomState, x, y);
+    const auto tnear = camera.getNear();
+    const auto tfar = camera.getFar();
+    const auto cameraFrom = camera.getCameraOrigin();
+    const auto rayDir = camera.getRayDir(x, y);
+
+    RTCIntersectContext context;
+    rtcInitIntersectContext(&context);
+
+    auto result = glm::vec3(0.0f);
+    auto ray = RTCRayHit();
+    ray.ray.dir_x = rayDir.x;
+    ray.ray.dir_y = rayDir.y;
+    ray.ray.dir_z = rayDir.z;
+    ray.ray.org_x = cameraFrom.x;
+    ray.ray.org_y = cameraFrom.y;
+    ray.ray.org_z = cameraFrom.z;
+    ray.ray.tnear = tnear;
+    ray.ray.tfar = tfar;
+    ray.ray.time = 0.0f;
+    ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+    result += radiance(scene, camera, randomState, ray, 0);
+    return result;
+
+    // return renderPixelClassic(scene, camera, randomState, x, y);
 }
 
 /* renders a single screen tile */
@@ -249,7 +267,7 @@ void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
     const auto y0 = tileY * TILE_SIZE_Y;
     const auto y1 = std::min(y0 + TILE_SIZE_Y, height);
 
-    for (auto y = y0; y < y1; y++)
+    for (auto y = y0; y < y1; y++) {
         for (auto x = x0; x < x1; x++) {
             /* calculate pixel color */
             glm::vec3 color =
@@ -263,6 +281,7 @@ void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
             const auto b = (uint8_t)(255.0f * std::clamp(color.z, 0.0f, 1.0f));
             pixels[y * width + x] = glm::u8vec3(r, g, b);
         }
+    }
 }
 
 void RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
