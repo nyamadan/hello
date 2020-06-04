@@ -13,6 +13,8 @@ class RayTracer {
 
     const int32_t aoSample = 0;
 
+    int32_t count = 0;
+
     glm::vec3 renderPixelClassic(RTCScene scene, const RayTracerCamera &camera,
                                  xorshift128plus_state &randomState, float x,
                                  float y);
@@ -27,4 +29,5 @@ class RayTracer {
   public:
     void render(RTCScene scene, const RayTracerCamera &camera,
                 ImageBuffer &image);
+    void reset();
 };

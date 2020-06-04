@@ -62,7 +62,7 @@ void copyPixelsToTexture(const ImageBuffer &image, GLuint fbo, GLuint texture) {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
     glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, image.getWidth(), image.getHeight(),
-                 0, GL_RGB, GL_UNSIGNED_BYTE, image.GetReadonlyBuffer());
+                 0, GL_RGB, GL_UNSIGNED_BYTE, image.GetTextureBuffer());
     glFramebufferTexture(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, texture, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -105,7 +105,7 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
         addSphere(device, scene,
                   PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                                              1.0f, glm::vec3(10.0f))),
-                  1.0f, 8, 6, glm::translate(glm::vec3(0.0f, 5.0f, 0.0f)));
+                  1.0f, 8, 6, glm::translate(glm::vec3(0.0f, 1.0f, 0.0f)));
     meshs.insert(meshs.cend(), light);
 
     return meshs;
@@ -242,26 +242,34 @@ int main(void) {
 
     glm::dvec2 prevMousePos = getWindowMousePos(window, windowSize);
 
+    auto texBuffer = std::shared_ptr<glm::u8vec3 []>(new glm::u8vec3[windowSize.x * windowSize.y]);
+
     auto t0 = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
-        {
-            int32_t w, h;
-            glfwGetWindowSize(window, &w, &h);
-            if (w != windowSize.x || h != windowSize.y) {
-                windowSize = glm::i32vec2(w, h);
-                image.resize(windowSize);
-                glViewport(0, 0, windowSize.x, windowSize.y);
-            }
-        }
-        debugGui.beginFrame();
-
         auto t = glfwGetTime();
         auto dt = t - t0;
         glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
         glm::vec2 mouseDelta = mousePos - prevMousePos;
 
         // controllCameraFPS(window, camera, dt, mouseDelta);
-        controllCameraMouse(window, camera, (float)dt, mouseDelta, wheelDelta);
+        bool needUpdate = controllCameraMouse(window, camera, (float)dt, mouseDelta, wheelDelta);
+
+        {
+            int32_t w, h;
+            glfwGetWindowSize(window, &w, &h);
+            needUpdate = needUpdate || w != windowSize.x || h != windowSize.y;
+            windowSize = glm::i32vec2(w, h);
+        }
+
+        if (needUpdate) {
+            image.resize(windowSize);
+            texBuffer = std::shared_ptr<glm::u8vec3[]>(new glm::u8vec3[windowSize.x * windowSize.y]);
+            raytracer.reset();
+            glViewport(0, 0, windowSize.x, windowSize.y);
+        }
+
+        debugGui.beginFrame();
+
         raytracer.render(scene, camera, image);
 
         copyPixelsToTexture(image, fbo, texture);

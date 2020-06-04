@@ -233,7 +233,6 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
     RTCIntersectContext context;
     rtcInitIntersectContext(&context);
 
-    auto result = glm::vec3(0.0f);
     auto ray = RTCRayHit();
     ray.ray.dir_x = rayDir.x;
     ray.ray.dir_y = rayDir.y;
@@ -245,8 +244,7 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
     ray.ray.tfar = tfar;
     ray.ray.time = 0.0f;
     ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-    result += radiance(scene, camera, randomState, ray, 0);
-    return result;
+    return radiance(scene, camera, randomState, ray, 0);
 
     // return renderPixelClassic(scene, camera, randomState, x, y);
 }
@@ -269,17 +267,11 @@ void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
 
     for (auto y = y0; y < y1; y++) {
         for (auto x = x0; x < x1; x++) {
-            /* calculate pixel color */
-            glm::vec3 color =
-                renderPixel(scene, camera, randomState,
-                            ((float)x / (float)width - 0.5f) * aspect,
-                            (float)y / (float)height - 0.5f);
-
-            /* write color to framebuffer */
-            const auto r = (uint8_t)(255.0f * std::clamp(color.x, 0.0f, 1.0f));
-            const auto g = (uint8_t)(255.0f * std::clamp(color.y, 0.0f, 1.0f));
-            const auto b = (uint8_t)(255.0f * std::clamp(color.z, 0.0f, 1.0f));
-            pixels[y * width + x] = glm::u8vec3(r, g, b);
+            auto result = renderPixel(scene, camera, randomState,
+                                      ((float)x / (float)width - 0.5f) * aspect,
+                                      (float)y / (float)height - 0.5f);
+            pixels[y * width + x] =
+                (pixels[y * width + x] * count + result) / (count + 1);
         }
     }
 }
@@ -293,14 +285,19 @@ void RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
 
     tbb::parallel_for(
         size_t(0), size_t(numTilesX * numTilesY), [&](size_t tileIndex) {
-            std::mt19937 mt(static_cast<unsigned int>(tileIndex));
-            auto randomInt64 = std::uniform_int<int64_t>(1, INT64_MAX);
-
             xorshift128plus_state randomState;
-            randomState.a = randomInt64(mt);
+
+            std::random_device rnd;
+            randomState.a = rnd();
             randomState.b = 0;
 
             renderTile(scene, camera, randomState, image,
                        static_cast<int>(tileIndex), numTilesX, numTilesY);
         });
+
+    image.updateTextureBuffer();
+
+    this->count += 1;
 }
+
+void RayTracer::reset() { this->count = 0; }

@@ -2,7 +2,7 @@
 
 #include <glm/ext.hpp>
 
-void controllCameraMouse(GLFWwindow *window, RayTracerCamera &camera,
+bool controllCameraMouse(GLFWwindow *window, RayTracerCamera &camera,
                          float deltaT, const glm::vec2 &mouseDelta,
                          const glm::vec2 &scrollDelta) {
     const auto rbtn = glfwGetMouseButton(window, GLFW_MOUSE_BUTTON_RIGHT);
@@ -30,4 +30,7 @@ void controllCameraMouse(GLFWwindow *window, RayTracerCamera &camera,
     } else {
         camera.setCameraOrigin(origin);
     }
+
+    return scrollDelta.y != 0 ||
+           ((mouseDelta.x != 0 || mouseDelta.y != 0) && rbtn == GLFW_PRESS);
 }

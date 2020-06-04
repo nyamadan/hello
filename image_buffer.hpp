@@ -8,7 +8,8 @@
 
 class ImageBuffer {
   private:
-    std::shared_ptr<glm::u8vec3[]> buffer;
+    std::shared_ptr<glm::vec3[]> buffer;
+    std::shared_ptr<glm::u8vec3[]> textureBuffer;
     glm::i32vec2 size;
 
   public:
@@ -22,8 +23,13 @@ class ImageBuffer {
     }
     auto getBuffer() { return this->buffer.get(); }
     const auto GetReadonlyBuffer() const {
-        return static_cast<const glm::u8vec3 *>(this->buffer.get());
+        return static_cast<const glm::vec3 *>(this->buffer.get());
     }
+    const auto GetTextureBuffer() const {
+        return static_cast<const glm::u8vec3 *>(this->textureBuffer.get());
+    }
+
+    void updateTextureBuffer();
 };
 
 using PImageBuffer = std::shared_ptr<ImageBuffer>;
