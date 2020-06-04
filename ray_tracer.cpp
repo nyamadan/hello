@@ -1,5 +1,6 @@
 #include <stb.h>
 #include <tbb/parallel_for.h>
+#include <tbb/parallel_reduce.h>
 #include <algorithm>
 #include <glm/ext.hpp>
 #include <random>
@@ -7,9 +8,23 @@
 #include "geometry.hpp"
 #include "ray_tracer.hpp"
 
+RayTracer::RayTracer() {}
+
+const ImageBuffer &RayTracer::getImage() { return this->image; }
+
+RayTracer::RayTracer(const glm::i32vec2 &size) {
+    this->resize(size);
+}
+
+void RayTracer::resize(const glm::i32vec2 &size) {
+    this->image.resize(size);
+    this->samples = 0;
+}
+
 glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
                               xorshift128plus_state &randomState,
-                              RTCRayHit &ray, int32_t depth) {
+                              RTCIntersectContext context, RTCRayHit &ray,
+                              int32_t depth) {
     const auto kDepthLimit = 64;
     const auto kDepth = 5;
     const auto kEPS = 0.001f;
@@ -18,9 +33,6 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     const auto tfar = camera.getFar();
 
     auto result = glm::vec3(0.0f);
-
-    RTCIntersectContext context;
-    rtcInitIntersectContext(&context);
 
     /* intersect ray with scene */
     rtcIntersect1(scene, &context, &ray);
@@ -87,7 +99,8 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     nextRay.ray.tfar = tfar;
     nextRay.ray.time = 0.0f;
     nextRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-    incomingRadiance = radiance(scene, camera, randomState, nextRay, depth + 1);
+    incomingRadiance =
+        radiance(scene, camera, randomState, context, nextRay, depth + 1);
 
     weight = material.baseColorFactor / russianRouletteProbability;
 
@@ -244,20 +257,19 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
     ray.ray.tfar = tfar;
     ray.ray.time = 0.0f;
     ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-    return radiance(scene, camera, randomState, ray, 0);
+    return radiance(scene, camera, randomState, context, ray, 0);
 
     // return renderPixelClassic(scene, camera, randomState, x, y);
 }
 
 /* renders a single screen tile */
 void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
-                           xorshift128plus_state &randomState,
-                           ImageBuffer &image, int tileIndex, int numTilesX,
-                           int numTilesY) {
-    const auto width = image.getWidth();
-    const auto height = image.getHeight();
-    const auto aspect = image.getAspect();
-    const auto pixels = image.getBuffer();
+                           xorshift128plus_state &randomState, int tileIndex,
+                           int numTilesX, int numTilesY) {
+    const auto width = this->image.getWidth();
+    const auto height = this->image.getHeight();
+    const auto aspect = this->image.getAspect();
+    const auto pixels = this->image.getBuffer();
     const auto tileY = tileIndex / numTilesX;
     const auto tileX = tileIndex - tileY * numTilesX;
     const auto x0 = tileX * TILE_SIZE_X;
@@ -271,15 +283,15 @@ void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
                                       ((float)x / (float)width - 0.5f) * aspect,
                                       (float)y / (float)height - 0.5f);
             pixels[y * width + x] =
-                (pixels[y * width + x] * count + result) / (count + 1);
+                (pixels[y * width + x] * this->samples + result) /
+                (this->samples + 1);
         }
     }
 }
 
-void RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
-                       ImageBuffer &image) {
-    const auto width = image.getWidth();
-    const auto height = image.getHeight();
+void RayTracer::render(RTCScene scene, const RayTracerCamera &camera) {
+    const auto width = this->image.getWidth();
+    const auto height = this->image.getHeight();
     const auto numTilesX = (width + TILE_SIZE_X - 1) / TILE_SIZE_X;
     const auto numTilesY = (height + TILE_SIZE_Y - 1) / TILE_SIZE_Y;
 
@@ -291,13 +303,11 @@ void RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
             randomState.a = rnd();
             randomState.b = 0;
 
-            renderTile(scene, camera, randomState, image,
-                       static_cast<int>(tileIndex), numTilesX, numTilesY);
+            renderTile(scene, camera, randomState, static_cast<int>(tileIndex),
+                       numTilesX, numTilesY);
         });
 
-    image.updateTextureBuffer();
+    this->image.updateTextureBuffer();
 
-    this->count += 1;
+    this->samples += 1;
 }
-
-void RayTracer::reset() { this->count = 0; }

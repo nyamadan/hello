@@ -1,5 +1,3 @@
-#include <tbb/parallel_for.h>
-
 #include <GL/gl3w.h>
 
 #include <glm/glm.hpp>
@@ -97,14 +95,14 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
     auto sphere =
         addSphere(device, scene,
                   PMaterial(new Material(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
-                                             1.0f, glm::vec3(0.0f))),
+                                         1.0f, glm::vec3(0.0f))),
                   1.0f, 8, 6, glm::translate(glm::vec3(3.0f, 0.0f, 0.0f)));
     meshs.insert(meshs.cend(), sphere);
 
     auto light =
         addSphere(device, scene,
                   PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                                             1.0f, glm::vec3(10.0f))),
+                                         1.0f, glm::vec3(1.0f))),
                   1.0f, 8, 6, glm::translate(glm::vec3(0.0f, 1.0f, 0.0f)));
     meshs.insert(meshs.cend(), light);
 
@@ -182,8 +180,7 @@ int main(void) {
 
     auto meshs = addDefaultMeshToScene(device, scene);
 
-    auto image = ImageBuffer(windowSize);
-    auto raytracer = RayTracer();
+    auto raytracer = RayTracer(windowSize);
 
     auto camera = RayTracerCamera(120.0f, 0.001f, 1000.0f);
     const auto eyeDistance = 5.0f;
@@ -194,7 +191,7 @@ int main(void) {
 
     rtcCommitScene(scene);
 
-    raytracer.render(scene, camera, image);
+    raytracer.render(scene, camera);
 
     if (!glfwInit()) return -1;
 
@@ -242,8 +239,6 @@ int main(void) {
 
     glm::dvec2 prevMousePos = getWindowMousePos(window, windowSize);
 
-    auto texBuffer = std::shared_ptr<glm::u8vec3 []>(new glm::u8vec3[windowSize.x * windowSize.y]);
-
     auto t0 = glfwGetTime();
     while (!glfwWindowShouldClose(window)) {
         auto t = glfwGetTime();
@@ -252,7 +247,8 @@ int main(void) {
         glm::vec2 mouseDelta = mousePos - prevMousePos;
 
         // controllCameraFPS(window, camera, dt, mouseDelta);
-        bool needUpdate = controllCameraMouse(window, camera, (float)dt, mouseDelta, wheelDelta);
+        bool needUpdate = controllCameraMouse(window, camera, (float)dt,
+                                              mouseDelta, wheelDelta);
 
         {
             int32_t w, h;
@@ -262,17 +258,15 @@ int main(void) {
         }
 
         if (needUpdate) {
-            image.resize(windowSize);
-            texBuffer = std::shared_ptr<glm::u8vec3[]>(new glm::u8vec3[windowSize.x * windowSize.y]);
-            raytracer.reset();
+            raytracer.resize(windowSize);
             glViewport(0, 0, windowSize.x, windowSize.y);
         }
 
         debugGui.beginFrame();
 
-        raytracer.render(scene, camera, image);
+        raytracer.render(scene, camera);
 
-        copyPixelsToTexture(image, fbo, texture);
+        copyPixelsToTexture(raytracer.getImage(), fbo, texture);
 
         // Rendering
         glfwMakeContextCurrent(window);
@@ -280,9 +274,9 @@ int main(void) {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, fbo);
-        glBlitFramebuffer(0, 0, image.getWidth(), image.getHeight(), 0, 0,
-                          windowSize.x, windowSize.y, GL_COLOR_BUFFER_BIT,
-                          GL_LINEAR);
+        glBlitFramebuffer(0, 0, raytracer.getImage().getWidth(),
+                          raytracer.getImage().getHeight(), 0, 0, windowSize.x,
+                          windowSize.y, GL_COLOR_BUFFER_BIT, GL_LINEAR);
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
@@ -290,7 +284,8 @@ int main(void) {
 
         glfwSwapBuffers(window);
 
-        handleDebugOperation(device, scene, debugGui, image, meshs);
+        handleDebugOperation(device, scene, debugGui, raytracer.getImage(),
+                             meshs);
 
         wheelDelta = glm::dvec2(0.0, 0.0);
         prevMousePos = mousePos;

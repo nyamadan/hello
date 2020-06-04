@@ -13,6 +13,7 @@ class ImageBuffer {
     glm::i32vec2 size;
 
   public:
+    ImageBuffer();
     ImageBuffer(const glm::i32vec2 &size);
     void resize(const glm::i32vec2 &size);
     auto getChannels() const { return 3; }

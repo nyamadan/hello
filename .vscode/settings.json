@@ -2,6 +2,25 @@
   "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
   "files.associations": {
     "cstdlib": "cpp",
-    "sstream": "cpp"
+    "sstream": "cpp",
+    "algorithm": "cpp",
+    "chrono": "cpp",
+    "fstream": "cpp",
+    "iomanip": "cpp",
+    "istream": "cpp",
+    "list": "cpp",
+    "memory": "cpp",
+    "random": "cpp",
+    "streambuf": "cpp",
+    "xfacet": "cpp",
+    "xhash": "cpp",
+    "xiosbase": "cpp",
+    "xlocale": "cpp",
+    "xlocbuf": "cpp",
+    "xlocmon": "cpp",
+    "xlocnum": "cpp",
+    "xloctime": "cpp",
+    "xtree": "cpp",
+    "xutility": "cpp"
   }
 }

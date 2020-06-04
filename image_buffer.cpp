@@ -1,5 +1,9 @@
 #include "image_buffer.hpp"
 
+ImageBuffer::ImageBuffer() {
+    this->resize(glm::i32vec2(0));
+}
+
 ImageBuffer::ImageBuffer(const glm::i32vec2 &size) {
     this->resize(size);
 }

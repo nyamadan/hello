@@ -13,7 +13,9 @@ class RayTracer {
 
     const int32_t aoSample = 0;
 
-    int32_t count = 0;
+    ImageBuffer image;
+
+    int32_t samples = 0;
 
     glm::vec3 renderPixelClassic(RTCScene scene, const RayTracerCamera &camera,
                                  xorshift128plus_state &randomState, float x,
@@ -21,13 +23,17 @@ class RayTracer {
     glm::vec3 renderPixel(RTCScene scene, const RayTracerCamera &camera,
                           xorshift128plus_state &randomState, float x, float y);
     glm::vec3 radiance(RTCScene scene, const RayTracerCamera &camera,
-                       xorshift128plus_state &randomState, RTCRayHit &ray, int32_t depth);
+                       xorshift128plus_state &randomState,
+                       RTCIntersectContext context, RTCRayHit &ray,
+                       int32_t depth);
     void renderTile(RTCScene scene, const RayTracerCamera &camera,
-                    xorshift128plus_state &randomState, ImageBuffer &image,
-                    int tileIndex, const int numTilesX, const int numTilesY);
+                    xorshift128plus_state &randomState, int tileIndex,
+                    const int numTilesX, const int numTilesY);
 
   public:
-    void render(RTCScene scene, const RayTracerCamera &camera,
-                ImageBuffer &image);
-    void reset();
+    RayTracer();
+    RayTracer(const glm::i32vec2 &size);
+    void render(RTCScene scene, const RayTracerCamera &camera);
+    void resize(const glm::i32vec2 &size);
+    const ImageBuffer &getImage();
 };
