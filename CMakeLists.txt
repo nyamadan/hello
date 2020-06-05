@@ -19,6 +19,10 @@ set(TBB_DIR ${EXTERNAL_DIR}/src/tbb/tbb)
 set(TBB_LIBRARY_DIR ${TBB_DIR}/lib/intel64/vc14)
 set(TBB_BINARY_DIR ${TBB_DIR}/bin/intel64/vc14)
 set(TBB_INCLUDE_DIR ${TBB_DIR}/include)
+set(OIDN_DIR ${EXTERNAL_DIR}/src/oidn)
+set(OIDN_LIBRARY_DIR ${OIDN_DIR}/lib)
+set(OIDN_BINARY_DIR ${OIDN_DIR}/bin)
+set(OIDN_INCLUDE_DIR ${OIDN_DIR}/include)
 
 ExternalProject_Add(embree
     PREFIX              ${EXTERNAL_DIR}
@@ -38,6 +42,16 @@ ExternalProject_Add(tbb
     CONFIGURE_COMMAND   ""
     BUILD_COMMAND       ""
     INSTALL_COMMAND     COMMAND ${CMAKE_COMMAND} -E copy "${TBB_BINARY_DIR}/tbb.dll" "${TBB_BINARY_DIR}/tbb_debug.dll" "${PROJECT_SOURCE_DIR}/"
+)
+
+ExternalProject_Add(oidn
+    PREFIX              ${EXTERNAL_DIR}
+    URL                 https://github.com/OpenImageDenoise/oidn/releases/download/v1.2.0/oidn-1.2.0.x64.vc14.windows.zip
+    BUILD_IN_SOURCE     True
+    UPDATE_COMMAND      ""
+    CONFIGURE_COMMAND   ""
+    BUILD_COMMAND       ""
+    INSTALL_COMMAND     COMMAND ${CMAKE_COMMAND} -E copy "${OIDN_BINARY_DIR}/OpenImageDenoise.dll" "${PROJECT_SOURCE_DIR}/"
 )
 
 execute_process(
@@ -61,6 +75,7 @@ include_directories(
 link_directories(
     "${EMBREE_LIBRARY_DIR}"
     "${TBB_LIBRARY_DIR}"
+    "${OIDN_LIBRARY_DIR}"
 )
 
 add_executable(
@@ -87,5 +102,5 @@ add_executable(
 )
 
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
-add_dependencies(hello_embree glfw embree tbb)
-target_link_libraries(hello_embree glfw embree3)
+add_dependencies(hello_embree glfw embree tbb oidn)
+target_link_libraries(hello_embree glfw embree3 OpenImageDenoise)

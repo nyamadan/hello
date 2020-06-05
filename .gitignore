@@ -1,6 +1,7 @@
 /build
 
 ### Embree
+/OpenImageDenoise.dll
 /embree3.dll
 /tbb*.dll
 
