@@ -11,8 +11,6 @@ class RayTracer {
     const int32_t TILE_SIZE_X = 4;
     const int32_t TILE_SIZE_Y = 4;
 
-    const int32_t aoSample = 0;
-
     ImageBuffer image;
 
     int32_t samples = 0;

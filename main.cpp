@@ -77,34 +77,30 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
                                               RTCScene scene) {
     ConstantPMeshList meshs;
 
-    auto plane =
+    meshs.push_back(
         addGroundPlane(device, scene,
                        PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                                               1.0f, glm::vec3(0.0f))),
                        glm::translate(glm::vec3(0.0f, -1.0f, 0.0f)) *
-                           glm::scale(glm::vec3(10.0f)));
-    meshs.insert(meshs.cend(), plane);
+                           glm::scale(glm::vec3(10.0f))));
 
-    auto cube =
+    meshs.push_back(
         addCube(device, scene,
                 PMaterial(new Material(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 1.0f,
                                        glm::vec3(0.0f))),
-                glm::translate(glm::vec3(-3.0f, 0.0f, 0.0f)));
-    meshs.insert(meshs.cend(), cube);
+                glm::translate(glm::vec3(-3.0f, 0.0f, 0.0f))));
 
-    auto sphere =
+    meshs.push_back(
         addSphere(device, scene,
                   PMaterial(new Material(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
                                          1.0f, glm::vec3(0.0f))),
-                  1.0f, 8, 6, glm::translate(glm::vec3(3.0f, 0.0f, 0.0f)));
-    meshs.insert(meshs.cend(), sphere);
+                  1.0f, 8, 6, glm::translate(glm::vec3(3.0f, 0.0f, 0.0f))));
 
-    auto light =
+    meshs.push_back(
         addSphere(device, scene,
                   PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                                          1.0f, glm::vec3(1.0f))),
-                  1.0f, 8, 6, glm::translate(glm::vec3(0.0f, 1.0f, 0.0f)));
-    meshs.insert(meshs.cend(), light);
+                  1.0f, 8, 6, glm::translate(glm::vec3(0.0f, 1.0f, 0.0f))));
 
     return meshs;
 }

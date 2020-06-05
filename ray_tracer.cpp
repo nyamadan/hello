@@ -83,7 +83,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     const float r1 =
         2.0f * M_PI * static_cast<float>(xorshift128plus01(randomState));
     const float r2 = static_cast<float>(xorshift128plus01(randomState)),
-                r2s = sqrt(r2);
+                r2s = std::sqrt(r2);
     auto dir = glm::normalize(
         glm::vec3(u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1.0 - r2)));
 
@@ -137,99 +137,93 @@ glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
 
     const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
     const auto orig = cameraFrom + ray.ray.tfar * rayDir;
-    const auto normal = glm::normalize(Ng);
 
     /* shade pixels */
     auto color = glm::vec3(0.0f);
 
-    if (ray.hit.geomID != RTC_INVALID_GEOMETRY_ID) {
-        auto diffuse = glm::vec3(0.0f);
-        auto geom = rtcGetGeometry(scene, ray.hit.geomID);
-        auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
-        auto material = mesh->getMaterial().get();
+    if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
+        return color;
+    }
 
-        auto normal = glm::vec3(0.0f);
+    auto diffuse = glm::vec3(0.0f);
+    auto geom = rtcGetGeometry(scene, ray.hit.geomID);
+    auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
+    auto material = mesh->getMaterial().get();
 
-        rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
-                        glm::value_ptr(normal), 3);
+    auto normal = glm::vec3(0.0f);
 
-        if (material != nullptr) {
-            diffuse = material->baseColorFactor;
-        } else {
-            diffuse = glm::vec3(1.0f);
-        }
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, glm::value_ptr(normal),
+                    3);
 
-        color = diffuse * 0.5f;
+    if (material != nullptr) {
+        diffuse = material->baseColorFactor;
+    } else {
+        diffuse = glm::vec3(1.0f);
+    }
 
-        glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
-        glm::vec3 hitOrig =
-            glm::vec3(ray.ray.org_x + ray.ray.tfar * ray.ray.dir_x,
-                      ray.ray.org_y + ray.ray.tfar * ray.ray.dir_y,
-                      ray.ray.org_z + ray.ray.tfar * ray.ray.dir_z);
+    color = diffuse * 0.5f;
 
-        /* initialize shadow ray */
-        RTCRay shadow;
-        shadow.org_x = hitOrig.x;
-        shadow.org_y = hitOrig.y;
-        shadow.org_z = hitOrig.z;
-        shadow.dir_x = -lightDir.x;
-        shadow.dir_y = -lightDir.y;
-        shadow.dir_z = -lightDir.z;
-        shadow.tnear = tnear;
-        shadow.tfar = tfar;
-        shadow.time = 0.0f;
+    glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
+    glm::vec3 hitOrig = glm::vec3(ray.ray.org_x + ray.ray.tfar * ray.ray.dir_x,
+                                  ray.ray.org_y + ray.ray.tfar * ray.ray.dir_y,
+                                  ray.ray.org_z + ray.ray.tfar * ray.ray.dir_z);
+
+    /* initialize shadow ray */
+    RTCRay shadow;
+    shadow.org_x = hitOrig.x;
+    shadow.org_y = hitOrig.y;
+    shadow.org_z = hitOrig.z;
+    shadow.dir_x = -lightDir.x;
+    shadow.dir_y = -lightDir.y;
+    shadow.dir_z = -lightDir.z;
+    shadow.tnear = tnear;
+    shadow.tfar = tfar;
+    shadow.time = 0.0f;
+
+    /* trace shadow ray */
+    rtcOccluded1(scene, &context, &shadow);
+
+    /* add light contribution */
+    if (shadow.tfar == tfar) {
+        color = color +
+                diffuse * std::clamp(-glm::dot(lightDir, normal), 0.0f, 1.0f);
+    }
+
+    {
+        glm::vec3 p;
+        auto r = 1.0f;
+        auto r2 = r * r;
+        do {
+            p = 2.0f * r *
+                    glm::vec3(xorshift128plus01(randomState),
+                              xorshift128plus01(randomState),
+                              xorshift128plus01(randomState)) -
+                glm::vec3(r, r, r);
+        } while (glm::length2(p) >= r2);
+
+        auto org = hitOrig;
+        auto target = p + r * normal + org;
+        auto dir = glm::normalize(target - org);
+
+        RTCRay occ;
+        auto tnear = 0.0001f;
+        auto tfar = glm::length(target - org);
+        occ.org_x = org.x;
+        occ.org_y = org.y;
+        occ.org_z = org.z;
+        occ.dir_x = dir.x;
+        occ.dir_y = dir.y;
+        occ.dir_z = dir.z;
+        occ.tnear = tnear;
+        occ.tfar = tfar;
+        occ.time = 0.0f;
 
         /* trace shadow ray */
-        rtcOccluded1(scene, &context, &shadow);
+        rtcOccluded1(scene, &context, &occ);
 
-        /* add light contribution */
-        if (shadow.tfar == tfar) {
-            color = color + diffuse * std::clamp(-glm::dot(lightDir, normal),
-                                                 0.0f, 1.0f);
-        }
-
-        if (aoSample > 0) {
-            glm::vec3 p;
-            auto r = 1.0f;
-            auto r2 = r * r;
-            auto hit = 0;
-            for (auto i = 0; i < aoSample; i++) {
-                do {
-                    const auto range = UINT64_MAX;
-                    p = 2.0f * r *
-                            glm::vec3(xorshift128plus01(randomState),
-                                      xorshift128plus01(randomState),
-                                      xorshift128plus01(randomState)) -
-                        glm::vec3(r, r, r);
-                } while (glm::length2(p) >= r2);
-
-                auto org = hitOrig;
-                auto target = p + r * normal + org;
-                auto dir = glm::normalize(target - org);
-
-                RTCRay occ;
-                auto tnear = 0.0001f;
-                auto tfar = glm::length(target - org);
-                occ.org_x = org.x;
-                occ.org_y = org.y;
-                occ.org_z = org.z;
-                occ.dir_x = dir.x;
-                occ.dir_y = dir.y;
-                occ.dir_z = dir.z;
-                occ.tnear = tnear;
-                occ.tfar = tfar;
-                occ.time = 0.0f;
-
-                /* trace shadow ray */
-                rtcOccluded1(scene, &context, &occ);
-
-                if (occ.tfar != tfar) {
-                    hit++;
-                }
-            }
-
-            color = glm::vec3(color * (1.0f - (float)hit / (float)aoSample));
+        if (occ.tfar != tfar) {
+            color *= 0.1f;
         }
     }
 
@@ -239,27 +233,32 @@ glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
 glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                                  xorshift128plus_state &randomState, float x,
                                  float y) {
-    const auto tnear = camera.getNear();
-    const auto tfar = camera.getFar();
-    const auto cameraFrom = camera.getCameraOrigin();
-    const auto rayDir = camera.getRayDir(x, y);
+    const auto isClassic = false;
+    if (isClassic) {
+        return renderPixelClassic(scene, camera, randomState, x, y);
+    } else {
+        const auto tnear = camera.getNear();
+        const auto tfar = camera.getFar();
+        const auto cameraFrom = camera.getCameraOrigin();
+        const auto rayDir = camera.getRayDir(x, y);
 
-    RTCIntersectContext context;
-    rtcInitIntersectContext(&context);
+        RTCIntersectContext context;
+        rtcInitIntersectContext(&context);
 
-    auto ray = RTCRayHit();
-    ray.ray.dir_x = rayDir.x;
-    ray.ray.dir_y = rayDir.y;
-    ray.ray.dir_z = rayDir.z;
-    ray.ray.org_x = cameraFrom.x;
-    ray.ray.org_y = cameraFrom.y;
-    ray.ray.org_z = cameraFrom.z;
-    ray.ray.tnear = tnear;
-    ray.ray.tfar = tfar;
-    ray.ray.time = 0.0f;
-    ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+        auto ray = RTCRayHit();
+        ray.ray.dir_x = rayDir.x;
+        ray.ray.dir_y = rayDir.y;
+        ray.ray.dir_z = rayDir.z;
+        ray.ray.org_x = cameraFrom.x;
+        ray.ray.org_y = cameraFrom.y;
+        ray.ray.org_z = cameraFrom.z;
+        ray.ray.tnear = tnear;
+        ray.ray.tfar = tfar;
+        ray.ray.time = 0.0f;
+        ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
 
-    return radiance(scene, camera, randomState, context, ray, 0);
+        return radiance(scene, camera, randomState, context, ray, 0);
+    }
 }
 
 /* renders a single screen tile */
