@@ -8,8 +8,8 @@
 
 class RayTracer {
   private:
-    const int32_t TILE_SIZE_X = 256;
-    const int32_t TILE_SIZE_Y = 256;
+    const int32_t TILE_SIZE_X = 4;
+    const int32_t TILE_SIZE_Y = 4;
 
     const int32_t aoSample = 0;
 

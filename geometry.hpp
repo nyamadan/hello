@@ -56,17 +56,10 @@ class Mesh {
         this->material = nullptr;
     }
 
-    Mesh(uint32_t geomId) {
-        this->geomId = geomId;
-        this->material = nullptr;
-    }
-
-    Mesh(uint32_t geomId, ConstantPMaterial material) {
-        this->geomId = geomId;
-        this->material = material;
-    }
-
+    void setGeometryId(uint32_t geomId) { this->geomId = geomId; }
     uint32_t getGeometryId() const { return this->geomId; }
+
+    void setMaterial(ConstantPMaterial material) { this->material = material; }
     const ConstantPMaterial getMaterial() const { return this->material; }
 };
 
@@ -89,7 +82,7 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
                              ConstantPMaterial material,
                              const glm::mat4 transform = glm::mat4(1.0f));
 
-void addMesh(const RTCDevice device, const RTCScene rtcScene,
+void addMesh(const RTCDevice device, const RTCScene scene,
              const tinygltf::Model &model, const tinygltf::Mesh &gltfMesh,
              const glm::mat4 &world, std::list<PMesh> &meshs);
 
@@ -97,5 +90,5 @@ void addNode(const RTCDevice device, const RTCScene scene,
              const tinygltf::Model &model, const tinygltf::Node &node,
              const glm::mat4 world, std::list<PMesh> &meshs);
 
-ConstantPMeshList addModel(const RTCDevice device, const RTCScene rtcScene,
+ConstantPMeshList addModel(const RTCDevice device, const RTCScene scene,
                            const tinygltf::Model &model);

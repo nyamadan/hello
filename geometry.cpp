@@ -63,55 +63,58 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
         }
     }
 
-    auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+    auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
     auto *_vertices = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
+        geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
         vertices.size());
     for (auto i = 0; i < vertices.size(); i++) {
         _vertices[i] = vertices[i];
     }
 
     auto *_indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
+        geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
         indices.size());
     for (auto i = 0; i < indices.size(); i++) {
         _indices[i] = indices[i];
     }
 
-    rtcSetGeometryVertexAttributeCount(mesh, 2);
+    rtcSetGeometryVertexAttributeCount(geom, 2);
 
     auto *_normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
         sizeof(glm::vec3), normals.size());
     for (auto i = 0; i < normals.size(); i++) {
         _normals[i] = normals[i];
     }
 
     auto *_uvs = (glm::vec2 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT2,
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT2,
         sizeof(glm::vec2), uvs.size());
     for (auto i = 0; i < uvs.size(); i++) {
         _uvs[i] = uvs[i];
     }
 
-    rtcSetGeometryUserData(mesh, (void *)material.get());
+    auto mesh = PMesh(new Mesh());
+    rtcSetGeometryUserData(geom, (void *)mesh.get());
 
-    rtcCommitGeometry(mesh);
-    auto geomID = rtcAttachGeometry(scene, mesh);
-    rtcReleaseGeometry(mesh);
+    rtcCommitGeometry(geom);
+    auto geomId = rtcAttachGeometry(scene, geom);
+    rtcReleaseGeometry(geom);
 
-    return std::make_shared<Mesh>(geomID, material);
+    mesh->setGeometryId(geomId);
+    mesh->setMaterial(material);
+    return mesh;
 }
 
 /* adds a cube to the scene */
 ConstantPMesh addCube(RTCDevice device, RTCScene scene, ConstantPMaterial material, glm::mat4 transform) {
     /* create a triangulated cube with 12 triangles and 8 vertices */
-    auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+    auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
     /* set vertices and vertex colors */
     auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
+        geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
         24);
     positions[0] = transform * glm::vec4(1, 1, -1, 1.0f);
     positions[1] = transform * glm::vec4(1, 1, 1, 1.0f);
@@ -140,7 +143,7 @@ ConstantPMesh addCube(RTCDevice device, RTCScene scene, ConstantPMaterial materi
 
     /* set triangles and face colors */
     glm::uvec3 *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
+        geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
         12);
     indices[0] = glm::uvec3(0, 1, 2);
     indices[1] = glm::uvec3(0, 2, 3);
@@ -155,9 +158,9 @@ ConstantPMesh addCube(RTCDevice device, RTCScene scene, ConstantPMaterial materi
     indices[10] = glm::uvec3(20, 21, 22);
     indices[11] = glm::uvec3(20, 22, 23);
 
-    rtcSetGeometryVertexAttributeCount(mesh, 2);
+    rtcSetGeometryVertexAttributeCount(geom, 2);
     glm::vec3 *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
         sizeof(glm::vec3), 24);
     const auto inverseTranspose = glm::transpose(glm::inverse(transform));
     normals[0] = inverseTranspose * glm::vec4(1, 0, 0, 1);
@@ -189,7 +192,7 @@ ConstantPMesh addCube(RTCDevice device, RTCScene scene, ConstantPMaterial materi
     }
 
     glm::vec2 *uvs = (glm::vec2 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT3,
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT3,
         sizeof(glm::vec2), 24);
     uvs[0] = glm::vec2(1, 0);
     uvs[1] = glm::vec2(0, 0);
@@ -216,12 +219,16 @@ ConstantPMesh addCube(RTCDevice device, RTCScene scene, ConstantPMaterial materi
     uvs[22] = glm::vec2(0, 1);
     uvs[23] = glm::vec2(1, 1);
 
-    rtcSetGeometryUserData(mesh, (void *)material.get());
+    auto mesh = PMesh(new Mesh());
+    rtcSetGeometryUserData(geom, (void *)mesh.get());
 
-    rtcCommitGeometry(mesh);
-    auto geomID = rtcAttachGeometry(scene, mesh);
-    rtcReleaseGeometry(mesh);
-    return std::make_shared<Mesh>(geomID, material);
+    rtcCommitGeometry(geom);
+    auto geomId = rtcAttachGeometry(scene, geom);
+    rtcReleaseGeometry(geom);
+
+    mesh->setGeometryId(geomId);
+    mesh->setMaterial(material);
+    return mesh;
 }
 
 /* adds a ground plane to the scene */
@@ -229,11 +236,11 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
                              ConstantPMaterial material,
                              const glm::mat4 transform) {
     /* create a triangulated plane with 2 triangles and 4 vertices */
-    auto mesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+    auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
     /* set vertices */
     auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
+        geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
         4);
     positions[0] = transform * glm::vec4(-1, 0, -1, 1);
     positions[1] = transform * glm::vec4(-1, 0, +1, 1);
@@ -242,16 +249,16 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
 
     /* set triangles */
     auto *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
+        geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
         2);
     indices[0] = glm::uvec3(0, 1, 2);
     indices[1] = glm::uvec3(1, 3, 2);
 
-    rtcSetGeometryVertexAttributeCount(mesh, 2);
+    rtcSetGeometryVertexAttributeCount(geom, 2);
 
     const auto inverseTranspose = glm::transpose(glm::inverse(transform));
     auto *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
         sizeof(glm::vec3), 4);
     normals[0] = inverseTranspose * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
     normals[1] = inverseTranspose * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
@@ -262,22 +269,27 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
     }
 
     auto *uvs = (glm::vec2 *)rtcSetNewGeometryBuffer(
-        mesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT2,
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT2,
         sizeof(glm::vec2), 4);
     uvs[0] = glm::vec2(0.0f, 0.0f);
     uvs[1] = glm::vec2(0.0f, 1.0f);
     uvs[2] = glm::vec2(1.0f, 0.0f);
     uvs[3] = glm::vec2(1.0f, 1.0f);
 
-    rtcSetGeometryUserData(mesh, (void *)material.get());
+    auto mesh = PMesh(new Mesh());
+    rtcSetGeometryUserData(geom, (void *)mesh.get());
 
-    rtcCommitGeometry(mesh);
-    auto geomID = rtcAttachGeometry(scene, mesh);
-    rtcReleaseGeometry(mesh);
-    return std::make_shared<Mesh>(geomID, material);
+    rtcCommitGeometry(geom);
+    auto geomId = rtcAttachGeometry(scene, geom);
+    rtcReleaseGeometry(geom);
+
+    mesh->setGeometryId(geomId);
+    mesh->setMaterial(material);
+
+    return mesh;
 }
 
-void addMesh(const RTCDevice device, const RTCScene rtcScene,
+void addMesh(const RTCDevice device, const RTCScene scene,
              const tinygltf::Model &model, const tinygltf::Mesh &gltfMesh,
              const glm::mat4 &world, ConstantPMeshList &meshs) {
     for (size_t i = 0; i < gltfMesh.primitives.size(); i++) {
@@ -317,8 +329,8 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
         int mode = primitive.mode;
         assert(mode == TINYGLTF_MODE_TRIANGLES);
 
-        auto rtcMesh = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-        rtcSetGeometryVertexAttributeCount(rtcMesh, 2);
+        auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+        rtcSetGeometryVertexAttributeCount(geom, 2);
         auto allSemantics = 0;
 
         const auto &indexAccessor = model.accessors[primitive.indices];
@@ -331,7 +343,7 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
                TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
 
         auto *triangles = (uint32_t *)rtcSetNewGeometryBuffer(
-            rtcMesh, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
+            geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
             sizeof(uint32_t) * 3, indexAccessor.count / 3);
 
         for (auto i = 0; i < indexAccessor.count; i++) {
@@ -396,7 +408,7 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
                             case 1: {
                                 geometryBuffer =
                                     (float *)rtcSetNewGeometryBuffer(
-                                        rtcMesh, RTC_BUFFER_TYPE_VERTEX, 0,
+                                        geom, RTC_BUFFER_TYPE_VERTEX, 0,
                                         (RTCFormat)((int)RTC_FORMAT_FLOAT +
                                                     size - 1),
                                         sizeof(float) * size, accessor.count);
@@ -404,7 +416,7 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
                             case 2: {
                                 geometryBuffer =
                                     (float *)rtcSetNewGeometryBuffer(
-                                        rtcMesh,
+                                        geom,
                                         RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
                                         (RTCFormat)((int)RTC_FORMAT_FLOAT +
                                                     size - 1),
@@ -413,7 +425,7 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
                             case 4: {
                                 geometryBuffer =
                                     (float *)rtcSetNewGeometryBuffer(
-                                        rtcMesh,
+                                        geom,
                                         RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1,
                                         (RTCFormat)((int)RTC_FORMAT_FLOAT +
                                                     size - 1),
@@ -484,28 +496,32 @@ void addMesh(const RTCDevice device, const RTCScene rtcScene,
 
         if (!(allSemantics & 2)) {
             auto normals = (float *)rtcSetNewGeometryBuffer(
-                rtcMesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
+                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
                 (RTCFormat)(RTC_FORMAT_FLOAT3), sizeof(glm::vec3),
                 indexAccessor.count / 3);
         }
 
         if (!(allSemantics & 4)) {
             auto uvs = (float *)rtcSetNewGeometryBuffer(
-                rtcMesh, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1,
+                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1,
                 (RTCFormat)(RTC_FORMAT_FLOAT2), sizeof(glm::vec3),
                 indexAccessor.count / 2);
         }
 
         {
-            auto material = ConstantPMaterial(
-                new Material(baseColorFactor, metallicFactor, emissiveFactor));
+            auto material = ConstantPMaterial(new Material(baseColorFactor, metallicFactor, emissiveFactor));
 
-            rtcSetGeometryUserData(rtcMesh, (void *)material.get());
+            auto mesh = PMesh(new Mesh());
+            rtcSetGeometryUserData(geom, (void *)mesh.get());
 
-            rtcCommitGeometry(rtcMesh);
-            auto geomID = rtcAttachGeometry(rtcScene, rtcMesh);
-            rtcReleaseGeometry(rtcMesh);
-            meshs.push_back(std::make_shared<Mesh>(geomID, material));
+            rtcCommitGeometry(geom);
+            auto geomId = rtcAttachGeometry(scene, geom);
+            rtcReleaseGeometry(geom);
+
+            mesh->setGeometryId(geomId);
+            mesh->setMaterial(material);
+
+            meshs.push_back(mesh);
         }
     }
 }
@@ -553,7 +569,7 @@ void addNode(const RTCDevice device, const RTCScene scene,
     }
 }
 
-ConstantPMeshList addModel(const RTCDevice device, const RTCScene rtcScene,
+ConstantPMeshList addModel(const RTCDevice device, const RTCScene scene,
                            const tinygltf::Model &model) {
     ConstantPMeshList meshs;
     const auto sceneToDisplay =
@@ -563,7 +579,7 @@ ConstantPMeshList addModel(const RTCDevice device, const RTCScene rtcScene,
     for (size_t i = 0; i < gltfScene.nodes.size(); i++) {
         auto matrix = glm::mat4(1.0f);
         const auto &node = model.nodes[gltfScene.nodes[i]];
-        addNode(device, rtcScene, model, node, matrix, meshs);
+        addNode(device, scene, model, node, matrix, meshs);
     }
 
     return meshs;
