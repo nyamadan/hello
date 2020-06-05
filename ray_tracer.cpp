@@ -11,9 +11,7 @@ RayTracer::RayTracer() {}
 
 const ImageBuffer &RayTracer::getImage() { return this->image; }
 
-RayTracer::RayTracer(const glm::i32vec2 &size) {
-    this->resize(size);
-}
+RayTracer::RayTracer(const glm::i32vec2 &size) { this->resize(size); }
 
 void RayTracer::resize(const glm::i32vec2 &size) {
     this->image.resize(size);
@@ -61,10 +59,10 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     }
 
     const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
-    const auto orig =
-        glm::vec3(ray.ray.org_x, ray.ray.org_y, ray.ray.org_z) +
-        ray.ray.tfar * glm::vec3(ray.ray.dir_x, ray.ray.dir_y, ray.ray.dir_z);
-    const auto normal = glm::normalize(Ng);
+    const auto rayDir = glm::vec3(ray.ray.dir_x, ray.ray.dir_y, ray.ray.dir_z);
+    const auto orig = glm::vec3(ray.ray.org_x, ray.ray.org_y, ray.ray.org_z) +
+                      ray.ray.tfar * rayDir;
+    const auto normal = glm::normalize(glm::dot(rayDir, Ng) < 0 ? Ng : -Ng);
 
     auto incomingRadiance = glm::vec3(0.0f);
     auto weight = glm::vec3(1.0f);
@@ -152,9 +150,11 @@ glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
 
     auto normal = glm::vec3(0.0f);
 
-    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, glm::value_ptr(normal),
-                    3);
+    normal = glm::normalize(glm::dot(rayDir, Ng) < 0 ? Ng : -Ng);
+
+    // rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+    //                 RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
+    //                 glm::value_ptr(normal), 3);
 
     if (material != nullptr) {
         diffuse = material->baseColorFactor;
@@ -301,16 +301,15 @@ void RayTracer::render(RTCScene scene, const RayTracerCamera &camera) {
     randomState.b = 0;
     std::vector<xorshift128plus_state> randomStates(tileSize);
 
-    for(auto it = randomStates.begin(); it != randomStates.end(); it++) {
+    for (auto it = randomStates.begin(); it != randomStates.end(); it++) {
         it->a = xorshift128plus(randomState);
         it->b = xorshift128plus(randomState);
     }
 
-    tbb::parallel_for(
-        size_t(0), size_t(tileSize), [&](size_t tileIndex) {
-            renderTile(scene, camera, randomStates[tileIndex], static_cast<int>(tileIndex),
-                       numTilesX, numTilesY);
-        });
+    tbb::parallel_for(size_t(0), size_t(tileSize), [&](size_t tileIndex) {
+        renderTile(scene, camera, randomStates[tileIndex],
+                   static_cast<int>(tileIndex), numTilesX, numTilesY);
+    });
 
     this->image.updateTextureBuffer();
 

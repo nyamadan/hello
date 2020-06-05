@@ -74,21 +74,18 @@ void DebugGUI::beginFrame() {
         ImGui::ShowDemoWindow(&showImGuiDemoWindow);
     }
 
-    if (ImGui::Begin("Performance")) {
-        deltaTimes[deltaTimesOffset] = ImGui::GetIO().DeltaTime;
+    ImGui::Begin("Performance");
+    deltaTimes[deltaTimesOffset] = ImGui::GetIO().DeltaTime;
 
-        auto average =
-            std::reduce(deltaTimes.cbegin(), deltaTimes.cend(), 0.0f) /
-            deltaTimes.size();
-        deltaTimesOffset = (deltaTimesOffset + 1) % deltaTimes.size();
-        char overlay[32];
-        sprintf(overlay, "FPS: %.2f", 1.0f / average);
-        ImGui::PlotHistogram("s / f", deltaTimes.data(), deltaTimes.size(),
-                             deltaTimesOffset, overlay, .0f, .5f,
-                             ImVec2(0, 80.0f));
+    auto average = std::reduce(deltaTimes.cbegin(), deltaTimes.cend(), 0.0f) /
+                   deltaTimes.size();
+    deltaTimesOffset = (deltaTimesOffset + 1) % deltaTimes.size();
+    char overlay[32];
+    sprintf(overlay, "FPS: %.2f", 1.0f / average);
+    ImGui::PlotHistogram("s / f", deltaTimes.data(), deltaTimes.size(),
+                         deltaTimesOffset, overlay, .0f, .5f, ImVec2(0, 80.0f));
 
-        ImGui::End();
-    }
+    ImGui::End();
 
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
