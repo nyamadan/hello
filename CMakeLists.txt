@@ -64,6 +64,7 @@ add_subdirectory("${PROJECT_SOURCE_DIR}/glfw")
 include_directories(
     "${EMBREE_INCLUDE_DIR}"
     "${TBB_INCLUDE_DIR}"
+    "${OIDN_INCLUDE_DIR}"
     "${PROJECT_SOURCE_DIR}/glm"
     "${PROJECT_SOURCE_DIR}/stb"
     "${PROJECT_SOURCE_DIR}/gl3w/include"

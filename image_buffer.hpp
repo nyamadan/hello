@@ -9,6 +9,8 @@
 class ImageBuffer {
   private:
     std::shared_ptr<glm::vec3[]> buffer;
+    std::shared_ptr<glm::vec3[]> normal;
+    std::shared_ptr<glm::vec3[]> albedo;
     std::shared_ptr<glm::u8vec3[]> textureBuffer;
     glm::i32vec2 size;
 
@@ -16,6 +18,7 @@ class ImageBuffer {
     ImageBuffer();
     ImageBuffer(const glm::i32vec2 &size);
     void resize(const glm::i32vec2 &size);
+    void reset();
     auto getChannels() const { return 3; }
     auto getWidth() const { return this->size.x; }
     auto getHeight() const { return this->size.y; }
@@ -23,6 +26,8 @@ class ImageBuffer {
         return static_cast<float>(getWidth()) / getHeight();
     }
     auto getBuffer() { return this->buffer.get(); }
+    auto getNormal() { return this->normal.get(); }
+    auto getAlbedo() { return this->albedo.get(); }
     const auto GetReadonlyBuffer() const {
         return static_cast<const glm::vec3 *>(this->buffer.get());
     }

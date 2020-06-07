@@ -63,7 +63,15 @@ void DebugGUI::setup(GLFWwindow *window) {
     ImGui_ImplOpenGL3_Init("#version 330 core\n");
 }
 
-void DebugGUI::beginFrame() {
+void DebugGUI::onSaveImage() {
+    saveFileDialog(savingImagePath, "Image File {*.png}", "png");
+}
+
+void DebugGUI::onOpenGLB() {
+    openFileDialog(openingGLBPath, "GLB File {*.glb}");
+}
+
+void DebugGUI::renderFrame(const RayTracer &raytracer) {
     static bool showImGuiDemoWindow = false;
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -73,19 +81,6 @@ void DebugGUI::beginFrame() {
     if (showImGuiDemoWindow) {
         ImGui::ShowDemoWindow(&showImGuiDemoWindow);
     }
-
-    ImGui::Begin("Performance");
-    deltaTimes[deltaTimesOffset] = ImGui::GetIO().DeltaTime;
-
-    auto average = std::reduce(deltaTimes.cbegin(), deltaTimes.cend(), 0.0f) /
-                   deltaTimes.size();
-    deltaTimesOffset = (deltaTimesOffset + 1) % deltaTimes.size();
-    char overlay[32];
-    sprintf(overlay, "FPS: %.2f", 1.0f / average);
-    ImGui::PlotHistogram("s / f", deltaTimes.data(), deltaTimes.size(),
-                         deltaTimesOffset, overlay, .0f, .5f, ImVec2(0, 80.0f));
-
-    ImGui::End();
 
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
@@ -102,18 +97,32 @@ void DebugGUI::beginFrame() {
         }
         ImGui::EndMainMenuBar();
     }
-}
 
-void DebugGUI::onSaveImage() {
-    saveFileDialog(savingImagePath, "Image File {*.png}", "png");
-}
+    ImGui::Begin("RayTracer");
 
-void DebugGUI::onOpenGLB() {
-    openFileDialog(openingGLBPath, "GLB File {*.glb}");
-}
+    {
+        ImGui::LabelText("samples", "%d / %d", raytracer.getSamples(),
+                         raytracer.getMaxSamples());
+    }
 
-void DebugGUI::renderFrame() {
+    {
+        deltaTimes[deltaTimesOffset] = ImGui::GetIO().DeltaTime;
+
+        auto average =
+            std::reduce(deltaTimes.cbegin(), deltaTimes.cend(), 0.0f) /
+            deltaTimes.size();
+        deltaTimesOffset = (deltaTimesOffset + 1) % deltaTimes.size();
+        std::array<char, 32> overlay{};
+        std::snprintf(&overlay[0], overlay.size(), "FPS: %.2f", 1.0f / average);
+        ImGui::PlotHistogram(
+            "ms", deltaTimes.data(), static_cast<int32_t>(deltaTimes.size()),
+            deltaTimesOffset, overlay.data(), .0f, .5f, ImVec2(0, 80.0f));
+    }
+
+    ImGui::End();
+
     ImGui::Render();
+
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 

@@ -5,6 +5,7 @@
 
 #include <GLFW/glfw3.h>
 
+#include "ray_tracer.hpp"
 #include "image_buffer.hpp"
 
 class DebugGUI {
@@ -12,8 +13,7 @@ class DebugGUI {
     DebugGUI();
 
     void setup(GLFWwindow *window);
-    void beginFrame();
-    void renderFrame();
+    void renderFrame(const RayTracer &raytracer);
 
     std::string pullSavingImagePath();
     std::string pullOpeningGLBPath();

@@ -6,6 +6,8 @@
 
 #include <stb_image_write.h>
 
+#include <OpenImageDenoise/oidn.hpp>
+
 #include "debug_gui.hpp"
 #include "fps_camera_controller.hpp"
 #include "geometry.hpp"
@@ -99,8 +101,8 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
     meshs.push_back(
         addSphere(device, scene,
                   PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                                         1.0f, glm::vec3(5.0f))),
-                  2.5f, 8, 6, glm::translate(glm::vec3(0.0f, 10.0f, 0.0f))));
+                                         1.0f, glm::vec3(1.0f))),
+                  2.5f, 800, 600, glm::translate(glm::vec3(0.0f, 8.0f, 0.0f))));
 
     return meshs;
 }
@@ -161,6 +163,10 @@ void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
 int main(void) {
     auto windowSize = glm::i32vec2(640, 480);
 
+    // Create an Intel Open Image Denoise device
+    oidn::DeviceRef denoiser = oidn::newDevice();
+    denoiser.commit();
+
     auto debugGui = DebugGUI();
 
 #ifdef NDEBUG
@@ -187,7 +193,7 @@ int main(void) {
 
     rtcCommitScene(scene);
 
-    raytracer.render(scene, camera);
+    raytracer.render(scene, camera, denoiser);
 
     if (!glfwInit()) return -1;
 
@@ -243,24 +249,25 @@ int main(void) {
         glm::vec2 mouseDelta = mousePos - prevMousePos;
 
         // controllCameraFPS(window, camera, dt, mouseDelta);
-        bool needUpdate = controllCameraMouse(window, camera, (float)dt,
-                                              mouseDelta, wheelDelta);
 
+        bool needResize = false;
         {
             int32_t w, h;
             glfwGetWindowSize(window, &w, &h);
-            needUpdate = needUpdate || w != windowSize.x || h != windowSize.y;
+            needResize = (w != windowSize.x || h != windowSize.y) || needResize;
             windowSize = glm::i32vec2(w, h);
         }
 
-        if (needUpdate) {
+        bool needUpdate = controllCameraMouse(window, camera, (float)dt, mouseDelta, wheelDelta) || needResize;
+
+        if(needResize) {
             raytracer.resize(windowSize);
             glViewport(0, 0, windowSize.x, windowSize.y);
+        } else if(needUpdate) {
+            raytracer.reset();
         }
 
-        debugGui.beginFrame();
-
-        raytracer.render(scene, camera);
+        raytracer.render(scene, camera, denoiser);
 
         copyPixelsToTexture(raytracer.getImage(), fbo, texture);
 
@@ -276,7 +283,7 @@ int main(void) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-        debugGui.renderFrame();
+        debugGui.renderFrame(raytracer);
 
         glfwSwapBuffers(window);
 

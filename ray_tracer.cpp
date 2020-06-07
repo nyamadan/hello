@@ -9,9 +9,28 @@
 
 RayTracer::RayTracer() {}
 
-const ImageBuffer &RayTracer::getImage() { return this->image; }
+const ImageBuffer &RayTracer::getImage() const { return this->image; }
+
+int32_t RayTracer::getSamples() const {
+    return std::min(this->samples, getMaxSamples());
+}
+
+int32_t RayTracer::getMaxSamples() const {
+    switch (mode) {
+        case NORMAL:
+        case ALBEDO:
+            return 1;
+        default:
+            return this->maxSamples;
+    }
+}
 
 RayTracer::RayTracer(const glm::i32vec2 &size) { this->resize(size); }
+
+void RayTracer::reset() {
+    this->image.reset();
+    this->samples = 0;
+}
 
 void RayTracer::resize(const glm::i32vec2 &size) {
     this->image.resize(size);
@@ -233,31 +252,105 @@ glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
 glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                                  xorshift128plus_state &randomState, float x,
                                  float y) {
-    const auto isClassic = false;
-    if (isClassic) {
-        return renderPixelClassic(scene, camera, randomState, x, y);
-    } else {
-        const auto tnear = camera.getNear();
-        const auto tfar = camera.getFar();
-        const auto cameraFrom = camera.getCameraOrigin();
-        const auto rayDir = camera.getRayDir(x, y);
+    switch (mode) {
+        case PATHTRACING: {
+            const auto tnear = camera.getNear();
+            const auto tfar = camera.getFar();
+            const auto cameraFrom = camera.getCameraOrigin();
+            const auto rayDir = camera.getRayDir(x, y);
 
-        RTCIntersectContext context;
-        rtcInitIntersectContext(&context);
+            RTCIntersectContext context;
+            rtcInitIntersectContext(&context);
 
-        auto ray = RTCRayHit();
-        ray.ray.dir_x = rayDir.x;
-        ray.ray.dir_y = rayDir.y;
-        ray.ray.dir_z = rayDir.z;
-        ray.ray.org_x = cameraFrom.x;
-        ray.ray.org_y = cameraFrom.y;
-        ray.ray.org_z = cameraFrom.z;
-        ray.ray.tnear = tnear;
-        ray.ray.tfar = tfar;
-        ray.ray.time = 0.0f;
-        ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+            auto ray = RTCRayHit();
+            ray.ray.dir_x = rayDir.x;
+            ray.ray.dir_y = rayDir.y;
+            ray.ray.dir_z = rayDir.z;
+            ray.ray.org_x = cameraFrom.x;
+            ray.ray.org_y = cameraFrom.y;
+            ray.ray.org_z = cameraFrom.z;
+            ray.ray.tnear = tnear;
+            ray.ray.tfar = tfar;
+            ray.ray.time = 0.0f;
+            ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
 
-        return radiance(scene, camera, randomState, context, ray, 0);
+            return radiance(scene, camera, randomState, context, ray, 0);
+        } break;
+        case NORMAL: {
+            const auto tnear = camera.getNear();
+            const auto tfar = camera.getFar();
+            const auto cameraFrom = camera.getCameraOrigin();
+            const auto rayDir = camera.getRayDir(x, y);
+
+            RTCIntersectContext context;
+            rtcInitIntersectContext(&context);
+
+            /* initialize ray */
+            auto ray = RTCRayHit();
+            ray.ray.dir_x = rayDir.x;
+            ray.ray.dir_y = rayDir.y;
+            ray.ray.dir_z = rayDir.z;
+            ray.ray.org_x = cameraFrom.x;
+            ray.ray.org_y = cameraFrom.y;
+            ray.ray.org_z = cameraFrom.z;
+            ray.ray.tnear = tnear;
+            ray.ray.tfar = tfar;
+            ray.ray.time = 0.0f;
+            ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+
+            /* intersect ray with scene */
+            rtcIntersect1(scene, &context, &ray);
+
+            const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
+
+            if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
+                return glm::vec3(0.0f);
+            }
+
+            return glm::normalize(Ng);
+        } break;
+        case ALBEDO: {
+            const auto tnear = camera.getNear();
+            const auto tfar = camera.getFar();
+            const auto cameraFrom = camera.getCameraOrigin();
+            const auto rayDir = camera.getRayDir(x, y);
+
+            RTCIntersectContext context;
+            rtcInitIntersectContext(&context);
+
+            /* initialize ray */
+            auto ray = RTCRayHit();
+            ray.ray.dir_x = rayDir.x;
+            ray.ray.dir_y = rayDir.y;
+            ray.ray.dir_z = rayDir.z;
+            ray.ray.org_x = cameraFrom.x;
+            ray.ray.org_y = cameraFrom.y;
+            ray.ray.org_z = cameraFrom.z;
+            ray.ray.tnear = tnear;
+            ray.ray.tfar = tfar;
+            ray.ray.time = 0.0f;
+            ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+
+            /* intersect ray with scene */
+            rtcIntersect1(scene, &context, &ray);
+
+            if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
+                return glm::vec3(0.0f);
+            }
+
+            auto geom = rtcGetGeometry(scene, ray.hit.geomID);
+            auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
+            auto material = mesh->getMaterial().get();
+
+            if (material != nullptr) {
+                return material->baseColorFactor;
+            }
+            return glm::vec3(1.0f);
+        } break;
+        default:
+        case CLASSIC: {
+            return renderPixelClassic(scene, camera, randomState, x, y);
+        } break;
     }
 }
 
@@ -288,7 +381,12 @@ void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
     }
 }
 
-void RayTracer::render(RTCScene scene, const RayTracerCamera &camera) {
+bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
+                       oidn::DeviceRef denoiser) {
+    if (samples >= maxSamples) {
+        return false;
+    }
+
     const auto width = this->image.getWidth();
     const auto height = this->image.getHeight();
     const auto numTilesX = (width + TILE_SIZE_X - 1) / TILE_SIZE_X;
@@ -306,12 +404,66 @@ void RayTracer::render(RTCScene scene, const RayTracerCamera &camera) {
         it->b = xorshift128plus(randomState);
     }
 
+    if(this->samples == 0) {
+        auto bufferSize = static_cast<int64_t>(image.getWidth() * image.getHeight() * sizeof(glm::vec3));
+        auto origMode = mode;
+
+        mode = NORMAL;
+        tbb::parallel_for(size_t(0), size_t(tileSize), [&](size_t tileIndex) {
+            renderTile(scene, camera, randomStates[tileIndex],
+                       static_cast<int>(tileIndex), numTilesX, numTilesY);
+        });
+        memcpy(image.getNormal(), image.getBuffer(), bufferSize);
+
+        mode = ALBEDO;
+        tbb::parallel_for(size_t(0), size_t(tileSize), [&](size_t tileIndex) {
+            renderTile(scene, camera, randomStates[tileIndex],
+                       static_cast<int>(tileIndex), numTilesX, numTilesY);
+        });
+        memcpy(image.getAlbedo(), image.getBuffer(), bufferSize);
+
+        memset(image.getBuffer(), 0, bufferSize);
+
+        mode = origMode;
+    }
+
     tbb::parallel_for(size_t(0), size_t(tileSize), [&](size_t tileIndex) {
         renderTile(scene, camera, randomStates[tileIndex],
                    static_cast<int>(tileIndex), numTilesX, numTilesY);
     });
 
-    this->image.updateTextureBuffer();
-
     this->samples += 1;
+
+    bool done = false;
+
+    if (this->getSamples() >= this->getMaxSamples() && mode != NORMAL &&
+        mode != ALBEDO) {
+        auto bufferSize =
+            static_cast<uint64_t>(image.getWidth() * image.getHeight()) * sizeof(glm::vec3);
+        auto filter = denoiser.newFilter("RT");
+
+        auto temp = std::make_unique<glm::vec3[]>(bufferSize);
+        memcpy(temp.get(), image.getBuffer(), bufferSize);
+
+        filter.setImage("color", temp.get(), oidn::Format::Float3, width,
+                        height);
+        filter.setImage("albedo", image.getAlbedo(), oidn::Format::Float3,
+                        width,
+                        height);  // optional
+        filter.setImage("normal", image.getNormal(), oidn::Format::Float3,
+                        width,
+                        height);  // optional
+        filter.setImage("output", image.getBuffer(), oidn::Format::Float3,
+                        width, height);
+        filter.set("hdr", true);  // image is HDR
+        filter.commit();
+
+        // Filter the image
+        filter.execute();
+
+        done = true;
+    }
+
+    this->image.updateTextureBuffer();
+    return done;
 }

@@ -11,9 +11,18 @@ ImageBuffer::ImageBuffer(const glm::i32vec2 &size) {
 void ImageBuffer::resize(const glm::i32vec2 &size) {
     auto arrayLength = (uint64_t)size.x * size.y;
     this->size = size;
+    this->normal = std::shared_ptr<glm::vec3[]>(new glm::vec3[arrayLength]);
+    this->albedo = std::shared_ptr<glm::vec3[]>(new glm::vec3[arrayLength]);
     this->buffer = std::shared_ptr<glm::vec3[]>(new glm::vec3[arrayLength]);
     this->textureBuffer = std::shared_ptr<glm::u8vec3[]>(new glm::u8vec3[arrayLength]);
 
+    this->reset();
+}
+
+void ImageBuffer::reset() {
+    const auto arrayLength = (uint64_t)size.x * size.y;
+    memset(this->normal.get(), 0, sizeof(glm::vec3) * arrayLength);
+    memset(this->albedo.get(), 0, sizeof(glm::vec3) * arrayLength);
     memset(this->buffer.get(), 0, sizeof(glm::vec3) * arrayLength);
 }
 
