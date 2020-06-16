@@ -57,10 +57,12 @@ bool DebugGUI::saveFileDialog(std::string &path, const char *const filter,
 
 DebugGUI::DebugGUI() {}
 
-void DebugGUI::setup(GLFWwindow *window) {
+void DebugGUI::setup(GLFWwindow *window, RayTracer &raytracer) {
     ImGui::SetCurrentContext(ImGui::CreateContext());
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core\n");
+
+    raytracer.setRenderingMode(renderingMode);
 }
 
 void DebugGUI::onSaveImage() {
@@ -71,8 +73,8 @@ void DebugGUI::onOpenGLB() {
     openFileDialog(openingGLBPath, "GLB File {*.glb}");
 }
 
-void DebugGUI::renderFrame(const RayTracer &raytracer) {
-    static bool showImGuiDemoWindow = false;
+void DebugGUI::renderFrame(RayTracer &raytracer) {
+    static bool showImGuiDemoWindow = true;
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -98,15 +100,21 @@ void DebugGUI::renderFrame(const RayTracer &raytracer) {
         ImGui::EndMainMenuBar();
     }
 
-    ImGui::Begin("RayTracer");
-
-    {
-        ImGui::LabelText("samples", "%d / %d", raytracer.getSamples(),
-                         raytracer.getMaxSamples());
-    }
-
+    ImGui::Begin(
+        "Hello Embree", nullptr,
+        ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize);
     {
         deltaTimes[deltaTimesOffset] = ImGui::GetIO().DeltaTime;
+
+        {
+            ImGui::LabelText("mode", "%s",
+                             RenderingModeName[raytracer.getRenderingMode()]);
+        }
+
+        {
+            ImGui::LabelText("samples", "%d / %d", raytracer.getSamples(),
+                             raytracer.getMaxSamples());
+        }
 
         auto average =
             std::reduce(deltaTimes.cbegin(), deltaTimes.cend(), 0.0f) /
@@ -117,8 +125,23 @@ void DebugGUI::renderFrame(const RayTracer &raytracer) {
         ImGui::PlotHistogram(
             "ms", deltaTimes.data(), static_cast<int32_t>(deltaTimes.size()),
             deltaTimesOffset, overlay.data(), .0f, .5f, ImVec2(0, 80.0f));
-    }
+        if (ImGui::Combo("Mode", reinterpret_cast<int32_t *>(&renderingMode),
+                         RenderingModeName, IM_ARRAYSIZE(RenderingModeName))) {
+            switch (renderingMode) {
+                case ALBEDO:
+                case NORMAL:
+                    raytracer.setRenderingMode(renderingMode);
+                    break;
+                default:
+                    raytracer.setRenderingMode(ALBEDO);
+                    break;
+            }
+        }
 
+        if (ImGui::Button("Render")) {
+            raytracer.setRenderingMode(renderingMode);
+        }
+    }
     ImGui::End();
 
     ImGui::Render();

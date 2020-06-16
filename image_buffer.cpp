@@ -1,5 +1,7 @@
 #include "image_buffer.hpp"
 
+#include <tbb/parallel_for.h>
+
 ImageBuffer::ImageBuffer() {
     this->resize(glm::i32vec2(0));
 }
@@ -29,16 +31,16 @@ void ImageBuffer::reset() {
 void ImageBuffer::updateTextureBuffer() {
     auto width = getWidth();
     auto height = getHeight();
+    auto len = width * height;
 
-    for (auto y = 0; y < height; y++) {
-        for (auto x = 0; x < width; x++) {
-            auto index = y * width + x;
-            const auto &src = GetReadonlyBuffer()[index];
-            textureBuffer[index] = glm::u8vec3(
-                static_cast<uint8_t>(glm::clamp(std::pow(src.r, 1.0f / 2.0f), 0.0f, 1.0f) * 255.0f),
-                static_cast<uint8_t>(glm::clamp(std::pow(src.g, 1.0f / 2.0f), 0.0f, 1.0f) * 255.0f),
-                static_cast<uint8_t>(glm::clamp(std::pow(src.b, 1.0f / 2.0f), 0.0f, 1.0f) * 255.0f)
-            );
-        }
-    }
+    tbb::parallel_for(size_t(0), size_t(len), [&](size_t index) {
+        const auto &src = GetReadonlyBuffer()[index];
+        textureBuffer[index] = glm::u8vec3(
+            static_cast<uint8_t>(
+                glm::clamp(std::pow(src.r, 1.0f / 2.0f), 0.0f, 1.0f) * 255.0f),
+            static_cast<uint8_t>(
+                glm::clamp(std::pow(src.g, 1.0f / 2.0f), 0.0f, 1.0f) * 255.0f),
+            static_cast<uint8_t>(
+                glm::clamp(std::pow(src.b, 1.0f / 2.0f), 0.0f, 1.0f) * 255.0f));
+    });
 }

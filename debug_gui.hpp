@@ -12,8 +12,8 @@ class DebugGUI {
   public:
     DebugGUI();
 
-    void setup(GLFWwindow *window);
-    void renderFrame(const RayTracer &raytracer);
+    void setup(GLFWwindow *window, RayTracer &raytracer);
+    void renderFrame(RayTracer &raytracer);
 
     std::string pullSavingImagePath();
     std::string pullOpeningGLBPath();
@@ -26,6 +26,8 @@ class DebugGUI {
                                const char *const defExt);
     std::array<float, DeltaTimesBufferSize> deltaTimes {};
     int32_t deltaTimesOffset = 0;
+
+    RenderingMode renderingMode = ALBEDO;
 
     std::string savingImagePath = "";
     std::string openingGLBPath = "";

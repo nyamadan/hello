@@ -8,15 +8,22 @@
 #include "xorshift128plus.hpp"
 
 enum RenderingMode {
-  CLASSIC,
-  PATHTRACING,
-  NORMAL,
-  ALBEDO,
+    ALBEDO,
+    NORMAL,
+    CLASSIC,
+    PATHTRACING,
+};
+
+const char * const RenderingModeName[] = {
+  "Normal",
+  "Albedo",
+  "Classic",
+  "Path Tracing",
 };
 
 class RayTracer {
   private:
-    RenderingMode mode = PATHTRACING;
+    RenderingMode mode;
 
     const int32_t TILE_SIZE_X = 4;
     const int32_t TILE_SIZE_Y = 4;
@@ -42,6 +49,8 @@ class RayTracer {
   public:
     RayTracer();
     RayTracer(const glm::i32vec2 &size);
+    void setRenderingMode(RenderingMode mode);
+    RenderingMode getRenderingMode() const;
     bool render(RTCScene scene, const RayTracerCamera &camera, oidn::DeviceRef denoiser);
     void reset();
     void resize(const glm::i32vec2 &size);

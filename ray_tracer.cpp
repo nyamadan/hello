@@ -9,6 +9,15 @@
 
 RayTracer::RayTracer() {}
 
+void RayTracer::setRenderingMode(RenderingMode mode) {
+    this->reset();
+    this->mode = mode;
+}
+
+RenderingMode RayTracer::getRenderingMode() const {
+    return mode;
+}
+
 const ImageBuffer &RayTracer::getImage() const { return this->image; }
 
 int32_t RayTracer::getSamples() const {
@@ -383,7 +392,7 @@ void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
 
 bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
                        oidn::DeviceRef denoiser) {
-    if (samples >= maxSamples) {
+    if (getSamples() >= getMaxSamples()) {
         return false;
     }
 
@@ -436,8 +445,7 @@ bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
 
     bool done = false;
 
-    if (this->getSamples() >= this->getMaxSamples() && mode != NORMAL &&
-        mode != ALBEDO) {
+    if (this->getSamples() >= this->getMaxSamples() && mode != NORMAL && mode != ALBEDO) {
         auto bufferSize =
             static_cast<uint64_t>(image.getWidth() * image.getHeight()) * sizeof(glm::vec3);
         auto filter = denoiser.newFilter("RT");

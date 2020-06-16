@@ -143,7 +143,7 @@ void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
         if (!path.empty()) {
             stbi_flip_vertically_on_write(true);
             stbi_write_png(path.c_str(), image.getWidth(), image.getHeight(),
-                           image.getChannels(), image.GetReadonlyBuffer(),
+                           image.getChannels(), image.GetTextureBuffer(),
                            image.getChannels() * image.getWidth());
         }
     }
@@ -167,8 +167,6 @@ int main(void) {
     oidn::DeviceRef denoiser = oidn::newDevice();
     denoiser.commit();
 
-    auto debugGui = DebugGUI();
-
 #ifdef NDEBUG
     auto device = rtcNewDevice(nullptr);
 #else
@@ -184,16 +182,16 @@ int main(void) {
 
     auto raytracer = RayTracer(windowSize);
 
+    auto debugGui = DebugGUI();
+
     auto camera = RayTracerCamera(120.0f, 0.001f, 1000.0f);
     const auto eyeDistance = 5.0f;
-    const auto eye = glm::vec3(1.0f, 1.0f, 1.0f) * eyeDistance;
+    const auto eye = glm::vec3(1.0f, 2.0f, 3.0f) * eyeDistance;
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.lookAt(eye, target, up);
 
     rtcCommitScene(scene);
-
-    raytracer.render(scene, camera, denoiser);
 
     if (!glfwInit()) return -1;
 
@@ -229,7 +227,7 @@ int main(void) {
     EnableOpenGLDebugExtention();
 #endif
 
-    debugGui.setup(window);
+    debugGui.setup(window, raytracer);
 
     GLuint texture = 0;
     GLuint fbo = 0;
@@ -263,8 +261,19 @@ int main(void) {
         if(needResize) {
             raytracer.resize(windowSize);
             glViewport(0, 0, windowSize.x, windowSize.y);
-        } else if(needUpdate) {
-            raytracer.reset();
+        }
+
+        if (needUpdate) {
+            const auto mode = raytracer.getRenderingMode();
+            switch(mode) {
+                case NORMAL:
+                case ALBEDO:
+                    raytracer.setRenderingMode(mode);
+                    break;
+                default:
+                    raytracer.setRenderingMode(ALBEDO);
+                    break;
+            }
         }
 
         raytracer.render(scene, camera, denoiser);
