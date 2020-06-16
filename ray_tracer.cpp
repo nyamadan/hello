@@ -86,11 +86,18 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         russianRouletteProbability = 1.0f;
     }
 
-    const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
     const auto rayDir = glm::vec3(ray.ray.dir_x, ray.ray.dir_y, ray.ray.dir_z);
     const auto orig = glm::vec3(ray.ray.org_x, ray.ray.org_y, ray.ray.org_z) +
                       ray.ray.tfar * rayDir;
-    const auto normal = glm::normalize(glm::dot(rayDir, Ng) < 0 ? Ng : -Ng);
+
+    // const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
+    // const auto normal = glm::normalize(glm::dot(rayDir, Ng) < 0 ? Ng : -Ng);
+
+    glm::vec3 normal(0.0f);
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, glm::value_ptr(normal),
+                    3);
+    normal = glm::normalize(normal);
 
     auto incomingRadiance = glm::vec3(0.0f);
     auto weight = glm::vec3(1.0f);
@@ -178,11 +185,12 @@ glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
 
     auto normal = glm::vec3(0.0f);
 
-    normal = glm::normalize(glm::dot(rayDir, Ng) < 0 ? Ng : -Ng);
+    // normal = glm::normalize(glm::dot(rayDir, Ng) < 0 ? Ng : -Ng);
 
-    // rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-    //                 RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
-    //                 glm::value_ptr(normal), 3);
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
+                    glm::value_ptr(normal), 3);
+    normal = glm::normalize(normal);
 
     if (material != nullptr) {
         diffuse = material->baseColorFactor;
@@ -310,13 +318,26 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
             /* intersect ray with scene */
             rtcIntersect1(scene, &context, &ray);
 
-            const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
-
             if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
                 return glm::vec3(0.0f);
             }
 
-            return glm::normalize(Ng);
+            // const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
+            // return glm::normalize(Ng);
+
+            auto geom = rtcGetGeometry(scene, ray.hit.geomID);
+            auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
+            auto material = mesh->getMaterial().get();
+
+            glm::vec3 normal(0.0f);
+
+            rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
+                            glm::value_ptr(normal), 3);
+            normal = glm::normalize(normal);
+
+            return normal;
+
         } break;
         case ALBEDO: {
             const auto tnear = camera.getNear();

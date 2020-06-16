@@ -98,6 +98,7 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
                                          1.0f, glm::vec3(0.0f))),
                   1.0f, 800, 600, glm::translate(glm::vec3(3.0f, 1.0f, 0.0f))));
 
+    // light
     meshs.push_back(
         addSphere(device, scene,
                   PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
@@ -109,7 +110,7 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
 
 const ConstantPMeshList addMeshsToScene(RTCDevice device, RTCScene scene,
                                         const char *const path) {
-    ConstantPMeshList meshs = addDefaultMeshToScene(device, scene);
+    auto meshs = ConstantPMeshList();
 
     // add model
     tinygltf::Model model;
@@ -136,9 +137,9 @@ void detachMeshs(RTCScene scene, ConstantPMeshList &meshs) {
     meshs.clear();
 }
 
-void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
-                          const ImageBuffer image, ConstantPMeshList &meshs) {
+void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui, RayTracer &raytracer, RayTracerCamera &camera, ConstantPMeshList &meshs) {
     {
+        const auto image = raytracer.getImage();
         auto path = debugGui.pullSavingImagePath();
         if (!path.empty()) {
             stbi_flip_vertically_on_write(true);
@@ -156,6 +157,26 @@ void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
             meshs = addMeshsToScene(device, scene, path.c_str());
 
             rtcCommitScene(scene);
+
+            RTCBounds bb;
+            rtcGetSceneBounds(scene, &bb);
+
+            const auto eye = glm::vec3(bb.upper_x, bb.upper_y, bb.upper_z);
+            const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
+            const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
+            camera.lookAt(eye, target, up);
+
+            // appendLight
+            meshs.push_back(addCube(
+                device, scene,
+                PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f,
+                                       glm::vec3(1.0f))),
+                glm::translate(glm::vec3(0.0f, bb.upper_y, 0.0f)) *
+                    glm::scale(glm::vec3(bb.upper_x, 0.0001f, bb.upper_z))));
+
+            rtcCommitScene(scene);
+
+            raytracer.reset();
         }
     }
 }
@@ -175,8 +196,8 @@ int main(void) {
     auto scene = rtcNewScene(device);
 
     // const auto buggyGLB =
-    // "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb"; auto meshs =
-    // addMeshsToScene(device, scene, buggyGLB);
+    // "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb";
+    // auto meshs = addMeshsToScene(device, scene, buggyGLB);
 
     auto meshs = addDefaultMeshToScene(device, scene);
 
@@ -184,14 +205,16 @@ int main(void) {
 
     auto debugGui = DebugGUI();
 
+    rtcCommitScene(scene);
+
+    RTCBounds bb;
+    rtcGetSceneBounds(scene, &bb);
+
     auto camera = RayTracerCamera(120.0f, 0.001f, 1000.0f);
-    const auto eyeDistance = 5.0f;
-    const auto eye = glm::vec3(1.0f, 2.0f, 3.0f) * eyeDistance;
+    const auto eye = glm::vec3(bb.upper_x, bb.upper_y, bb.upper_z);
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     camera.lookAt(eye, target, up);
-
-    rtcCommitScene(scene);
 
     if (!glfwInit()) return -1;
 
@@ -248,6 +271,8 @@ int main(void) {
 
         // controllCameraFPS(window, camera, dt, mouseDelta);
 
+        handleDebugOperation(device, scene, debugGui, raytracer, camera, meshs);
+
         bool needResize = false;
         {
             int32_t w, h;
@@ -295,9 +320,6 @@ int main(void) {
         debugGui.renderFrame(raytracer);
 
         glfwSwapBuffers(window);
-
-        handleDebugOperation(device, scene, debugGui, raytracer.getImage(),
-                             meshs);
 
         wheelDelta = glm::dvec2(0.0, 0.0);
         prevMousePos = mousePos;
