@@ -15,8 +15,8 @@ enum RenderingMode {
 };
 
 const char * const RenderingModeName[] = {
-  "Normal",
   "Albedo",
+  "Normal",
   "Classic",
   "Path Tracing",
 };
