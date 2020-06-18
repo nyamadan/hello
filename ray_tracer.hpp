@@ -21,6 +21,8 @@ const char * const RenderingModeName[] = {
   "Path Tracing",
 };
 
+struct IntersectContext;
+
 class RayTracer {
   private:
     RenderingMode mode;
@@ -40,11 +42,12 @@ class RayTracer {
                           xorshift128plus_state &randomState, float x, float y);
     glm::vec3 radiance(RTCScene scene, const RayTracerCamera &camera,
                        xorshift128plus_state &randomState,
-                       RTCIntersectContext context, RTCRayHit &ray,
+                       IntersectContext context, RTCRayHit &ray,
                        int32_t depth);
     void renderTile(RTCScene scene, const RayTracerCamera &camera,
                     xorshift128plus_state &randomState, int tileIndex,
                     const int numTilesX, const int numTilesY);
+    void initIntersectContext(IntersectContext *context);
 
   public:
     RayTracer();
@@ -57,4 +60,11 @@ class RayTracer {
     const ImageBuffer &getImage() const;
     int32_t getSamples() const;
     int32_t getMaxSamples() const;
+    void intersectionFilter(const struct RTCFilterFunctionNArguments *args);
+};
+
+struct IntersectContext : public RTCIntersectContext
+{
+    int depth;
+    RayTracer *raytracer;
 };

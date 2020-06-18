@@ -23,6 +23,10 @@
     "xtree": "cpp",
     "xutility": "cpp",
     "numeric": "cpp",
-    "array": "cpp"
+    "array": "cpp",
+    "tuple": "cpp",
+    "type_traits": "cpp",
+    "utility": "cpp",
+    "xlocmes": "cpp"
   }
 }

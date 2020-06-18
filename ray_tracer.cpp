@@ -9,6 +9,36 @@
 
 RayTracer::RayTracer() {}
 
+void RayTracer::initIntersectContext(IntersectContext *context)
+{
+    rtcInitIntersectContext(context);
+    context->raytracer = this;
+    context->depth = 0;
+}
+
+void RayTracer::intersectionFilter(const struct RTCFilterFunctionNArguments *args)
+{
+    auto context = (IntersectContext *)args->context;
+    auto mesh = (Mesh *)args->geometryUserPtr;
+    auto material = mesh->getMaterial().get();
+    auto depth = context->depth;
+
+    switch (this->mode) {
+        case RenderingMode::CLASSIC: {
+            if(glm::length2(material->emissiveFactor) != 0.0f && depth == 0) {
+                args->valid[0] = 0;
+            }
+        } break;
+        case RenderingMode::PATHTRACING: {
+            if(glm::length2(material->emissiveFactor) != 0.0f && depth == 0) {
+                args->valid[0] = 0;
+            }
+        } break;
+        default: {
+        } break;
+    }
+}
+
 void RayTracer::setRenderingMode(RenderingMode mode) {
     this->reset();
     this->mode = mode;
@@ -48,7 +78,7 @@ void RayTracer::resize(const glm::i32vec2 &size) {
 
 glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
                               xorshift128plus_state &randomState,
-                              RTCIntersectContext context, RTCRayHit &ray,
+                              IntersectContext context, RTCRayHit &ray,
                               int32_t depth) {
     const auto kDepthLimit = 64;
     const auto kDepth = 5;
@@ -60,6 +90,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     auto result = glm::vec3(0.0f);
 
     /* intersect ray with scene */
+    context.depth = depth;
     rtcIntersect1(scene, &context, &ray);
 
     if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
@@ -149,8 +180,8 @@ glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
     const auto cameraFrom = camera.getCameraOrigin();
     const auto rayDir = camera.getRayDir(x, y);
 
-    RTCIntersectContext context;
-    rtcInitIntersectContext(&context);
+    IntersectContext context;
+    initIntersectContext(&context);
 
     /* initialize ray */
     auto ray = RTCRayHit();
@@ -205,27 +236,6 @@ glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
                                   ray.ray.org_y + ray.ray.tfar * ray.ray.dir_y,
                                   ray.ray.org_z + ray.ray.tfar * ray.ray.dir_z);
 
-    /* initialize shadow ray */
-    RTCRay shadow;
-    shadow.org_x = hitOrig.x;
-    shadow.org_y = hitOrig.y;
-    shadow.org_z = hitOrig.z;
-    shadow.dir_x = -lightDir.x;
-    shadow.dir_y = -lightDir.y;
-    shadow.dir_z = -lightDir.z;
-    shadow.tnear = tnear;
-    shadow.tfar = tfar;
-    shadow.time = 0.0f;
-
-    /* trace shadow ray */
-    rtcOccluded1(scene, &context, &shadow);
-
-    /* add light contribution */
-    if (shadow.tfar == tfar) {
-        color = color +
-                diffuse * std::clamp(-glm::dot(lightDir, normal), 0.0f, 1.0f);
-    }
-
     {
         glm::vec3 p;
         auto r = 1.0f;
@@ -276,8 +286,8 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
             const auto cameraFrom = camera.getCameraOrigin();
             const auto rayDir = camera.getRayDir(x, y);
 
-            RTCIntersectContext context;
-            rtcInitIntersectContext(&context);
+            IntersectContext context;
+            initIntersectContext(&context);
 
             auto ray = RTCRayHit();
             ray.ray.dir_x = rayDir.x;
@@ -299,8 +309,8 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
             const auto cameraFrom = camera.getCameraOrigin();
             const auto rayDir = camera.getRayDir(x, y);
 
-            RTCIntersectContext context;
-            rtcInitIntersectContext(&context);
+            IntersectContext context;
+            initIntersectContext(&context);
 
             /* initialize ray */
             auto ray = RTCRayHit();
@@ -345,8 +355,8 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
             const auto cameraFrom = camera.getCameraOrigin();
             const auto rayDir = camera.getRayDir(x, y);
 
-            RTCIntersectContext context;
-            rtcInitIntersectContext(&context);
+            IntersectContext context;
+            initIntersectContext(&context);
 
             /* initialize ray */
             auto ray = RTCRayHit();
@@ -474,16 +484,10 @@ bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
         auto temp = std::make_unique<glm::vec3[]>(bufferSize);
         memcpy(temp.get(), image.getBuffer(), bufferSize);
 
-        filter.setImage("color", temp.get(), oidn::Format::Float3, width,
-                        height);
-        filter.setImage("albedo", image.getAlbedo(), oidn::Format::Float3,
-                        width,
-                        height);  // optional
-        filter.setImage("normal", image.getNormal(), oidn::Format::Float3,
-                        width,
-                        height);  // optional
-        filter.setImage("output", image.getBuffer(), oidn::Format::Float3,
-                        width, height);
+        filter.setImage("color", temp.get(), oidn::Format::Float3, width, height);
+        filter.setImage("albedo", image.getAlbedo(), oidn::Format::Float3, width, height);
+        filter.setImage("normal", image.getNormal(), oidn::Format::Float3, width, height);
+        filter.setImage("output", image.getBuffer(), oidn::Format::Float3, width, height);
         filter.set("hdr", true);  // image is HDR
         filter.commit();
 

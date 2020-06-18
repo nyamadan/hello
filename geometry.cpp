@@ -1,8 +1,18 @@
 #include "geometry.hpp"
 
+#include "ray_tracer.hpp"
+
 #include <glm/ext.hpp>
 
 const auto PI = 3.14159265358979323846f;
+
+namespace {
+void intersectionFilter(const struct RTCFilterFunctionNArguments *args) {
+    auto context = (IntersectContext *)args->context;
+    auto raytracer = context->raytracer;
+    raytracer->intersectionFilter(args);
+}
+}  // namespace
 
 ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
                         ConstantPMaterial material, float radius,
@@ -97,7 +107,7 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
 
     auto mesh = PMesh(new Mesh());
     rtcSetGeometryUserData(geom, (void *)mesh.get());
-
+    rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
     rtcCommitGeometry(geom);
     auto geomId = rtcAttachGeometry(scene, geom);
     rtcReleaseGeometry(geom);
@@ -221,7 +231,7 @@ ConstantPMesh addCube(RTCDevice device, RTCScene scene, ConstantPMaterial materi
 
     auto mesh = PMesh(new Mesh());
     rtcSetGeometryUserData(geom, (void *)mesh.get());
-
+    rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
     rtcCommitGeometry(geom);
     auto geomId = rtcAttachGeometry(scene, geom);
     rtcReleaseGeometry(geom);
@@ -278,7 +288,7 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
 
     auto mesh = PMesh(new Mesh());
     rtcSetGeometryUserData(geom, (void *)mesh.get());
-
+    rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
     rtcCommitGeometry(geom);
     auto geomId = rtcAttachGeometry(scene, geom);
     rtcReleaseGeometry(geom);
@@ -513,7 +523,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
 
             auto mesh = PMesh(new Mesh());
             rtcSetGeometryUserData(geom, (void *)mesh.get());
-
+            rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
             rtcCommitGeometry(geom);
             auto geomId = rtcAttachGeometry(scene, geom);
             rtcReleaseGeometry(geom);
