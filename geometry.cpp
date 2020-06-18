@@ -519,7 +519,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
         }
 
         {
-            auto material = ConstantPMaterial(new Material(baseColorFactor, metallicFactor, emissiveFactor));
+            auto material = ConstantPMaterial(new Material(baseColorFactor, metallicFactor, emissiveFactor, false));
 
             auto mesh = PMesh(new Mesh());
             rtcSetGeometryUserData(geom, (void *)mesh.get());

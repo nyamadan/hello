@@ -23,19 +23,8 @@ void RayTracer::intersectionFilter(const struct RTCFilterFunctionNArguments *arg
     auto material = mesh->getMaterial().get();
     auto depth = context->depth;
 
-    switch (this->mode) {
-        case RenderingMode::CLASSIC: {
-            if(glm::length2(material->emissiveFactor) != 0.0f && depth == 0) {
-                args->valid[0] = 0;
-            }
-        } break;
-        case RenderingMode::PATHTRACING: {
-            if(glm::length2(material->emissiveFactor) != 0.0f && depth == 0) {
-                args->valid[0] = 0;
-            }
-        } break;
-        default: {
-        } break;
+    if (material->isLight && depth == 0) {
+        args->valid[0] = 0;
     }
 }
 

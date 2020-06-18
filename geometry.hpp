@@ -21,17 +21,20 @@ class Material {
     glm::vec4 baseColorFactor;
     float metallicFactor;
     glm::vec3 emissiveFactor;
+    bool isLight;
 
     Material() {
         this->baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         this->metallicFactor = 0.0f;
+        isLight = false;
     }
 
     Material(const glm::vec4 &baseColorFactor, float metallicFactor,
-             const glm::vec3 &emissiveFactor) {
+             const glm::vec3 &emissiveFactor, bool isLight) {
         this->baseColorFactor = baseColorFactor;
         this->metallicFactor = metallicFactor;
         this->emissiveFactor = emissiveFactor;
+        this->isLight = isLight;
     }
 };
 

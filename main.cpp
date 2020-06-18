@@ -81,30 +81,19 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
 
     meshs.push_back(
         addGroundPlane(device, scene,
-                       PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                                              1.0f, glm::vec3(0.0f))),
+                       PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f, glm::vec3(0.0f), false)),
                        glm::translate(glm::vec3(0.0f, 0.0f, 0.0f)) *
                            glm::scale(glm::vec3(10.0f))));
 
     meshs.push_back(
         addCube(device, scene,
-                PMaterial(new Material(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 1.0f,
-                                       glm::vec3(0.0f))),
+                PMaterial(new Material(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 1.0f, glm::vec3(0.0f), false)),
                 glm::translate(glm::vec3(-3.0f, 1.0f, 0.0f))));
 
     meshs.push_back(
         addSphere(device, scene,
-                  PMaterial(new Material(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f),
-                                         1.0f, glm::vec3(0.0f))),
+                  PMaterial(new Material(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), 1.0f, glm::vec3(0.0f), false)),
                   1.0f, 800, 600, glm::translate(glm::vec3(3.0f, 1.0f, 0.0f))));
-
-    // light
-    meshs.push_back(
-        addSphere(device, scene,
-                  PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                                         1.0f, glm::vec3(1.0f))),
-                  2.5f, 800, 600, glm::translate(glm::vec3(0.0f, 8.0f, 0.0f))));
-
     return meshs;
 }
 
@@ -169,10 +158,8 @@ void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui, 
             // appendLight
             meshs.push_back(addCube(
                 device, scene,
-                PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f,
-                                       glm::vec3(1.0f))),
-                glm::translate(glm::vec3(0.0f, bb.upper_y, 0.0f)) *
-                    glm::scale(glm::vec3(bb.upper_x, 0.0001f, bb.upper_z))));
+                PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f, glm::vec3(1.0f), true)),
+                glm::translate(glm::vec3(0.0f, std::max(bb.upper_y + 0.5f, 10.0f), 0.0f)) * glm::scale(glm::vec3(bb.upper_x, 1.0f, bb.upper_z))));
 
             rtcCommitScene(scene);
 
@@ -211,10 +198,23 @@ int main(void) {
     rtcGetSceneBounds(scene, &bb);
 
     auto camera = RayTracerCamera(120.0f, 0.001f, 1000.0f);
-    const auto eye = glm::vec3(bb.upper_x, bb.upper_y, bb.upper_z);
-    const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
-    const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
-    camera.lookAt(eye, target, up);
+    {
+        RTCBounds bb;
+        rtcGetSceneBounds(scene, &bb);
+
+        const auto eye = glm::vec3(bb.upper_x, bb.upper_y, bb.upper_z);
+        const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
+        const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
+        camera.lookAt(eye, target, up);
+
+        // appendLight
+        meshs.push_back(addCube(
+            device, scene,
+            PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f, glm::vec3(1.0f), true)),
+            glm::translate(glm::vec3(0.0f, std::max(bb.upper_y + 0.5f, 10.0f), 0.0f)) * glm::scale(glm::vec3(bb.upper_x, 1.0f, bb.upper_z))));
+
+        rtcCommitScene(scene);
+    }
 
     if (!glfwInit()) return -1;
 
