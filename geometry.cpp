@@ -333,9 +333,6 @@ void addMesh(const RTCDevice device, const RTCScene scene,
             );
         }
 
-        auto it(primitive.attributes.begin());
-        auto itEnd(primitive.attributes.end());
-
         int mode = primitive.mode;
         assert(mode == TINYGLTF_MODE_TRIANGLES);
 
@@ -349,8 +346,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
         const auto &indexBuffer = model.buffers[indexBufferView.buffer];
 
         assert(indexAccessor.type == TINYGLTF_TYPE_SCALAR);
-        assert(indexAccessor.componentType ==
-               TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
+        assert(indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
 
         auto *triangles = (uint32_t *)rtcSetNewGeometryBuffer(
             geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
@@ -369,6 +365,8 @@ void addMesh(const RTCDevice device, const RTCScene scene,
             triangles[i] = buffer;
         }
 
+        auto it(primitive.attributes.begin());
+        const auto itEnd(primitive.attributes.end());
         for (; it != itEnd; it++) {
             const auto &accessor = model.accessors[it->second];
             const auto bufferView = model.bufferViews[accessor.bufferView];

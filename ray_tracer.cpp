@@ -133,12 +133,9 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
     v = glm::cross(w, u);
 
-    const float r1 =
-        2.0f * M_PI * static_cast<float>(xorshift128plus01(randomState));
-    const float r2 = static_cast<float>(xorshift128plus01(randomState)),
-                r2s = std::sqrt(r2);
-    auto dir = glm::normalize(
-        glm::vec3(u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1.0 - r2)));
+    const float r1 = 2.0f * M_PI * static_cast<float>(xorshift128plus01(randomState));
+    const float r2 = static_cast<float>(xorshift128plus01(randomState)), r2s = std::sqrt(r2);
+    auto dir = glm::normalize(glm::vec3(u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1.0 - r2)));
 
     /* initialize ray */
     auto nextRay = RTCRayHit();
@@ -152,8 +149,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     nextRay.ray.tfar = tfar;
     nextRay.ray.time = 0.0f;
     nextRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-    incomingRadiance =
-        radiance(scene, camera, randomState, context, nextRay, depth + 1);
+    incomingRadiance = radiance(scene, camera, randomState, context, nextRay, depth + 1);
 
     weight = material->baseColorFactor / russianRouletteProbability;
 

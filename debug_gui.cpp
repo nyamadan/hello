@@ -125,6 +125,9 @@ void DebugGUI::renderFrame(RayTracer &raytracer) {
         ImGui::PlotHistogram(
             "ms", deltaTimes.data(), static_cast<int32_t>(deltaTimes.size()),
             deltaTimesOffset, overlay.data(), .0f, .5f, ImVec2(0, 80.0f));
+
+        ImGui::Separator();
+
         if (ImGui::Combo("Mode", reinterpret_cast<int32_t *>(&renderingMode),
                          RenderingModeName, IM_ARRAYSIZE(RenderingModeName))) {
             switch (renderingMode) {
