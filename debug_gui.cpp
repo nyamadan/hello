@@ -1,4 +1,5 @@
-#include "debug_gui.hpp"
+#include <windows.h>
+
 #include <imgui.h>
 #include <stb_image_write.h>
 #include <numeric>
@@ -6,7 +7,7 @@
 #include <examples/imgui_impl_glfw.h>
 #include <examples/imgui_impl_opengl3.h>
 
-#include <windows.h>
+#include "debug_gui.hpp"
 
 bool DebugGUI::openFileDialog(std::string &path, const char *const filter) {
     OPENFILENAMEA ofn;
@@ -56,9 +57,7 @@ bool DebugGUI::saveFileDialog(std::string &path, const char *const filter,
 
 DebugGUI::DebugGUI() {}
 
-RenderingMode DebugGUI::getRenderingMode() const {
-    return this->renderingMode;
-}
+RenderingMode DebugGUI::getRenderingMode() const { return this->renderingMode; }
 
 bool DebugGUI::getEnableSuperSampling() const {
     return this->enableSuperSampling;
@@ -70,7 +69,8 @@ void DebugGUI::setup(GLFWwindow *window) {
     ImGui_ImplOpenGL3_Init("#version 330 core\n");
 }
 
-void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate, bool &needResize, bool &needRestart) {
+void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
+                          bool &needResize, bool &needRestart) {
     static bool showImGuiDemoWindow = true;
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -85,7 +85,7 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate, bool &ne
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open", "Ctrl+O")) {
                 openFileDialog(glbPath, "GLB File {*.glb}");
-                if(!glbPath.empty()) {
+                if (!glbPath.empty()) {
                     needRestart = true;
                 }
             }
@@ -157,6 +157,10 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate, bool &ne
         if (ImGui::Checkbox("SuperSampling", &enableSuperSampling)) {
             needUpdate = true;
         }
+
+        if (ImGui::Checkbox("isRendering", &isRendering)) {
+            needUpdate = true;
+        }
     }
 
     ImGui::End();
@@ -168,14 +172,10 @@ void DebugGUI::renderFrame() const {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-std::string DebugGUI::getGlbPath() const {
-    return glbPath;
-}
+std::string DebugGUI::getGlbPath() const { return glbPath; }
 
-int32_t DebugGUI::getBufferScale() const {
-    return bufferScale;
-}
+int32_t DebugGUI::getBufferScale() const { return bufferScale; }
 
-int32_t DebugGUI::getSamples() const {
-    return samples;
-}
+int32_t DebugGUI::getSamples() const { return samples; }
+
+bool DebugGUI::getIsRendering() const { return isRendering; }

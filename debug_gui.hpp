@@ -13,7 +13,8 @@ class DebugGUI {
     DebugGUI();
 
     void setup(GLFWwindow *window);
-    void beginFrame(const RayTracer &raytracer, bool &needUpdate, bool &needResize, bool &needRestart);
+    void beginFrame(const RayTracer &raytracer, bool &needUpdate,
+                    bool &needResize, bool &needRestart);
     void renderFrame() const;
     RenderingMode getRenderingMode() const;
     bool getEnableSuperSampling() const;
@@ -21,6 +22,7 @@ class DebugGUI {
     std::string getGlbPath() const;
     int32_t getBufferScale() const;
     int32_t getSamples() const;
+    bool getIsRendering() const;
 
   private:
     static const int32_t DeltaTimesBufferSize = 90;
@@ -34,7 +36,8 @@ class DebugGUI {
     RenderingMode renderingMode = ALBEDO;
     bool enableSuperSampling = true;
     int32_t bufferScale = 1;
-    int32_t samples  = 200;
+    int32_t samples = 200;
+    bool isRendering = true;
 
     std::string glbPath = "";
 };

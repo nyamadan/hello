@@ -316,7 +316,9 @@ int main(void) {
             raytracer.setRenderingMode(debugGui.getRenderingMode());
         }
 
-        raytracer.render(scene, camera, denoiser);
+        if(debugGui.getIsRendering()) {
+            raytracer.render(scene, camera, denoiser);
+        }
 
         copyPixelsToTexture(raytracer.getImage(), fbo, texture);
 

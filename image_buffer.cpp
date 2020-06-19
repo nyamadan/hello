@@ -26,6 +26,7 @@ void ImageBuffer::reset() {
     memset(this->normal.get(), 0, sizeof(glm::vec3) * arrayLength);
     memset(this->albedo.get(), 0, sizeof(glm::vec3) * arrayLength);
     memset(this->buffer.get(), 0, sizeof(glm::vec3) * arrayLength);
+    memset(this->textureBuffer.get(), 0, sizeof(glm::u8vec3) * arrayLength);
 }
 
 void ImageBuffer::updateTextureBuffer() {
