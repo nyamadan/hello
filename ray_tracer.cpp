@@ -76,11 +76,13 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     const auto tnear = camera.getNear();
     const auto tfar = camera.getFar();
 
-    auto result = glm::vec3(0.0f);
-
     /* intersect ray with scene */
     context.depth = depth;
     rtcIntersect1(scene, &context, &ray);
+
+    const auto rayDir = glm::vec3(ray.ray.dir_x, ray.ray.dir_y, ray.ray.dir_z);
+    const auto orig = glm::vec3(ray.ray.org_x, ray.ray.org_y, ray.ray.org_z) +
+                      ray.ray.tfar * rayDir;
 
     if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
         return glm::vec3(0.0f);
@@ -106,10 +108,6 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         russianRouletteProbability = 1.0f;
     }
 
-    const auto rayDir = glm::vec3(ray.ray.dir_x, ray.ray.dir_y, ray.ray.dir_z);
-    const auto orig = glm::vec3(ray.ray.org_x, ray.ray.org_y, ray.ray.org_z) +
-                      ray.ray.tfar * rayDir;
-
     // const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
     // const auto normal = glm::normalize(glm::dot(rayDir, Ng) < 0 ? Ng : -Ng);
 
@@ -127,20 +125,19 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     auto incomingRadiance = glm::vec3(0.0f);
     auto weight = glm::vec3(1.0f);
 
-    glm::vec3 w, u, v;
-    w = normal;
+    glm::vec3 u, v;
 
-    if (fabs(w.x) > kEPS) {
-        u = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), w));
+    if (fabs(normal.x) > kEPS) {
+        u = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), normal));
     } else {
-        u = glm::normalize(glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), w));
+        u = glm::normalize(glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), normal));
     }
 
-    v = glm::cross(w, u);
+    v = glm::cross(normal, u);
 
     const float r1 = 2.0f * M_PI * static_cast<float>(xorshift128plus01(randomState));
     const float r2 = static_cast<float>(xorshift128plus01(randomState)), r2s = std::sqrt(r2);
-    auto dir = glm::normalize(glm::vec3(u * cos(r1) * r2s + v * sin(r1) * r2s + w * sqrt(1.0 - r2)));
+    auto dir = glm::normalize(glm::vec3(u * cos(r1) * r2s + v * sin(r1) * r2s + normal * sqrt(1.0 - r2)));
 
     /* initialize ray */
     auto nextRay = RTCRayHit();
@@ -290,27 +287,40 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                                  float y) {
     switch (mode) {
         case PATHTRACING: {
+            auto totalRadiance = glm::vec3(0.0f);
             const auto tnear = camera.getNear();
             const auto tfar = camera.getFar();
             const auto cameraFrom = camera.getCameraOrigin();
-            const auto rayDir = camera.getRayDir(x, y);
+            const auto width = image.getWidth();
+            const auto height = image.getHeight();
 
-            IntersectContext context;
-            initIntersectContext(&context);
+            const auto samples = 2;
+            for (int sy = 0; sy < samples; sy++) {
+                for (int sx = 0; sx < samples; sx++) {
+                    const auto rate = 1.0f / samples;
+                    const auto r1 = (sx * rate + rate / 2.0f);
+                    const auto r2 = (sy * rate + rate / 2.0f);
+                    const auto rayDir = camera.getRayDir(x + r1 / height, y + r2 / height);
 
-            auto ray = RTCRayHit();
-            ray.ray.dir_x = rayDir.x;
-            ray.ray.dir_y = rayDir.y;
-            ray.ray.dir_z = rayDir.z;
-            ray.ray.org_x = cameraFrom.x;
-            ray.ray.org_y = cameraFrom.y;
-            ray.ray.org_z = cameraFrom.z;
-            ray.ray.tnear = tnear;
-            ray.ray.tfar = tfar;
-            ray.ray.time = 0.0f;
-            ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+                    IntersectContext context;
+                    initIntersectContext(&context);
 
-            return radiance(scene, camera, randomState, context, ray, 0);
+                    auto ray = RTCRayHit();
+                    ray.ray.dir_x = rayDir.x;
+                    ray.ray.dir_y = rayDir.y;
+                    ray.ray.dir_z = rayDir.z;
+                    ray.ray.org_x = cameraFrom.x;
+                    ray.ray.org_y = cameraFrom.y;
+                    ray.ray.org_z = cameraFrom.z;
+                    ray.ray.tnear = tnear;
+                    ray.ray.tfar = tfar;
+                    ray.ray.time = 0.0f;
+                    ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+                    totalRadiance += radiance(scene, camera, randomState, context, ray, 0);
+                }
+            }
+
+            return totalRadiance / (samples * samples);
         } break;
         case NORMAL: {
             const auto tnear = camera.getNear();

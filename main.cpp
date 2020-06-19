@@ -176,11 +176,15 @@ void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
 
             rtcCommitScene(scene);
 
-            switch(raytracer.getRenderingMode()) {
-                case RenderingMode::CLASSIC:
-                case RenderingMode::PATHTRACING: {
+            const auto mode = raytracer.getRenderingMode();
+            switch (mode) {
+                case NORMAL:
+                case ALBEDO:
+                    raytracer.setRenderingMode(mode);
+                    break;
+                default:
                     raytracer.setRenderingMode(ALBEDO);
-                } break;
+                    break;
             }
         }
     }
@@ -243,7 +247,7 @@ int main(void) {
                 glm::scale(glm::vec3(
                     std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
                               std::abs(bb.lower_z), std::abs(bb.upper_x),
-                              std::abs(bb.upper_y), std::abs(bb.upper_z)})))));
+                              std::abs(bb.upper_y), std::abs(bb.upper_z)}) * 1.2f))));
 
         rtcCommitScene(scene);
     }
