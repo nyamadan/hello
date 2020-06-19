@@ -11,6 +11,33 @@
 
 #include "alloc.hpp"
 
+class Texture {
+  private:
+    std::shared_ptr<glm::u8vec4[]> buffer;
+    int32_t width;
+    int32_t height;
+
+  public:
+    const glm::u8vec4 *getBuffer() const {
+      return buffer.get();
+    }
+
+    int32_t getWidth() const {
+      return this->width;
+    }
+
+    int32_t getHeight() const {
+      return this->height;
+    }
+
+    Texture(std::shared_ptr<glm::u8vec4[]> buffer, int32_t width,
+            int32_t height) {
+        this->buffer = buffer;
+        this->width = width;
+        this->height = height;
+    }
+};
+
 class Material {
   public:
     void *operator new(size_t size) { return aligned_alloc(size, 16); }
@@ -19,19 +46,23 @@ class Material {
     void operator delete[](void *ptr) { aligned_free(ptr); }
 
     glm::vec4 baseColorFactor;
+    std::shared_ptr<const Texture> baseColorTexture;
     float metallicFactor;
     glm::vec3 emissiveFactor;
     bool isLight;
 
     Material() {
         this->baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        this->baseColorTexture = nullptr;
         this->metallicFactor = 0.0f;
         isLight = false;
     }
 
-    Material(const glm::vec4 &baseColorFactor, float metallicFactor,
+    Material(const glm::vec4 &baseColorFactor,
+             std::shared_ptr<const Texture> baseColorTexture, float metallicFactor,
              const glm::vec3 &emissiveFactor, bool isLight) {
         this->baseColorFactor = baseColorFactor;
+        this->baseColorTexture = baseColorTexture;
         this->metallicFactor = metallicFactor;
         this->emissiveFactor = emissiveFactor;
         this->isLight = isLight;
@@ -86,12 +117,16 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
                              const glm::mat4 transform = glm::mat4(1.0f));
 
 void addMesh(const RTCDevice device, const RTCScene scene,
-             const tinygltf::Model &model, const tinygltf::Mesh &gltfMesh,
-             const glm::mat4 &world, std::list<PMesh> &meshs);
+             const tinygltf::Model &model,
+             const std::vector<std::shared_ptr<const Texture>> images,
+             const tinygltf::Mesh &gltfMesh, const glm::mat4 &world,
+             std::list<PMesh> &meshs);
 
 void addNode(const RTCDevice device, const RTCScene scene,
-             const tinygltf::Model &model, const tinygltf::Node &node,
-             const glm::mat4 world, std::list<PMesh> &meshs);
+             const tinygltf::Model &model,
+             const std::vector<std::shared_ptr<const Texture>> images,
+             const tinygltf::Node &node, const glm::mat4 world,
+             std::list<PMesh> &meshs);
 
 ConstantPMeshList addModel(const RTCDevice device, const RTCScene scene,
                            const tinygltf::Model &model);

@@ -5,7 +5,6 @@
 #include <glm/ext.hpp>
 
 #include <stb_image_write.h>
-#include <stb_image.h>
 
 #include <OpenImageDenoise/oidn.hpp>
 
@@ -82,13 +81,15 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
 
     meshs.push_back(
         addCube(device, scene,
-                PMaterial(new Material(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), 1.0f, glm::vec3(0.0f), false)),
+                PMaterial(new Material(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f),
+                                       nullptr, 1.0f, glm::vec3(0.0f), false)),
                 glm::translate(glm::vec3(-3.0f, 1.0f, 0.0f))));
 
-    meshs.push_back(
-        addSphere(device, scene,
-                  PMaterial(new Material(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), 1.0f, glm::vec3(0.0f), false)),
-                  1.0f, 800, 600, glm::translate(glm::vec3(3.0f, 1.0f, 0.0f))));
+    meshs.push_back(addSphere(
+        device, scene,
+        PMaterial(new Material(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), nullptr, 1.0f,
+                               glm::vec3(0.0f), false)),
+        1.0f, 800, 600, glm::translate(glm::vec3(3.0f, 1.0f, 0.0f))));
     return meshs;
 }
 
@@ -104,25 +105,6 @@ const ConstantPMeshList addMeshsToScene(RTCDevice device, RTCScene scene,
 
     const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn, path);
     if (ret) {
-        using PImage = std::shared_ptr<glm::u8vec4[]>;
-        std::vector<PImage> images;
-        for (auto it = model.textures.begin(); it != model.textures.end(); it++) {
-            const auto &bufferView = model.bufferViews[model.images[it->source].bufferView];
-            const auto &buffer = model.buffers[bufferView.buffer];
-            assert(bufferView.byteStride == 0);
-            const auto p = &buffer.data[0];
-
-            int32_t width, height, channels;
-            auto ret = stbi_load_from_memory(p + bufferView.byteOffset,
-                                             bufferView.byteLength, &width,
-                                             &height, &channels, 4);
-            const size_t n = width * height;
-            auto image = PImage(new glm::u8vec4[n]);
-            images.push_back(image);
-            memcpy(image.get(), ret, n * sizeof(glm::u8vec4));
-            stbi_image_free(ret);
-        }
-
         const auto x = addModel(device, scene, model);
         meshs.insert(meshs.cend(), x.cbegin(), x.cend());
     }
@@ -140,7 +122,9 @@ void detachMeshs(RTCScene scene, ConstantPMeshList &meshs) {
     meshs.clear();
 }
 
-void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui, RayTracer &raytracer, RayTracerCamera &camera, ConstantPMeshList &meshs) {
+void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
+                          RayTracer &raytracer, RayTracerCamera &camera,
+                          ConstantPMeshList &meshs) {
     {
         const auto image = raytracer.getImage();
         auto path = debugGui.pullSavingImagePath();
@@ -172,26 +156,32 @@ void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui, 
             // ground
             meshs.push_back(addGroundPlane(
                 device, scene,
-                PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f,
-                                       glm::vec3(0.0f), false)),
-                glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) * 
-                glm::scale(glm::vec3(
-                    std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
-                              std::abs(bb.lower_z), std::abs(bb.upper_x),
-                              std::abs(bb.upper_y), std::abs(bb.upper_z)})))));
+                PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                                       nullptr, 1.0f, glm::vec3(0.0f), false)),
+                glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
+                    glm::scale(glm::vec3(
+                        std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
+                                  std::abs(bb.lower_z), std::abs(bb.upper_x),
+                                  std::abs(bb.upper_y), std::abs(bb.upper_z)}) *
+                        1.2f))));
 
             // light
             meshs.push_back(addCube(
                 device, scene,
-                PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f,
-                                       glm::vec3(1.0f), true)),
+                PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                                       nullptr, 1.0f, glm::vec3(1.0f), true)),
                 glm::translate(
-                    glm::vec3(0.0f, std::max(bb.upper_y + 0.5f, 3.0f), 0.0f)) *
+                    glm::vec3(0.0f, bb.upper_y + 1.0f, 0.0f)) *
                     glm::scale(glm::vec3(bb.upper_x, 1.0f, bb.upper_z))));
 
             rtcCommitScene(scene);
 
-            raytracer.setRenderingMode(ALBEDO);
+            switch(raytracer.getRenderingMode()) {
+                case RenderingMode::CLASSIC:
+                case RenderingMode::PATHTRACING: {
+                    raytracer.setRenderingMode(ALBEDO);
+                } break;
+            }
         }
     }
 }
@@ -236,19 +226,19 @@ int main(void) {
         camera.lookAt(eye, target, up);
 
         // light
-        meshs.push_back(
-            addCube(device, scene,
-                    PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                                           1.0f, glm::vec3(1.0f), true)),
-                    glm::translate(glm::vec3(
-                        0.0f, std::max(bb.upper_y + 0.5f, 3.0f), 0.0f)) *
-                        glm::scale(glm::vec3(bb.upper_x, 1.0f, bb.upper_z))));
+        meshs.push_back(addCube(
+            device, scene,
+            PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
+                                   1.0f, glm::vec3(1.0f), true)),
+            glm::translate(
+                glm::vec3(0.0f, bb.upper_y + 1.0f, 0.0f)) *
+                glm::scale(glm::vec3(bb.upper_x, 1.0f, bb.upper_z))));
 
         // ground
         meshs.push_back(addGroundPlane(
             device, scene,
-            PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), 1.0f,
-                                   glm::vec3(0.0f), false)),
+            PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
+                                   1.0f, glm::vec3(0.0f), false)),
             glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
                 glm::scale(glm::vec3(
                     std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
@@ -323,16 +313,18 @@ int main(void) {
             windowSize = glm::i32vec2(w, h);
         }
 
-        bool needUpdate = controllCameraMouse(window, camera, (float)dt, mouseDelta, wheelDelta) || needResize;
+        bool needUpdate = controllCameraMouse(window, camera, (float)dt,
+                                              mouseDelta, wheelDelta) ||
+                          needResize;
 
-        if(needResize) {
+        if (needResize) {
             raytracer.resize(windowSize);
             glViewport(0, 0, windowSize.x, windowSize.y);
         }
 
         if (needUpdate) {
             const auto mode = raytracer.getRenderingMode();
-            switch(mode) {
+            switch (mode) {
                 case NORMAL:
                 case ALBEDO:
                     raytracer.setRenderingMode(mode);

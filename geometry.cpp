@@ -2,6 +2,7 @@
 
 #include "ray_tracer.hpp"
 
+#include <stb_image.h>
 #include <glm/ext.hpp>
 
 const auto PI = 3.14159265358979323846f;
@@ -118,7 +119,8 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
 }
 
 /* adds a cube to the scene */
-ConstantPMesh addCube(RTCDevice device, RTCScene scene, ConstantPMaterial material, glm::mat4 transform) {
+ConstantPMesh addCube(RTCDevice device, RTCScene scene,
+                      ConstantPMaterial material, glm::mat4 transform) {
     /* create a triangulated cube with 12 triangles and 8 vertices */
     auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
@@ -300,8 +302,10 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
 }
 
 void addMesh(const RTCDevice device, const RTCScene scene,
-             const tinygltf::Model &model, const tinygltf::Mesh &gltfMesh,
-             const glm::mat4 &world, ConstantPMeshList &meshs) {
+             const tinygltf::Model &model,
+             const std::vector<std::shared_ptr<const Texture>> &images,
+             const tinygltf::Mesh &gltfMesh, const glm::mat4 &world,
+             ConstantPMeshList &meshs) {
     for (size_t i = 0; i < gltfMesh.primitives.size(); i++) {
         const auto &primitive = gltfMesh.primitives[i];
 
@@ -310,6 +314,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
         auto gltfMaterial = model.materials[primitive.material];
 
         auto baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        auto baseColorTextureIndex = -1;
         auto metallicFactor = 0.5f;
         auto emissiveFactor = glm::vec3(0.0f, 0.0f, 0.0f);
 
@@ -323,14 +328,13 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                 baseColorFactor.r = (float)pbr.baseColorFactor[0];
                 break;
         }
+        baseColorTextureIndex = pbr.baseColorTexture.index;
         metallicFactor = (float)pbr.metallicFactor;
 
-        if(gltfMaterial.emissiveFactor.size() == 3) {
-            emissiveFactor = glm::vec3(
-                gltfMaterial.emissiveFactor[0],
-                gltfMaterial.emissiveFactor[1],
-                gltfMaterial.emissiveFactor[2]
-            );
+        if (gltfMaterial.emissiveFactor.size() == 3) {
+            emissiveFactor = glm::vec3(gltfMaterial.emissiveFactor[0],
+                                       gltfMaterial.emissiveFactor[1],
+                                       gltfMaterial.emissiveFactor[2]);
         }
 
         int mode = primitive.mode;
@@ -346,7 +350,8 @@ void addMesh(const RTCDevice device, const RTCScene scene,
         const auto &indexBuffer = model.buffers[indexBufferView.buffer];
 
         assert(indexAccessor.type == TINYGLTF_TYPE_SCALAR);
-        assert(indexAccessor.componentType == TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
+        assert(indexAccessor.componentType ==
+               TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
 
         auto *triangles = (uint32_t *)rtcSetNewGeometryBuffer(
             geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
@@ -424,8 +429,8 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                             case 2: {
                                 geometryBuffer =
                                     (float *)rtcSetNewGeometryBuffer(
-                                        geom,
-                                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
+                                        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                                        0,
                                         (RTCFormat)((int)RTC_FORMAT_FLOAT +
                                                     size - 1),
                                         sizeof(float) * size, accessor.count);
@@ -433,8 +438,8 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                             case 4: {
                                 geometryBuffer =
                                     (float *)rtcSetNewGeometryBuffer(
-                                        geom,
-                                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1,
+                                        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                                        1,
                                         (RTCFormat)((int)RTC_FORMAT_FLOAT +
                                                     size - 1),
                                         sizeof(float) * size, accessor.count);
@@ -517,7 +522,11 @@ void addMesh(const RTCDevice device, const RTCScene scene,
         }
 
         {
-            auto material = ConstantPMaterial(new Material(baseColorFactor, metallicFactor, emissiveFactor, false));
+            auto material = ConstantPMaterial(new Material(
+                baseColorFactor,
+                baseColorTextureIndex >= 0 ? images[baseColorTextureIndex]
+                                           : nullptr,
+                metallicFactor, emissiveFactor, false));
 
             auto mesh = PMesh(new Mesh());
             rtcSetGeometryUserData(geom, (void *)mesh.get());
@@ -535,8 +544,10 @@ void addMesh(const RTCDevice device, const RTCScene scene,
 }
 
 void addNode(const RTCDevice device, const RTCScene scene,
-             const tinygltf::Model &model, const tinygltf::Node &node,
-             const glm::mat4 world, ConstantPMeshList &meshs) {
+             const tinygltf::Model &model,
+             const std::vector<std::shared_ptr<const Texture>> &images,
+             const tinygltf::Node &node, const glm::mat4 world,
+             ConstantPMeshList &meshs) {
     glm::mat4 matrix(1.0f);
     if (node.matrix.size() == 16) {
         // Use `matrix' attribute
@@ -566,13 +577,13 @@ void addNode(const RTCDevice device, const RTCScene scene,
     }
 
     if (node.mesh > -1) {
-        addMesh(device, scene, model, model.meshes[node.mesh], world * matrix,
-                meshs);
+        addMesh(device, scene, model, images, model.meshes[node.mesh],
+                world * matrix, meshs);
     }
 
     // Draw child nodes.
     for (auto i = 0; i < node.children.size(); i++) {
-        addNode(device, scene, model, model.nodes[node.children[i]],
+        addNode(device, scene, model, images, model.nodes[node.children[i]],
                 world * matrix, meshs);
     }
 }
@@ -584,10 +595,32 @@ ConstantPMeshList addModel(const RTCDevice device, const RTCScene scene,
         model.defaultScene > -1 ? model.defaultScene : 0;
     const tinygltf::Scene &gltfScene = model.scenes[sceneToDisplay];
 
+    std::vector<std::shared_ptr<const Texture>> textures;
+    for (auto it = model.textures.begin(); it != model.textures.end(); it++) {
+        const auto &bufferView =
+            model.bufferViews[model.images[it->source].bufferView];
+        const auto &buffer = model.buffers[bufferView.buffer];
+        assert(bufferView.byteStride == 0);
+        const auto p = &buffer.data[0];
+        const size_t components = 4;
+
+        int32_t width, height, channels;
+        auto ret =
+            stbi_load_from_memory(p + bufferView.byteOffset,
+                                  static_cast<int32_t>(bufferView.byteLength),
+                                  &width, &height, &channels, components);
+        const size_t n = width * height;
+        auto image = std::shared_ptr<glm::u8vec4[]>(new glm::u8vec4[n]);
+        memcpy(image.get(), ret, n * sizeof(glm::u8vec4));
+        stbi_image_free(ret);
+
+        textures.push_back(std::make_shared<Texture>(image, width, height));
+    }
+
     for (size_t i = 0; i < gltfScene.nodes.size(); i++) {
         auto matrix = glm::mat4(1.0f);
         const auto &node = model.nodes[gltfScene.nodes[i]];
-        addNode(device, scene, model, node, matrix, meshs);
+        addNode(device, scene, model, textures, node, matrix, meshs);
     }
 
     return meshs;

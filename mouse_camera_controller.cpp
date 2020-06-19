@@ -1,5 +1,7 @@
 #include "mouse_camera_controller.hpp"
 
+#include <algorithm>
+
 #include <glm/ext.hpp>
 
 bool controllCameraMouse(GLFWwindow *window, RayTracerCamera &camera,
@@ -15,9 +17,7 @@ bool controllCameraMouse(GLFWwindow *window, RayTracerCamera &camera,
     auto origin = camera.getCameraOrigin();
     auto length = glm::length(origin) + scrollDelta.y * scrollSpeed;
 
-    if (length < 1.0f) {
-        length = 1.0f;
-    }
+    length = std::max(length, 0.01f);
 
     origin = glm::normalize(origin) * length;
 

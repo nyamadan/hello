@@ -32,7 +32,7 @@ class RayTracer {
 
     ImageBuffer image;
 
-    int32_t maxSamples = 200;
+    int32_t maxSamples = 5000;
     int32_t samples = 0;
 
     glm::vec3 renderPixelClassic(RTCScene scene, const RayTracerCamera &camera,

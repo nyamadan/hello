@@ -119,6 +119,11 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
                     3);
     normal = glm::normalize(normal);
 
+    glm::vec2 uv(0.0f);
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, glm::value_ptr(uv),
+                    2);
+
     auto incomingRadiance = glm::vec3(0.0f);
     auto weight = glm::vec3(1.0f);
 
@@ -151,7 +156,26 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     nextRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
     incomingRadiance = radiance(scene, camera, randomState, context, nextRay, depth + 1);
 
-    weight = material->baseColorFactor / russianRouletteProbability;
+    glm::vec4 baseColor = material->baseColorFactor;
+    auto baseColorTexture = material->baseColorTexture.get();
+    if(baseColorTexture != nullptr) {
+        auto buffer = baseColorTexture->getBuffer();
+        auto width = baseColorTexture->getWidth();
+        auto height = baseColorTexture->getHeight();
+        auto u = static_cast<int32_t>(std::round(uv.x * width));
+        auto v = static_cast<int32_t>(std::round(uv.y * height));
+        auto index = v * width + u;
+        const auto &u8color = buffer[index];
+        const auto color = glm::vec4(
+            u8color.r / 255.0f,
+            u8color.g / 255.0f,
+            u8color.b / 255.0f,
+            u8color.a / 255.0f
+        );
+        baseColor = baseColor * color;
+    }
+
+    weight = baseColor / russianRouletteProbability;
 
     return material->emissiveFactor + weight * incomingRadiance;
 }
@@ -367,10 +391,27 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
             auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
             auto material = mesh->getMaterial().get();
 
-            if (material != nullptr) {
-                return material->baseColorFactor;
+            glm::vec2 uv(0.0f);
+            rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1,
+                            glm::value_ptr(uv), 2);
+
+            glm::vec4 baseColor = material->baseColorFactor;
+            auto baseColorTexture = material->baseColorTexture.get();
+            if (baseColorTexture != nullptr) {
+                auto buffer = baseColorTexture->getBuffer();
+                auto width = baseColorTexture->getWidth();
+                auto height = baseColorTexture->getHeight();
+                auto u = static_cast<int32_t>(std::round(uv.x * width));
+                auto v = static_cast<int32_t>(std::round(uv.y * height));
+                auto index = v * width + u;
+                const auto &u8color = buffer[index];
+                const auto color =
+                    glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,
+                              u8color.b / 255.0f, u8color.a / 255.0f);
+                baseColor = baseColor * color;
             }
-            return glm::vec3(1.0f);
+            return baseColor;
         } break;
         default:
         case CLASSIC: {
