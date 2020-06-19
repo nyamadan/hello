@@ -9,15 +9,14 @@
 
 RayTracer::RayTracer() {}
 
-void RayTracer::initIntersectContext(IntersectContext *context)
-{
+void RayTracer::initIntersectContext(IntersectContext *context) {
     rtcInitIntersectContext(context);
     context->raytracer = this;
     context->depth = 0;
 }
 
-void RayTracer::intersectionFilter(const struct RTCFilterFunctionNArguments *args)
-{
+void RayTracer::intersectionFilter(
+    const struct RTCFilterFunctionNArguments *args) {
     auto context = (IntersectContext *)args->context;
     auto mesh = (Mesh *)args->geometryUserPtr;
     auto material = mesh->getMaterial().get();
@@ -33,14 +32,20 @@ void RayTracer::setRenderingMode(RenderingMode mode) {
     this->mode = mode;
 }
 
-RenderingMode RayTracer::getRenderingMode() const {
-    return mode;
+void RayTracer::setEnableSuperSampling(bool enableSuperSampling) {
+    this->enableSuperSamples = enableSuperSampling;
 }
+
+RenderingMode RayTracer::getRenderingMode() const { return mode; }
 
 const ImageBuffer &RayTracer::getImage() const { return this->image; }
 
 int32_t RayTracer::getSamples() const {
     return std::min(this->samples, getMaxSamples());
+}
+
+void RayTracer::setMaxSamples(int32_t samples) {
+    this->maxSamples = samples;
 }
 
 int32_t RayTracer::getMaxSamples() const {
@@ -119,8 +124,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
     glm::vec2 uv(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, glm::value_ptr(uv),
-                    2);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, glm::value_ptr(uv), 2);
 
     auto incomingRadiance = glm::vec3(0.0f);
     auto weight = glm::vec3(1.0f);
@@ -135,9 +139,12 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
     v = glm::cross(normal, u);
 
-    const float r1 = 2.0f * M_PI * static_cast<float>(xorshift128plus01(randomState));
-    const float r2 = static_cast<float>(xorshift128plus01(randomState)), r2s = std::sqrt(r2);
-    auto dir = glm::normalize(glm::vec3(u * cos(r1) * r2s + v * sin(r1) * r2s + normal * sqrt(1.0 - r2)));
+    const float r1 =
+        2.0f * M_PI * static_cast<float>(xorshift128plus01(randomState));
+    const float r2 = static_cast<float>(xorshift128plus01(randomState)),
+                r2s = std::sqrt(r2);
+    auto dir = glm::normalize(glm::vec3(u * cos(r1) * r2s + v * sin(r1) * r2s +
+                                        normal * sqrt(1.0 - r2)));
 
     /* initialize ray */
     auto nextRay = RTCRayHit();
@@ -151,11 +158,12 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     nextRay.ray.tfar = tfar;
     nextRay.ray.time = 0.0f;
     nextRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-    incomingRadiance = radiance(scene, camera, randomState, context, nextRay, depth + 1);
+    incomingRadiance =
+        radiance(scene, camera, randomState, context, nextRay, depth + 1);
 
     glm::vec4 baseColor = material->baseColorFactor;
     auto baseColorTexture = material->baseColorTexture.get();
-    if(baseColorTexture != nullptr) {
+    if (baseColorTexture != nullptr) {
         auto buffer = baseColorTexture->getBuffer();
         auto width = baseColorTexture->getWidth();
         auto height = baseColorTexture->getHeight();
@@ -163,12 +171,8 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto v = static_cast<int32_t>(std::round(uv.y * height));
         auto index = v * width + u;
         const auto &u8color = buffer[index];
-        const auto color = glm::vec4(
-            u8color.r / 255.0f,
-            u8color.g / 255.0f,
-            u8color.b / 255.0f,
-            u8color.a / 255.0f
-        );
+        const auto color = glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,
+                                     u8color.b / 255.0f, u8color.a / 255.0f);
         baseColor = baseColor * color;
     }
 
@@ -184,154 +188,21 @@ glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
     const auto tnear = camera.getNear();
     const auto tfar = camera.getFar();
     const auto cameraFrom = camera.getCameraOrigin();
-    const auto rayDir = camera.getRayDir(x, y);
+    const auto height = image.getHeight();
+    const auto samples = enableSuperSamples ? 2 : 1;
 
-    IntersectContext context;
-    initIntersectContext(&context);
-
-    /* initialize ray */
-    auto ray = RTCRayHit();
-    ray.ray.dir_x = rayDir.x;
-    ray.ray.dir_y = rayDir.y;
-    ray.ray.dir_z = rayDir.z;
-    ray.ray.org_x = cameraFrom.x;
-    ray.ray.org_y = cameraFrom.y;
-    ray.ray.org_z = cameraFrom.z;
-    ray.ray.tnear = tnear;
-    ray.ray.tfar = tfar;
-    ray.ray.time = 0.0f;
-    ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-
-    /* intersect ray with scene */
-    rtcIntersect1(scene, &context, &ray);
-
-    const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
-    const auto orig = cameraFrom + ray.ray.tfar * rayDir;
-
-    /* shade pixels */
-    auto color = glm::vec3(0.0f);
-
-    if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
-        return color;
-    }
-
-    auto diffuse = glm::vec3(0.0f);
-    auto geom = rtcGetGeometry(scene, ray.hit.geomID);
-    auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
-    auto material = mesh->getMaterial().get();
-
-    auto normal = glm::vec3(0.0f);
-
-    // normal = glm::normalize(glm::dot(rayDir, Ng) < 0 ? Ng : -Ng);
-
-    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
-                    glm::value_ptr(normal), 3);
-    normal = glm::normalize(normal);
-
-    if (material != nullptr) {
-        diffuse = material->baseColorFactor;
-    } else {
-        diffuse = glm::vec3(1.0f);
-    }
-
-    color = diffuse * 0.5f;
-
-    glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
-    glm::vec3 hitOrig = glm::vec3(ray.ray.org_x + ray.ray.tfar * ray.ray.dir_x,
-                                  ray.ray.org_y + ray.ray.tfar * ray.ray.dir_y,
-                                  ray.ray.org_z + ray.ray.tfar * ray.ray.dir_z);
-
-    {
-        glm::vec3 p;
-        auto r = 1.0f;
-        auto r2 = r * r;
-        do {
-            p = 2.0f * r *
-                    glm::vec3(xorshift128plus01(randomState),
-                              xorshift128plus01(randomState),
-                              xorshift128plus01(randomState)) -
-                glm::vec3(r, r, r);
-        } while (glm::length2(p) >= r2);
-
-        auto org = hitOrig;
-        auto target = p + r * normal + org;
-        auto dir = glm::normalize(target - org);
-
-        RTCRay occ;
-        auto tnear = 0.0001f;
-        auto tfar = glm::length(target - org);
-        occ.org_x = org.x;
-        occ.org_y = org.y;
-        occ.org_z = org.z;
-        occ.dir_x = dir.x;
-        occ.dir_y = dir.y;
-        occ.dir_z = dir.z;
-        occ.tnear = tnear;
-        occ.tfar = tfar;
-        occ.time = 0.0f;
-
-        /* trace shadow ray */
-        rtcOccluded1(scene, &context, &occ);
-
-        if (occ.tfar != tfar) {
-            color *= 0.1f;
-        }
-    }
-
-    return color;
-}
-
-glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
-                                 xorshift128plus_state &randomState, float x,
-                                 float y) {
-    switch (mode) {
-        case PATHTRACING: {
-            auto totalRadiance = glm::vec3(0.0f);
-            const auto tnear = camera.getNear();
-            const auto tfar = camera.getFar();
-            const auto cameraFrom = camera.getCameraOrigin();
-            const auto width = image.getWidth();
-            const auto height = image.getHeight();
-
-            const auto samples = 2;
-            for (int sy = 0; sy < samples; sy++) {
-                for (int sx = 0; sx < samples; sx++) {
-                    const auto rate = 1.0f / samples;
-                    const auto r1 = (sx * rate + rate / 2.0f);
-                    const auto r2 = (sy * rate + rate / 2.0f);
-                    const auto rayDir = camera.getRayDir(x + r1 / height, y + r2 / height);
-
-                    IntersectContext context;
-                    initIntersectContext(&context);
-
-                    auto ray = RTCRayHit();
-                    ray.ray.dir_x = rayDir.x;
-                    ray.ray.dir_y = rayDir.y;
-                    ray.ray.dir_z = rayDir.z;
-                    ray.ray.org_x = cameraFrom.x;
-                    ray.ray.org_y = cameraFrom.y;
-                    ray.ray.org_z = cameraFrom.z;
-                    ray.ray.tnear = tnear;
-                    ray.ray.tfar = tfar;
-                    ray.ray.time = 0.0f;
-                    ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-                    totalRadiance += radiance(scene, camera, randomState, context, ray, 0);
-                }
-            }
-
-            return totalRadiance / (samples * samples);
-        } break;
-        case NORMAL: {
-            const auto tnear = camera.getNear();
-            const auto tfar = camera.getFar();
-            const auto cameraFrom = camera.getCameraOrigin();
-            const auto rayDir = camera.getRayDir(x, y);
+    auto totalColor = glm::vec3(0.0f);
+    for (int sy = 0; sy < samples; sy++) {
+        for (int sx = 0; sx < samples; sx++) {
+            const auto rate = 1.0f / samples;
+            const auto r1 = (sx * rate + rate / 2.0f);
+            const auto r2 = (sy * rate + rate / 2.0f);
+            const auto rayDir =
+                camera.getRayDir(x + r1 / height, y + r2 / height);
 
             IntersectContext context;
             initIntersectContext(&context);
 
-            /* initialize ray */
             auto ray = RTCRayHit();
             ray.ray.dir_x = rayDir.x;
             ray.ray.dir_y = rayDir.y;
@@ -347,37 +218,124 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
             /* intersect ray with scene */
             rtcIntersect1(scene, &context, &ray);
 
+            const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
+            const auto orig = cameraFrom + ray.ray.tfar * rayDir;
+
+            /* shade pixels */
+            auto color = glm::vec3(0.0f);
+
             if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
-                return glm::vec3(0.0f);
+                continue;
             }
 
-            // const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
-            // return glm::normalize(Ng);
-
+            auto diffuse = glm::vec3(0.0f);
             auto geom = rtcGetGeometry(scene, ray.hit.geomID);
             auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
             auto material = mesh->getMaterial().get();
 
-            glm::vec3 normal(0.0f);
+            auto normal = glm::vec3(0.0f);
+
+            // normal = glm::normalize(glm::dot(rayDir, Ng) < 0 ? Ng : -Ng);
 
             rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                             RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
                             glm::value_ptr(normal), 3);
             normal = glm::normalize(normal);
 
-            return normal;
+            auto uv = glm::vec2(0.0f);
+            rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1,
+                            glm::value_ptr(uv), 2);
 
-        } break;
-        case ALBEDO: {
-            const auto tnear = camera.getNear();
-            const auto tfar = camera.getFar();
-            const auto cameraFrom = camera.getCameraOrigin();
-            const auto rayDir = camera.getRayDir(x, y);
+            diffuse = material->baseColorFactor;
+            auto baseColorTexture = material->baseColorTexture.get();
+            if (baseColorTexture != nullptr) {
+                auto buffer = baseColorTexture->getBuffer();
+                auto width = baseColorTexture->getWidth();
+                auto height = baseColorTexture->getHeight();
+                auto u = static_cast<int32_t>(std::round(uv.x * width));
+                auto v = static_cast<int32_t>(std::round(uv.y * height));
+                auto index = v * width + u;
+                const auto &u8color = buffer[index];
+                const auto color =
+                    glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,
+                              u8color.b / 255.0f, u8color.a / 255.0f);
+                diffuse = diffuse * glm::vec3(color);
+            }
+
+            color = diffuse * 0.5f;
+
+            glm::vec3 lightDir = glm::normalize(glm::vec3(-1, -1, -1));
+            glm::vec3 hitOrig =
+                glm::vec3(ray.ray.org_x + ray.ray.tfar * ray.ray.dir_x,
+                          ray.ray.org_y + ray.ray.tfar * ray.ray.dir_y,
+                          ray.ray.org_z + ray.ray.tfar * ray.ray.dir_z);
+
+            {
+                glm::vec3 p;
+                auto r = 1.0f;
+                auto r2 = r * r;
+                do {
+                    p = 2.0f * r *
+                            glm::vec3(xorshift128plus01(randomState),
+                                      xorshift128plus01(randomState),
+                                      xorshift128plus01(randomState)) -
+                        glm::vec3(r, r, r);
+                } while (glm::length2(p) >= r2);
+
+                auto org = hitOrig;
+                auto target = p + r * normal + org;
+                auto dir = glm::normalize(target - org);
+
+                RTCRay occ;
+                auto tnear = 0.0001f;
+                auto tfar = glm::length(target - org);
+                occ.org_x = org.x;
+                occ.org_y = org.y;
+                occ.org_z = org.z;
+                occ.dir_x = dir.x;
+                occ.dir_y = dir.y;
+                occ.dir_z = dir.z;
+                occ.tnear = tnear;
+                occ.tfar = tfar;
+                occ.time = 0.0f;
+
+                /* trace shadow ray */
+                rtcOccluded1(scene, &context, &occ);
+
+                if (occ.tfar != tfar) {
+                    color *= 0.1f;
+                }
+            }
+
+            totalColor += color;
+        }
+    }
+
+    return totalColor / (samples * samples);
+}
+
+glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
+                                  float x, float y) {
+    auto totalColor = glm::vec3(0.0f);
+    const auto tnear = camera.getNear();
+    const auto tfar = camera.getFar();
+    const auto cameraFrom = camera.getCameraOrigin();
+    const auto width = image.getWidth();
+    const auto height = image.getHeight();
+
+    const auto samples = enableSuperSamples ? 2 : 1;
+    for (int sy = 0; sy < samples; sy++) {
+        for (int sx = 0; sx < samples; sx++) {
+            const auto rate = 1.0f / samples;
+            const auto r1 = (sx * rate + rate / 2.0f);
+            const auto r2 = (sy * rate + rate / 2.0f);
+            const auto rayDir =
+                camera.getRayDir(x + r1 / height, y + r2 / height);
 
             IntersectContext context;
             initIntersectContext(&context);
 
-            /* initialize ray */
             auto ray = RTCRayHit();
             ray.ray.dir_x = rayDir.x;
             ray.ray.dir_y = rayDir.y;
@@ -394,7 +352,7 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
             rtcIntersect1(scene, &context, &ray);
 
             if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
-                return glm::vec3(0.0f);
+                continue;
             }
 
             auto geom = rtcGetGeometry(scene, ray.hit.geomID);
@@ -421,11 +379,120 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
                               u8color.b / 255.0f, u8color.a / 255.0f);
                 baseColor = baseColor * color;
             }
-            return baseColor;
+            totalColor += glm::vec3(baseColor);
+        }
+    }
+
+    return totalColor / (samples * samples);
+}
+
+glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
+                                  float x, float y) {
+    const auto tnear = camera.getNear();
+    const auto tfar = camera.getFar();
+    const auto cameraFrom = camera.getCameraOrigin();
+    const auto rayDir = camera.getRayDir(x, y);
+
+    IntersectContext context;
+    initIntersectContext(&context);
+
+    /* initialize ray */
+    auto ray = RTCRayHit();
+    ray.ray.dir_x = rayDir.x;
+    ray.ray.dir_y = rayDir.y;
+    ray.ray.dir_z = rayDir.z;
+    ray.ray.org_x = cameraFrom.x;
+    ray.ray.org_y = cameraFrom.y;
+    ray.ray.org_z = cameraFrom.z;
+    ray.ray.tnear = tnear;
+    ray.ray.tfar = tfar;
+    ray.ray.time = 0.0f;
+    ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+
+    /* intersect ray with scene */
+    rtcIntersect1(scene, &context, &ray);
+
+    if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
+        return glm::vec3(0.0f);
+    }
+
+    // const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
+    // return glm::normalize(Ng);
+
+    auto geom = rtcGetGeometry(scene, ray.hit.geomID);
+    auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
+    auto material = mesh->getMaterial().get();
+
+    glm::vec3 normal(0.0f);
+
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, glm::value_ptr(normal),
+                    3);
+    normal = glm::normalize(normal);
+
+    return normal;
+}
+
+glm::vec3 RayTracer::renderPathTrace(RTCScene scene,
+                                     const RayTracerCamera &camera,
+                                     xorshift128plus_state &randomState,
+                                     float x, float y) {
+    auto totalRadiance = glm::vec3(0.0f);
+    const auto tnear = camera.getNear();
+    const auto tfar = camera.getFar();
+    const auto cameraFrom = camera.getCameraOrigin();
+    const auto width = image.getWidth();
+    const auto height = image.getHeight();
+
+    const auto samples = enableSuperSamples ? 2 : 1;
+    for (int sy = 0; sy < samples; sy++) {
+        for (int sx = 0; sx < samples; sx++) {
+            const auto rate = 1.0f / samples;
+            const auto r1 = (sx * rate + rate / 2.0f);
+            const auto r2 = (sy * rate + rate / 2.0f);
+            const auto rayDir =
+                camera.getRayDir(x + r1 / height, y + r2 / height);
+
+            IntersectContext context;
+            initIntersectContext(&context);
+
+            auto ray = RTCRayHit();
+            ray.ray.dir_x = rayDir.x;
+            ray.ray.dir_y = rayDir.y;
+            ray.ray.dir_z = rayDir.z;
+            ray.ray.org_x = cameraFrom.x;
+            ray.ray.org_y = cameraFrom.y;
+            ray.ray.org_z = cameraFrom.z;
+            ray.ray.tnear = tnear;
+            ray.ray.tfar = tfar;
+            ray.ray.time = 0.0f;
+            ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+            totalRadiance +=
+                radiance(scene, camera, randomState, context, ray, 0);
+        }
+    }
+
+    return totalRadiance / (samples * samples);
+}
+
+glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
+                                 xorshift128plus_state &randomState, float x,
+                                 float y) {
+    switch (mode) {
+        case PATHTRACING: {
+            return renderPathTrace(scene, camera, randomState, x, y);
         } break;
-        default:
+        case NORMAL: {
+            return renderNormal(scene, camera, x, y);
+        } break;
+        case ALBEDO: {
+            return renderAlbedo(scene, camera, x, y);
+        } break;
         case CLASSIC: {
             return renderPixelClassic(scene, camera, randomState, x, y);
+        } break;
+        default: {
+            return renderAlbedo(scene, camera, x, y);
         } break;
     }
 }
@@ -480,8 +547,9 @@ bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
         it->b = xorshift128plus(randomState);
     }
 
-    if(this->samples == 0) {
-        auto bufferSize = static_cast<int64_t>(image.getWidth() * image.getHeight() * sizeof(glm::vec3));
+    if (this->samples == 0) {
+        auto bufferSize = static_cast<int64_t>(
+            image.getWidth() * image.getHeight() * sizeof(glm::vec3));
         auto origMode = mode;
 
         mode = NORMAL;
@@ -512,18 +580,24 @@ bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
 
     bool done = false;
 
-    if (this->getSamples() >= this->getMaxSamples() && mode != NORMAL && mode != ALBEDO) {
+    if (this->getSamples() >= this->getMaxSamples() && mode != NORMAL &&
+        mode != ALBEDO) {
         auto bufferSize =
-            static_cast<uint64_t>(image.getWidth() * image.getHeight()) * sizeof(glm::vec3);
+            static_cast<uint64_t>(image.getWidth() * image.getHeight()) *
+            sizeof(glm::vec3);
         auto filter = denoiser.newFilter("RT");
 
         auto temp = std::make_unique<glm::vec3[]>(bufferSize);
         memcpy(temp.get(), image.getBuffer(), bufferSize);
 
-        filter.setImage("color", temp.get(), oidn::Format::Float3, width, height);
-        filter.setImage("albedo", image.getAlbedo(), oidn::Format::Float3, width, height);
-        filter.setImage("normal", image.getNormal(), oidn::Format::Float3, width, height);
-        filter.setImage("output", image.getBuffer(), oidn::Format::Float3, width, height);
+        filter.setImage("color", temp.get(), oidn::Format::Float3, width,
+                        height);
+        filter.setImage("albedo", image.getAlbedo(), oidn::Format::Float3,
+                        width, height);
+        filter.setImage("normal", image.getNormal(), oidn::Format::Float3,
+                        width, height);
+        filter.setImage("output", image.getBuffer(), oidn::Format::Float3,
+                        width, height);
         filter.set("hdr", true);  // image is HDR
         filter.commit();
 

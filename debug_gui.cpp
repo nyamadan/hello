@@ -1,8 +1,7 @@
 #include "debug_gui.hpp"
-
-#include <numeric>
-
 #include <imgui.h>
+#include <stb_image_write.h>
+#include <numeric>
 
 #include <examples/imgui_impl_glfw.h>
 #include <examples/imgui_impl_opengl3.h>
@@ -57,23 +56,21 @@ bool DebugGUI::saveFileDialog(std::string &path, const char *const filter,
 
 DebugGUI::DebugGUI() {}
 
-void DebugGUI::setup(GLFWwindow *window, RayTracer &raytracer) {
+RenderingMode DebugGUI::getRenderingMode() const {
+    return this->renderingMode;
+}
+
+bool DebugGUI::getEnableSuperSampling() const {
+    return this->enableSuperSampling;
+}
+
+void DebugGUI::setup(GLFWwindow *window) {
     ImGui::SetCurrentContext(ImGui::CreateContext());
     ImGui_ImplGlfw_InitForOpenGL(window, true);
     ImGui_ImplOpenGL3_Init("#version 330 core\n");
-
-    raytracer.setRenderingMode(renderingMode);
 }
 
-void DebugGUI::onSaveImage() {
-    saveFileDialog(savingImagePath, "Image File {*.png}", "png");
-}
-
-void DebugGUI::onOpenGLB() {
-    openFileDialog(openingGLBPath, "GLB File {*.glb}");
-}
-
-void DebugGUI::renderFrame(RayTracer &raytracer) {
+void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate, bool &needResize, bool &needRestart) {
     static bool showImGuiDemoWindow = true;
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -87,11 +84,25 @@ void DebugGUI::renderFrame(RayTracer &raytracer) {
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open", "Ctrl+O")) {
-                this->onOpenGLB();
+                openFileDialog(glbPath, "GLB File {*.glb}");
+                if(!glbPath.empty()) {
+                    needRestart = true;
+                }
             }
+
             if (ImGui::MenuItem("Save", "Ctrl+S")) {
-                this->onSaveImage();
+                const auto image = raytracer.getImage();
+                std::string path;
+                saveFileDialog(path, "Image File {*.png}", "png");
+                if (!path.empty()) {
+                    stbi_flip_vertically_on_write(true);
+                    stbi_write_png(path.c_str(), image.getWidth(),
+                                   image.getHeight(), image.getChannels(),
+                                   image.GetTextureBuffer(),
+                                   image.getChannels() * image.getWidth());
+                }
             }
+
             if (ImGui::MenuItem("Quit", "Alt+F4")) {
                 glfwSetWindowShouldClose(glfwGetCurrentContext(), GLFW_TRUE);
             }
@@ -130,48 +141,41 @@ void DebugGUI::renderFrame(RayTracer &raytracer) {
 
         if (ImGui::Combo("Mode", reinterpret_cast<int32_t *>(&renderingMode),
                          RenderingModeName, IM_ARRAYSIZE(RenderingModeName))) {
-            switch (renderingMode) {
-                case ALBEDO:
-                case NORMAL:
-                    raytracer.setRenderingMode(renderingMode);
-                    break;
-                default:
-                    raytracer.setRenderingMode(ALBEDO);
-                    break;
-            }
+            needUpdate = true;
         }
 
-        if (ImGui::Button("Render")) {
-            raytracer.setRenderingMode(renderingMode);
+        if (ImGui::InputInt("BufferScale", &bufferScale)) {
+            bufferScale = std::clamp<int32_t>(bufferScale, 1, 8);
+            needResize = true;
+        }
+
+        if (ImGui::InputInt("Samples", &samples)) {
+            samples = std::max<int32_t>(samples, 1);
+            needUpdate = true;
+        }
+
+        if (ImGui::Checkbox("SuperSampling", &enableSuperSampling)) {
+            needUpdate = true;
         }
     }
+
     ImGui::End();
 
     ImGui::Render();
+}
 
+void DebugGUI::renderFrame() const {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-std::string DebugGUI::pullOpeningGLBPath() {
-    if (!openingGLBPath.empty()) {
-        auto result = openingGLBPath;
-
-        openingGLBPath.clear();
-
-        return result;
-    }
-
-    return openingGLBPath;
+std::string DebugGUI::getGlbPath() const {
+    return glbPath;
 }
 
-std::string DebugGUI::pullSavingImagePath() {
-    if (!savingImagePath.empty()) {
-        auto result = savingImagePath;
+int32_t DebugGUI::getBufferScale() const {
+    return bufferScale;
+}
 
-        savingImagePath.clear();
-
-        return result;
-    }
-
-    return savingImagePath;
+int32_t DebugGUI::getSamples() const {
+    return samples;
 }

@@ -4,7 +4,6 @@
 
 #include <glm/ext.hpp>
 
-#include <stb_image_write.h>
 
 #include <OpenImageDenoise/oidn.hpp>
 
@@ -122,72 +121,48 @@ void detachMeshs(RTCScene scene, ConstantPMeshList &meshs) {
     meshs.clear();
 }
 
-void handleDebugOperation(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
+void loadGlbModel(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
                           RayTracer &raytracer, RayTracerCamera &camera,
                           ConstantPMeshList &meshs) {
-    {
-        const auto image = raytracer.getImage();
-        auto path = debugGui.pullSavingImagePath();
-        if (!path.empty()) {
-            stbi_flip_vertically_on_write(true);
-            stbi_write_png(path.c_str(), image.getWidth(), image.getHeight(),
-                           image.getChannels(), image.GetTextureBuffer(),
-                           image.getChannels() * image.getWidth());
-        }
+    auto path = debugGui.getGlbPath();
+    if (path.empty()) {
+        return;
     }
+    detachMeshs(scene, meshs);
 
-    {
-        auto path = debugGui.pullOpeningGLBPath();
-        if (!path.empty()) {
-            detachMeshs(scene, meshs);
+    meshs = addMeshsToScene(device, scene, path.c_str());
 
-            meshs = addMeshsToScene(device, scene, path.c_str());
+    rtcCommitScene(scene);
 
-            rtcCommitScene(scene);
+    RTCBounds bb;
+    rtcGetSceneBounds(scene, &bb);
 
-            RTCBounds bb;
-            rtcGetSceneBounds(scene, &bb);
+    const auto eye = glm::vec3(bb.upper_x, bb.upper_y, bb.upper_z);
+    const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
+    const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
+    camera.lookAt(eye, target, up);
 
-            const auto eye = glm::vec3(bb.upper_x, bb.upper_y, bb.upper_z);
-            const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
-            const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
-            camera.lookAt(eye, target, up);
+    // ground
+    meshs.push_back(addGroundPlane(
+        device, scene,
+        PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr, 1.0f,
+                               glm::vec3(0.0f), false)),
+        glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
+            glm::scale(glm::vec3(
+                std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
+                          std::abs(bb.lower_z), std::abs(bb.upper_x),
+                          std::abs(bb.upper_y), std::abs(bb.upper_z)}) *
+                1.2f))));
 
-            // ground
-            meshs.push_back(addGroundPlane(
-                device, scene,
-                PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                                       nullptr, 1.0f, glm::vec3(0.0f), false)),
-                glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
-                    glm::scale(glm::vec3(
-                        std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
-                                  std::abs(bb.lower_z), std::abs(bb.upper_x),
-                                  std::abs(bb.upper_y), std::abs(bb.upper_z)}) *
-                        1.2f))));
-
-            // light
-            meshs.push_back(addCube(
-                device, scene,
+    // light
+    meshs.push_back(
+        addCube(device, scene,
                 PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
                                        nullptr, 1.0f, glm::vec3(1.0f), true)),
-                glm::translate(
-                    glm::vec3(0.0f, bb.upper_y + 1.0f, 0.0f)) *
+                glm::translate(glm::vec3(0.0f, bb.upper_y + 1.0f, 0.0f)) *
                     glm::scale(glm::vec3(bb.upper_x, 1.0f, bb.upper_z))));
 
-            rtcCommitScene(scene);
-
-            const auto mode = raytracer.getRenderingMode();
-            switch (mode) {
-                case NORMAL:
-                case ALBEDO:
-                    raytracer.setRenderingMode(mode);
-                    break;
-                default:
-                    raytracer.setRenderingMode(ALBEDO);
-                    break;
-            }
-        }
-    }
+    rtcCommitScene(scene);
 }
 
 int main(void) {
@@ -210,9 +185,9 @@ int main(void) {
 
     auto meshs = addDefaultMeshToScene(device, scene);
 
-    auto raytracer = RayTracer(windowSize);
-
     auto debugGui = DebugGUI();
+
+    auto raytracer = RayTracer(windowSize / debugGui.getBufferScale());
 
     rtcCommitScene(scene);
 
@@ -286,7 +261,9 @@ int main(void) {
     EnableOpenGLDebugExtention();
 #endif
 
-    debugGui.setup(window, raytracer);
+    debugGui.setup(window);
+
+    raytracer.setRenderingMode(debugGui.getRenderingMode());
 
     GLuint texture = 0;
     GLuint fbo = 0;
@@ -307,9 +284,10 @@ int main(void) {
 
         // controllCameraFPS(window, camera, dt, mouseDelta);
 
-        handleDebugOperation(device, scene, debugGui, raytracer, camera, meshs);
-
         bool needResize = false;
+        bool needUpdate = false;
+        bool needRestart = false;
+
         {
             int32_t w, h;
             glfwGetWindowSize(window, &w, &h);
@@ -317,26 +295,25 @@ int main(void) {
             windowSize = glm::i32vec2(w, h);
         }
 
-        bool needUpdate = controllCameraMouse(window, camera, (float)dt,
-                                              mouseDelta, wheelDelta) ||
-                          needResize;
+        needUpdate = controllCameraMouse(window, camera, (float)dt, mouseDelta, wheelDelta) || needUpdate;
+
+        debugGui.beginFrame(raytracer, needUpdate, needResize, needRestart);
+
+        needUpdate = needUpdate || needResize || needRestart;
 
         if (needResize) {
-            raytracer.resize(windowSize);
+            raytracer.resize(windowSize / debugGui.getBufferScale());
             glViewport(0, 0, windowSize.x, windowSize.y);
         }
 
+        if (needRestart) {
+            loadGlbModel(device, scene, debugGui, raytracer, camera, meshs);
+        }
+
         if (needUpdate) {
-            const auto mode = raytracer.getRenderingMode();
-            switch (mode) {
-                case NORMAL:
-                case ALBEDO:
-                    raytracer.setRenderingMode(mode);
-                    break;
-                default:
-                    raytracer.setRenderingMode(ALBEDO);
-                    break;
-            }
+            raytracer.setEnableSuperSampling(debugGui.getEnableSuperSampling());
+            raytracer.setMaxSamples(debugGui.getSamples());
+            raytracer.setRenderingMode(debugGui.getRenderingMode());
         }
 
         raytracer.render(scene, camera, denoiser);
@@ -355,7 +332,7 @@ int main(void) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-        debugGui.renderFrame(raytracer);
+        debugGui.renderFrame();
 
         glfwSwapBuffers(window);
 
