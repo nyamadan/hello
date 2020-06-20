@@ -17,6 +17,9 @@ class Texture {
     int32_t width;
     int32_t height;
 
+    int32_t wrapS;
+    int32_t wrapT;
+
   public:
     const glm::u8vec4 *getBuffer() const {
       return buffer.get();
@@ -31,10 +34,12 @@ class Texture {
     }
 
     Texture(std::shared_ptr<glm::u8vec4[]> buffer, int32_t width,
-            int32_t height) {
+            int32_t height, int32_t wrapS, int32_t wrapT) {
         this->buffer = buffer;
         this->width = width;
         this->height = height;
+        this->wrapS = wrapS;
+        this->wrapT = wrapT;
     }
 };
 
@@ -47,6 +52,7 @@ class Material {
 
     glm::vec4 baseColorFactor;
     std::shared_ptr<const Texture> baseColorTexture;
+    std::shared_ptr<const Texture> normalTexture;
     float metallicFactor;
     glm::vec3 emissiveFactor;
     std::shared_ptr<const Texture> emissiveTexture;
@@ -55,18 +61,23 @@ class Material {
     Material() {
         this->baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         this->baseColorTexture = nullptr;
+        this->normalTexture = nullptr;
         this->metallicFactor = 0.0f;
+        this->emissiveFactor = glm::vec3(0.0f, 0.0f, 0.0f);
+        this->emissiveTexture = nullptr;
         isLight = false;
     }
 
     Material(const glm::vec4 &baseColorFactor,
              std::shared_ptr<const Texture> baseColorTexture,
+             std::shared_ptr<const Texture> normalTexture,
              float metallicFactor,
              const glm::vec3 &emissiveFactor,
              std::shared_ptr<const Texture> emissiveTexture,
              bool isLight) {
         this->baseColorFactor = baseColorFactor;
         this->baseColorTexture = baseColorTexture;
+        this->normalTexture = normalTexture;
         this->metallicFactor = metallicFactor;
         this->emissiveFactor = emissiveFactor;
         this->emissiveTexture = emissiveTexture;

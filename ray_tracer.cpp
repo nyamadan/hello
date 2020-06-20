@@ -119,15 +119,31 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     // const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
     // const auto normal = glm::normalize(glm::dot(rayDir, Ng) < 0 ? Ng : -Ng);
 
-    glm::vec3 normal(0.0f);
-    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, glm::value_ptr(normal),
-                    3);
-    normal = glm::normalize(normal);
-
     glm::vec2 uv(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, glm::value_ptr(uv), 2);
+
+    glm::vec3 normal(0.0f);
+    // auto normalTexture = material->normalTexture.get();
+    // if (normalTexture != nullptr) {
+    //     auto buffer = normalTexture->getBuffer();
+    //     auto width = normalTexture->getWidth();
+    //     auto height = normalTexture->getHeight();
+    //     auto u = static_cast<int32_t>(std::round(uv.x * width));
+    //     auto v = static_cast<int32_t>(std::round(uv.y * height));
+    //     // TODO: TEXTURE_WRAP
+    //     auto index =
+    //         std::clamp((v * width + u) % (width * height), 0, width * height);
+    //     const auto &u8color = buffer[index];
+    //     normal +=
+    //         glm::vec3(u8color.r / 255.0f - 0.5f, u8color.g / 255.0f - 0.5f,
+    //                   u8color.b / 255.0f - 0.5f);
+    // } else {
+        rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
+                        glm::value_ptr(normal), 3);
+    // }
+    normal = glm::normalize(normal);
 
     auto incomingRadiance = glm::vec3(0.0f);
     auto weight = glm::vec3(1.0f);
@@ -173,8 +189,12 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto u = static_cast<int32_t>(std::round(uv.x * width));
         auto v = static_cast<int32_t>(std::round(uv.y * height));
         // TODO: TEXTURE_WRAP
-        auto index =
-            std::clamp((v * width + u) % (width * height), 0, width * height);
+        if(u < 0.0f) { u = width + u; }
+        u = u % width;
+        if(v < 0.0f) { v = height + v; }
+        v = v % height;
+        auto index = v * width + u;
+
         const auto &u8color = buffer[index];
         const auto color = glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,
                                      u8color.b / 255.0f, u8color.a / 255.0f);
@@ -190,8 +210,11 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto u = static_cast<int32_t>(std::round(uv.x * width));
         auto v = static_cast<int32_t>(std::round(uv.y * height));
         // TODO: TEXTURE_WRAP
-        auto index =
-            std::clamp((v * width + u) % (width * height), 0, width * height);
+        if(u < 0.0f) { u = width + u; }
+        u = u % width;
+        if(v < 0.0f) { v = height + v; }
+        v = v % height;
+        auto index = v * width + u;
         const auto &u8color = buffer[index];
         const auto color = glm::vec3(u8color.r / 255.0f, u8color.g / 255.0f,
                                      u8color.b / 255.0f);
@@ -255,19 +278,34 @@ glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
             auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
             auto material = mesh->getMaterial().get();
 
-            auto normal = glm::vec3(0.0f);
-
             // normal = glm::normalize(glm::dot(rayDir, Ng) < 0 ? Ng : -Ng);
 
-            rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
-                            glm::value_ptr(normal), 3);
-            normal = glm::normalize(normal);
-
-            auto uv = glm::vec2(0.0f);
+            glm::vec2 uv(0.0f);
             rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                             RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1,
                             glm::value_ptr(uv), 2);
+
+            glm::vec3 normal(0.0f);
+            // auto normalTexture = material->normalTexture.get();
+            // if (normalTexture != nullptr) {
+            //     auto buffer = normalTexture->getBuffer();
+            //     auto width = normalTexture->getWidth();
+            //     auto height = normalTexture->getHeight();
+            //     auto u = static_cast<int32_t>(std::round(uv.x * width));
+            //     auto v = static_cast<int32_t>(std::round(uv.y * height));
+            //     // TODO: TEXTURE_WRAP
+            //     auto index = std::clamp((v * width + u) % (width * height), 0,
+            //                             width * height);
+            //     const auto &u8color = buffer[index];
+            //     normal += glm::vec3(u8color.r / 255.0f - 0.5f,
+            //                         u8color.g / 255.0f - 0.5f,
+            //                         u8color.b / 255.0f - 0.5f);
+            // } else {
+                rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                                RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
+                                glm::value_ptr(normal), 3);
+            // }
+            normal = glm::normalize(normal);
 
             diffuse = material->baseColorFactor;
             auto baseColorTexture = material->baseColorTexture.get();
@@ -395,8 +433,11 @@ glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
                 auto u = static_cast<int32_t>(std::round(uv.x * width));
                 auto v = static_cast<int32_t>(std::round(uv.y * height));
                 // TODO: TEXTURE_WRAP
-                auto index = std::clamp((v * width + u) % (width * height), 0,
-                                        width * height);
+                if(u < 0.0f) { u = width + u; }
+                u = u % width;
+                if(v < 0.0f) { v = height + v; }
+                v = v % height;
+                auto index = v * width + u;
                 const auto &u8color = buffer[index];
                 const auto color =
                     glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,
@@ -447,11 +488,30 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
     auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
     auto material = mesh->getMaterial().get();
 
-    glm::vec3 normal(0.0f);
-
+    glm::vec2 uv(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, glm::value_ptr(normal),
-                    3);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, glm::value_ptr(uv), 2);
+
+    glm::vec3 normal(0.0f);
+    // auto normalTexture = material->normalTexture.get();
+    // if (normalTexture != nullptr) {
+    //     auto buffer = normalTexture->getBuffer();
+    //     auto width = normalTexture->getWidth();
+    //     auto height = normalTexture->getHeight();
+    //     auto u = static_cast<int32_t>(std::round(uv.x * width));
+    //     auto v = static_cast<int32_t>(std::round(uv.y * height));
+    //     // TODO: TEXTURE_WRAP
+    //     auto index =
+    //         std::clamp((v * width + u) % (width * height), 0, width * height);
+    //     const auto &u8color = buffer[index];
+    //     normal +=
+    //         glm::vec3(u8color.r / 255.0f - 0.5f, u8color.g / 255.0f - 0.5f,
+    //                   u8color.b / 255.0f - 0.5f);
+    // } else {
+        rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
+                        glm::value_ptr(normal), 3);
+    // }
     normal = glm::normalize(normal);
 
     return normal;
@@ -507,8 +567,11 @@ glm::vec3 RayTracer::renderEmissive(RTCScene scene, const RayTracerCamera &camer
         auto u = static_cast<int32_t>(std::round(uv.x * width));
         auto v = static_cast<int32_t>(std::round(uv.y * height));
         // TODO: TEXTURE_WRAP
-        auto index =
-            std::clamp((v * width + u) % (width * height), 0, width * height);
+        if(u < 0.0f) { u = width + u; }
+        u = u % width;
+        if(v < 0.0f) { v = height + v; }
+        v = v % height;
+        auto index = v * width + u;
         const auto &u8color = buffer[index];
         const auto color = glm::vec3(u8color.r / 255.0f, u8color.g / 255.0f,
                                      u8color.b / 255.0f);

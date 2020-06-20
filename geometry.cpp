@@ -318,6 +318,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
         auto metallicFactor = 0.5f;
         auto emissiveFactor = glm::vec3(0.0f, 0.0f, 0.0f);
         auto emissiveTextureIndex = -1;
+        auto normalTextureIndex = -1;
 
         const auto &pbr = gltfMaterial.pbrMetallicRoughness;
         switch (pbr.baseColorFactor.size()) {
@@ -338,6 +339,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                                        gltfMaterial.emissiveFactor[2]);
         }
         emissiveTextureIndex = gltfMaterial.emissiveTexture.index;
+        normalTextureIndex = gltfMaterial.normalTexture.index;
 
         int mode = primitive.mode;
         assert(mode == TINYGLTF_MODE_TRIANGLES);
@@ -540,6 +542,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                 baseColorFactor,
                 baseColorTextureIndex >= 0 ? images[baseColorTextureIndex]
                                            : nullptr,
+                normalTextureIndex >= 0 ? images[normalTextureIndex] : nullptr,
                 metallicFactor, emissiveFactor,
                 emissiveTextureIndex >= 0 ? images[emissiveTextureIndex]
                                           : nullptr,
@@ -580,8 +583,8 @@ void addNode(const RTCDevice device, const RTCScene scene,
 
         if (node.rotation.size() == 4) {
             const auto &r = node.rotation;
-            (glm::mat4) glm::quat((float)r[0], (float)r[1], (float)r[2],
-                                  (float)r[3]) *
+            matrix = static_cast<glm::mat4>(
+                glm::quat((float)r[3], (float)r[0], (float)r[1], (float)r[2])) *
                 matrix;
         }
 
@@ -631,7 +634,15 @@ ConstantPMeshList addModel(const RTCDevice device, const RTCScene scene,
         memcpy(image.get(), ret, n * sizeof(glm::u8vec4));
         stbi_image_free(ret);
 
-        textures.push_back(std::make_shared<Texture>(image, width, height));
+        int32_t wrapS = 0;
+        int32_t wrapT = 0;
+        if(it->sampler >= 0) {
+            const auto &sampler = model.samplers[it->sampler];
+            wrapS = sampler.wrapS;
+            wrapT = sampler.wrapT;
+        }
+
+        textures.push_back(std::make_shared<Texture>(image, width, height, wrapS, wrapT));
     }
 
     for (size_t i = 0; i < gltfScene.nodes.size(); i++) {
