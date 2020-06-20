@@ -11,7 +11,6 @@ enum RenderingMode {
     ALBEDO,
     NORMAL,
     EMISSIVE,
-    CLASSIC,
     PATHTRACING,
 };
 
@@ -19,7 +18,6 @@ const char *const RenderingModeName[] = {
     "Albedo",
     "Normal",
     "Emissive",
-    "Classic",
     "Path Tracing",
 };
 
@@ -38,9 +36,6 @@ class RayTracer {
     int32_t maxSamples = 200;
     int32_t samples = 0;
 
-    glm::vec3 renderPixelClassic(RTCScene scene, const RayTracerCamera &camera,
-                                 xorshift128plus_state &randomState, float x,
-                                 float y);
     glm::vec3 renderPixel(RTCScene scene, const RayTracerCamera &camera,
                           xorshift128plus_state &randomState, float x, float y);
     glm::vec3 renderNormal(RTCScene scene, const RayTracerCamera &camera,
