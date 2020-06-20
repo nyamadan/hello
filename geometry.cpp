@@ -317,6 +317,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
         auto baseColorTextureIndex = -1;
         auto metallicFactor = 0.5f;
         auto emissiveFactor = glm::vec3(0.0f, 0.0f, 0.0f);
+        auto emissiveTextureIndex = -1;
 
         const auto &pbr = gltfMaterial.pbrMetallicRoughness;
         switch (pbr.baseColorFactor.size()) {
@@ -336,6 +337,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                                        gltfMaterial.emissiveFactor[1],
                                        gltfMaterial.emissiveFactor[2]);
         }
+        emissiveTextureIndex = gltfMaterial.emissiveTexture.index;
 
         int mode = primitive.mode;
         assert(mode == TINYGLTF_MODE_TRIANGLES);
@@ -538,7 +540,10 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                 baseColorFactor,
                 baseColorTextureIndex >= 0 ? images[baseColorTextureIndex]
                                            : nullptr,
-                metallicFactor, emissiveFactor, false));
+                metallicFactor, emissiveFactor,
+                emissiveTextureIndex >= 0 ? images[emissiveTextureIndex]
+                                          : nullptr,
+                false));
 
             auto mesh = PMesh(new Mesh());
             rtcSetGeometryUserData(geom, (void *)mesh.get());

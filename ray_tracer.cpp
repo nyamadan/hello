@@ -54,6 +54,7 @@ int32_t RayTracer::getMaxSamples() const {
     switch (mode) {
         case NORMAL:
         case ALBEDO:
+        case EMISSIVE:
             return 1;
         default:
             return this->maxSamples;
@@ -172,16 +173,34 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto u = static_cast<int32_t>(std::round(uv.x * width));
         auto v = static_cast<int32_t>(std::round(uv.y * height));
         // TODO: TEXTURE_WRAP
-        auto index = (v * width + u) % (width * height);
+        auto index =
+            std::clamp((v * width + u) % (width * height), 0, width * height);
         const auto &u8color = buffer[index];
         const auto color = glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,
                                      u8color.b / 255.0f, u8color.a / 255.0f);
         baseColor = baseColor * color;
     }
 
+    glm::vec3 emissive = material->emissiveFactor;
+    auto emissiveTexture = material->emissiveTexture.get();
+    if (emissiveTexture != nullptr) {
+        auto buffer = emissiveTexture->getBuffer();
+        auto width = emissiveTexture->getWidth();
+        auto height = emissiveTexture->getHeight();
+        auto u = static_cast<int32_t>(std::round(uv.x * width));
+        auto v = static_cast<int32_t>(std::round(uv.y * height));
+        // TODO: TEXTURE_WRAP
+        auto index =
+            std::clamp((v * width + u) % (width * height), 0, width * height);
+        const auto &u8color = buffer[index];
+        const auto color = glm::vec3(u8color.r / 255.0f, u8color.g / 255.0f,
+                                     u8color.b / 255.0f);
+        emissive = emissive * color;
+    }
+
     weight = baseColor / russianRouletteProbability;
 
-    return material->emissiveFactor + weight * incomingRadiance;
+    return emissive + weight * incomingRadiance;
 }
 
 glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
@@ -258,7 +277,7 @@ glm::vec3 RayTracer::renderPixelClassic(RTCScene scene,
                 auto height = baseColorTexture->getHeight();
                 auto u = static_cast<int32_t>(std::round(uv.x * width));
                 auto v = static_cast<int32_t>(std::round(uv.y * height));
-                auto index = v * width + u;
+                auto index = std::clamp(v * width + u, 0, width * height);
                 const auto &u8color = buffer[index];
                 const auto color =
                     glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,
@@ -376,7 +395,8 @@ glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
                 auto u = static_cast<int32_t>(std::round(uv.x * width));
                 auto v = static_cast<int32_t>(std::round(uv.y * height));
                 // TODO: TEXTURE_WRAP
-                auto index = (v * width + u) % (width * height);
+                auto index = std::clamp((v * width + u) % (width * height), 0,
+                                        width * height);
                 const auto &u8color = buffer[index];
                 const auto color =
                     glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,
@@ -437,6 +457,67 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
     return normal;
 }
 
+glm::vec3 RayTracer::renderEmissive(RTCScene scene, const RayTracerCamera &camera,
+                                  float x, float y) {
+    const auto tnear = camera.getNear();
+    const auto tfar = camera.getFar();
+    const auto cameraFrom = camera.getCameraOrigin();
+    const auto rayDir = camera.getRayDir(x, y);
+
+    IntersectContext context;
+    initIntersectContext(&context);
+
+    /* initialize ray */
+    auto ray = RTCRayHit();
+    ray.ray.dir_x = rayDir.x;
+    ray.ray.dir_y = rayDir.y;
+    ray.ray.dir_z = rayDir.z;
+    ray.ray.org_x = cameraFrom.x;
+    ray.ray.org_y = cameraFrom.y;
+    ray.ray.org_z = cameraFrom.z;
+    ray.ray.tnear = tnear;
+    ray.ray.tfar = tfar;
+    ray.ray.time = 0.0f;
+    ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+
+    /* intersect ray with scene */
+    rtcIntersect1(scene, &context, &ray);
+
+    if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
+        return glm::vec3(0.0f);
+    }
+
+    // const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
+    // return glm::normalize(Ng);
+
+    auto geom = rtcGetGeometry(scene, ray.hit.geomID);
+    auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
+    auto material = mesh->getMaterial().get();
+
+    glm::vec2 uv(0.0f);
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, glm::value_ptr(uv), 2);
+
+    glm::vec3 emissive = material->emissiveFactor;
+    auto emissiveTexture = material->emissiveTexture.get();
+    if (emissiveTexture != nullptr) {
+        auto buffer = emissiveTexture->getBuffer();
+        auto width = emissiveTexture->getWidth();
+        auto height = emissiveTexture->getHeight();
+        auto u = static_cast<int32_t>(std::round(uv.x * width));
+        auto v = static_cast<int32_t>(std::round(uv.y * height));
+        // TODO: TEXTURE_WRAP
+        auto index =
+            std::clamp((v * width + u) % (width * height), 0, width * height);
+        const auto &u8color = buffer[index];
+        const auto color = glm::vec3(u8color.r / 255.0f, u8color.g / 255.0f,
+                                     u8color.b / 255.0f);
+        emissive = emissive * color;
+    }
+
+    return emissive;
+}
+
 glm::vec3 RayTracer::renderPathTrace(RTCScene scene,
                                      const RayTracerCamera &camera,
                                      xorshift128plus_state &randomState,
@@ -491,6 +572,9 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
         } break;
         case ALBEDO: {
             return renderAlbedo(scene, camera, x, y);
+        } break;
+        case EMISSIVE: {
+            return renderEmissive(scene, camera, x, y);
         } break;
         case CLASSIC: {
             return renderPixelClassic(scene, camera, randomState, x, y);
@@ -585,7 +669,7 @@ bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
     bool done = false;
 
     if (this->getSamples() >= this->getMaxSamples() && mode != NORMAL &&
-        mode != ALBEDO) {
+        mode != ALBEDO && mode != EMISSIVE) {
         auto bufferSize =
             static_cast<uint64_t>(image.getWidth() * image.getHeight()) *
             sizeof(glm::vec3);

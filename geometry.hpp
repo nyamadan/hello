@@ -49,6 +49,7 @@ class Material {
     std::shared_ptr<const Texture> baseColorTexture;
     float metallicFactor;
     glm::vec3 emissiveFactor;
+    std::shared_ptr<const Texture> emissiveTexture;
     bool isLight;
 
     Material() {
@@ -59,12 +60,16 @@ class Material {
     }
 
     Material(const glm::vec4 &baseColorFactor,
-             std::shared_ptr<const Texture> baseColorTexture, float metallicFactor,
-             const glm::vec3 &emissiveFactor, bool isLight) {
+             std::shared_ptr<const Texture> baseColorTexture,
+             float metallicFactor,
+             const glm::vec3 &emissiveFactor,
+             std::shared_ptr<const Texture> emissiveTexture,
+             bool isLight) {
         this->baseColorFactor = baseColorFactor;
         this->baseColorTexture = baseColorTexture;
         this->metallicFactor = metallicFactor;
         this->emissiveFactor = emissiveFactor;
+        this->emissiveTexture = emissiveTexture;
         this->isLight = isLight;
     }
 };
