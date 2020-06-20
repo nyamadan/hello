@@ -351,7 +351,9 @@ void addMesh(const RTCDevice device, const RTCScene scene,
 
         assert(indexAccessor.type == TINYGLTF_TYPE_SCALAR);
         assert(indexAccessor.componentType ==
-               TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT);
+                   TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT ||
+               indexAccessor.componentType ==
+                   TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT);
 
         auto *triangles = (uint32_t *)rtcSetNewGeometryBuffer(
             geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
@@ -363,11 +365,21 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                 indexAccessor.byteOffset + indexBufferView.byteOffset;
             const auto componentType = indexAccessor.componentType;
             const auto normalized = indexAccessor.normalized;
-            const auto buffer = *(
-                uint16_t *)(model.buffers[indexBufferView.buffer].data.data() +
-                            byteOffset + byteStride * i);
 
-            triangles[i] = buffer;
+            switch (indexAccessor.componentType) {
+                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: {
+                    triangles[i] =
+                        *(uint16_t *)(model.buffers[indexBufferView.buffer]
+                                          .data.data() +
+                                      byteOffset + byteStride * i);
+                } break;
+                case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT: {
+                    triangles[i] =
+                        *(uint32_t *)(model.buffers[indexBufferView.buffer]
+                                          .data.data() +
+                                      byteOffset + byteStride * i);
+                } break;
+            }
         }
 
         auto it(primitive.attributes.begin());

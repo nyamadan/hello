@@ -17,6 +17,8 @@ void RayTracer::initIntersectContext(IntersectContext *context) {
 
 void RayTracer::intersectionFilter(
     const struct RTCFilterFunctionNArguments *args) {
+    assert(args->N == 1);
+
     auto context = (IntersectContext *)args->context;
     auto mesh = (Mesh *)args->geometryUserPtr;
     auto material = mesh->getMaterial().get();
@@ -169,7 +171,8 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto height = baseColorTexture->getHeight();
         auto u = static_cast<int32_t>(std::round(uv.x * width));
         auto v = static_cast<int32_t>(std::round(uv.y * height));
-        auto index = v * width + u;
+        // TODO: TEXTURE_WRAP
+        auto index = (v * width + u) % (width * height);
         const auto &u8color = buffer[index];
         const auto color = glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,
                                      u8color.b / 255.0f, u8color.a / 255.0f);
@@ -372,7 +375,8 @@ glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
                 auto height = baseColorTexture->getHeight();
                 auto u = static_cast<int32_t>(std::round(uv.x * width));
                 auto v = static_cast<int32_t>(std::round(uv.y * height));
-                auto index = v * width + u;
+                // TODO: TEXTURE_WRAP
+                auto index = (v * width + u) % (width * height);
                 const auto &u8color = buffer[index];
                 const auto color =
                     glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,

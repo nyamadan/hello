@@ -35,7 +35,7 @@ class DebugGUI {
 
     RenderingMode renderingMode = ALBEDO;
     bool enableSuperSampling = true;
-    int32_t bufferScale = 1;
+    int32_t bufferScale = 4;
     int32_t samples = 200;
     bool isRendering = true;
 
