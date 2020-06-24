@@ -46,9 +46,7 @@ int32_t RayTracer::getSamples() const {
     return std::min(this->samples, getMaxSamples());
 }
 
-void RayTracer::setMaxSamples(int32_t samples) {
-    this->maxSamples = samples;
-}
+void RayTracer::setMaxSamples(int32_t samples) { this->maxSamples = samples; }
 
 int32_t RayTracer::getMaxSamples() const {
     switch (mode) {
@@ -71,6 +69,43 @@ void RayTracer::reset() {
 void RayTracer::resize(const glm::i32vec2 &size) {
     this->image.resize(size);
     this->samples = 0;
+}
+
+// GGX NDF via importance sampling
+glm::vec3 RayTracer::importanceSampleGGX(const glm::vec2 &Xi,
+                                         const glm::vec3 &N, float roughness) {
+    float alpha = roughness * roughness;
+    float alpha2 = alpha * alpha;
+
+    float phi = 2.0f * M_PI * Xi.x;
+    float cosTheta = sqrt((1.0f - Xi.y) / (1.0f + (alpha2 - 1.0f) * Xi.y));
+    float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+
+    // from spherical coordinates to cartesian coordinates
+    glm::vec3 H;
+    H.x = cos(phi) * sinTheta;
+    H.y = sin(phi) * sinTheta;
+    H.z = cosTheta;
+
+    // from tangent-space vector to world-space sample vector
+    glm::vec3 up = std::abs(N.z) < 0.999f ? glm::vec3(0.0, 0.0, 1.0)
+                                          : glm::vec3(1.0, 0.0, 0.0);
+    glm::vec3 tangent = glm::normalize(cross(up, N));
+    glm::vec3 bitangent = glm::cross(N, tangent);
+
+    glm::vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
+    return glm::normalize(sampleVec);
+}
+
+float G1_Smith(float NdotV, float k)
+{
+    return NdotV / (NdotV * (1.0 - k) + k);
+}
+
+float G_Smith(float roughness, float NdotV, float NdotL)
+{
+    float k = roughness * roughness / 2.0f;
+    return G1_Smith(NdotV, k) * G1_Smith(NdotL, k);
 }
 
 glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
@@ -133,43 +168,53 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     //     auto v = static_cast<int32_t>(std::round(uv.y * height));
     //     // TODO: TEXTURE_WRAP
     //     auto index =
-    //         std::clamp((v * width + u) % (width * height), 0, width * height);
+    //         std::clamp((v * width + u) % (width * height), 0, width *
+    //         height);
     //     const auto &u8color = buffer[index];
     //     normal +=
     //         glm::vec3(u8color.r / 255.0f - 0.5f, u8color.g / 255.0f - 0.5f,
     //                   u8color.b / 255.0f - 0.5f);
     // } else {
-        rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
-                        glm::value_ptr(normal), 3);
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, glm::value_ptr(normal),
+                    3);
     // }
     normal = glm::normalize(normal);
 
     auto incomingRadiance = glm::vec3(0.0f);
     auto weight = glm::vec3(1.0f);
 
-    glm::vec3 u, v;
+    // glm::vec3 u, v;
+    // if (fabs(normal.x) > kEPS) {
+    //     u = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), normal));
+    // } else {
+    //     u = glm::normalize(glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), normal));
+    // }
+    // v = glm::cross(normal, u);
+    // const float r1 = 2.0f * M_PI *
+    // static_cast<float>(xorshift128plus01(randomState)); const float r2 =
+    // static_cast<float>(xorshift128plus01(randomState)), r2s = std::sqrt(r2);
+    // auto H = glm::normalize(glm::vec3(u * cos(r1) * r2s + v * sin(r1) * r2s +
+    // normal * sqrt(1.0 - r2)));
 
-    if (fabs(normal.x) > kEPS) {
-        u = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), normal));
-    } else {
-        u = glm::normalize(glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), normal));
-    }
+    auto roughness = 0.5f;
+    const auto &N = normal;
+    const auto V = -rayDir;
+    const auto Xi = glm::vec2(xorshift128plus01(randomState),
+                              xorshift128plus01(randomState));
+    const auto H = importanceSampleGGX(Xi, N, roughness);
+    const auto L = 2.0f * glm::dot(V, H) * H - V;
 
-    v = glm::cross(normal, u);
-
-    const float r1 =
-        2.0f * M_PI * static_cast<float>(xorshift128plus01(randomState));
-    const float r2 = static_cast<float>(xorshift128plus01(randomState)),
-                r2s = std::sqrt(r2);
-    auto dir = glm::normalize(glm::vec3(u * cos(r1) * r2s + v * sin(r1) * r2s +
-                                        normal * sqrt(1.0 - r2)));
+    const auto NoV = std::clamp(glm::dot(N, V), 0.0f, 1.0f);
+    const auto NoL = std::clamp(glm::dot(N, L), 0.0f ,1.0f);
+    const auto NoH = std::clamp(glm::dot(N, H), 0.0f, 1.0f);
+    const auto VoH = std::clamp(glm::dot(V, H), 0.0f, 1.0f);
 
     /* initialize ray */
     auto nextRay = RTCRayHit();
-    nextRay.ray.dir_x = dir.x;
-    nextRay.ray.dir_y = dir.y;
-    nextRay.ray.dir_z = dir.z;
+    nextRay.ray.dir_x = H.x;
+    nextRay.ray.dir_y = H.y;
+    nextRay.ray.dir_z = H.z;
     nextRay.ray.org_x = orig.x;
     nextRay.ray.org_y = orig.y;
     nextRay.ray.org_z = orig.z;
@@ -180,6 +225,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     incomingRadiance =
         radiance(scene, camera, randomState, context, nextRay, depth + 1);
 
+
     glm::vec4 baseColor = material->baseColorFactor;
     auto baseColorTexture = material->baseColorTexture.get();
     if (baseColorTexture != nullptr) {
@@ -189,9 +235,13 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto u = static_cast<int32_t>(std::round(uv.x * width));
         auto v = static_cast<int32_t>(std::round(uv.y * height));
         // TODO: TEXTURE_WRAP
-        if(u < 0.0f) { u = width + u; }
+        if (u < 0.0f) {
+            u = width + u;
+        }
         u = u % width;
-        if(v < 0.0f) { v = height + v; }
+        if (v < 0.0f) {
+            v = height + v;
+        }
         v = v % height;
         auto index = v * width + u;
 
@@ -210,9 +260,13 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto u = static_cast<int32_t>(std::round(uv.x * width));
         auto v = static_cast<int32_t>(std::round(uv.y * height));
         // TODO: TEXTURE_WRAP
-        if(u < 0.0f) { u = width + u; }
+        if (u < 0.0f) {
+            u = width + u;
+        }
         u = u % width;
-        if(v < 0.0f) { v = height + v; }
+        if (v < 0.0f) {
+            v = height + v;
+        }
         v = v % height;
         auto index = v * width + u;
         const auto &u8color = buffer[index];
@@ -221,7 +275,18 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         emissive = emissive * color;
     }
 
-    weight = baseColor / russianRouletteProbability;
+    if (NoL > 0) {
+        auto G = G_Smith(roughness, NoV, NoL);
+        auto Fc = pow(1 - VoH, 5);
+        auto F = (1 - Fc) * glm::vec3(baseColor) + Fc;
+
+        // Incident light = SampleColor * NoL
+        // Microfacet specular = D*G*F / (4*NoL*NoV)
+        // pdf = D * NoH / (4 * VoH)
+        weight = (F * G * VoH / (NoH * NoV + 1e-6)) / russianRouletteProbability;
+    }
+
+    // weight = baseColor / russianRouletteProbability;
 
     return emissive + weight * incomingRadiance;
 }
@@ -284,9 +349,13 @@ glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
                 auto u = static_cast<int32_t>(std::round(uv.x * width));
                 auto v = static_cast<int32_t>(std::round(uv.y * height));
                 // TODO: TEXTURE_WRAP
-                if(u < 0.0f) { u = width + u; }
+                if (u < 0.0f) {
+                    u = width + u;
+                }
                 u = u % width;
-                if(v < 0.0f) { v = height + v; }
+                if (v < 0.0f) {
+                    v = height + v;
+                }
                 v = v % height;
                 auto index = v * width + u;
                 const auto &u8color = buffer[index];
@@ -353,23 +422,25 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
     //     auto v = static_cast<int32_t>(std::round(uv.y * height));
     //     // TODO: TEXTURE_WRAP
     //     auto index =
-    //         std::clamp((v * width + u) % (width * height), 0, width * height);
+    //         std::clamp((v * width + u) % (width * height), 0, width *
+    //         height);
     //     const auto &u8color = buffer[index];
     //     normal +=
     //         glm::vec3(u8color.r / 255.0f - 0.5f, u8color.g / 255.0f - 0.5f,
     //                   u8color.b / 255.0f - 0.5f);
     // } else {
-        rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                        RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
-                        glm::value_ptr(normal), 3);
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, glm::value_ptr(normal),
+                    3);
     // }
     normal = glm::normalize(normal);
 
     return normal;
 }
 
-glm::vec3 RayTracer::renderEmissive(RTCScene scene, const RayTracerCamera &camera,
-                                  float x, float y) {
+glm::vec3 RayTracer::renderEmissive(RTCScene scene,
+                                    const RayTracerCamera &camera, float x,
+                                    float y) {
     const auto tnear = camera.getNear();
     const auto tfar = camera.getFar();
     const auto cameraFrom = camera.getCameraOrigin();
@@ -418,9 +489,13 @@ glm::vec3 RayTracer::renderEmissive(RTCScene scene, const RayTracerCamera &camer
         auto u = static_cast<int32_t>(std::round(uv.x * width));
         auto v = static_cast<int32_t>(std::round(uv.y * height));
         // TODO: TEXTURE_WRAP
-        if(u < 0.0f) { u = width + u; }
+        if (u < 0.0f) {
+            u = width + u;
+        }
         u = u % width;
-        if(v < 0.0f) { v = height + v; }
+        if (v < 0.0f) {
+            v = height + v;
+        }
         v = v % height;
         auto index = v * width + u;
         const auto &u8color = buffer[index];

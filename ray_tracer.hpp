@@ -47,6 +47,8 @@ class RayTracer {
     glm::vec3 renderPathTrace(RTCScene scene, const RayTracerCamera &camera,
                               xorshift128plus_state &randomState, float x,
                               float y);
+
+    glm::vec3 importanceSampleGGX(const glm::vec2 &Xi, const glm::vec3 &N, float roughness);
     glm::vec3 radiance(RTCScene scene, const RayTracerCamera &camera,
                        xorshift128plus_state &randomState,
                        IntersectContext context, RTCRayHit &ray, int32_t depth);
