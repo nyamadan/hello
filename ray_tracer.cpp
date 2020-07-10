@@ -5,9 +5,9 @@
 #include <glm/ext.hpp>
 #include <random>
 
+#include "color.hpp"
 #include "mesh.hpp"
 #include "ray_tracer.hpp"
-#include "color.hpp"
 
 glm::vec2 RayTracer::toRadialCoords(glm::vec3 coords) {
     auto normalizedCoords = glm::normalize(coords);
@@ -131,7 +131,6 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
                               IntersectContext context, RTCRayHit &ray,
                               int32_t depth) {
     const auto kDepthLimit = 64;
-    const auto kDepth = 5;
     const auto kEPS = 0.001f;
 
     const auto tnear = camera.getNear();
@@ -150,10 +149,9 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
         auto tc = toRadialCoords(rayDir);
 
-        auto u = static_cast<int32_t>(
-            std::roundf((skyboxWidth - 1) * tc.x));
-        auto v = static_cast<int32_t>(std::roundf(
-            (skyboxHeight - 1) * (1.0f - tc.y)));
+        auto u = static_cast<int32_t>(std::roundf((skyboxWidth - 1) * tc.x));
+        auto v = static_cast<int32_t>(
+            std::roundf((skyboxHeight - 1) * (1.0f - tc.y)));
 
         return skybox[v * skyboxWidth + u];
     }
@@ -162,26 +160,31 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
     auto material = mesh->getMaterial().get();
 
-    auto russianRouletteProbability = std::max(
-        material->baseColorFactor.x,
-        std::max(material->baseColorFactor.y, material->baseColorFactor.z));
-
-    if (depth > kDepthLimit) {
-        russianRouletteProbability *= pow(0.5f, depth - kDepthLimit);
-    }
-
-    if (depth > kDepth) {
-        if (xorshift128plus01f(randomState) >= russianRouletteProbability) {
-            return material->emissiveFactor;
-        }
-    } else {
-        russianRouletteProbability = 1.0f;
-    }
-
     glm::vec2 uv(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, glm::value_ptr(uv), 2);
+
     auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
+
+    glm::vec3 emissive = material->emissiveFactor;
+    auto emissiveTexture = material->emissiveTexture.get();
+    if (emissiveTexture != nullptr) {
+        auto buffer = emissiveTexture->getBuffer();
+        auto width = emissiveTexture->getWidth();
+        auto height = emissiveTexture->getHeight();
+        // TODO: TEXTURE_WRAP
+        auto u = static_cast<int32_t>(glm::round(glm::repeat(uv.x) * width));
+        auto v = static_cast<int32_t>(glm::round(glm::repeat(uv.y) * height));
+        auto index = v * width + u;
+        const auto &u8color = buffer[index];
+        const auto color = glm::vec3(u8color.r / 255.0f, u8color.g / 255.0f,
+                                     u8color.b / 255.0f);
+        emissive = emissive * color;
+    }
+
+    if(depth >= kDepthLimit) {
+        return emissive;
+    }
 
     glm::vec3 normal(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
@@ -224,22 +227,6 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         baseColor = baseColor * color;
     }
 
-    glm::vec3 emissive = material->emissiveFactor;
-    auto emissiveTexture = material->emissiveTexture.get();
-    if (emissiveTexture != nullptr) {
-        auto buffer = emissiveTexture->getBuffer();
-        auto width = emissiveTexture->getWidth();
-        auto height = emissiveTexture->getHeight();
-        // TODO: TEXTURE_WRAP
-        auto u = static_cast<int32_t>(glm::round(glm::repeat(uv.x) * width));
-        auto v = static_cast<int32_t>(glm::round(glm::repeat(uv.y) * height));
-        auto index = v * width + u;
-        const auto &u8color = buffer[index];
-        const auto color = glm::vec3(u8color.r / 255.0f, u8color.g / 255.0f,
-                                     u8color.b / 255.0f);
-        emissive = emissive * color;
-    }
-
     auto metalness = material->metalnessFactor;
     auto roughness = material->roughnessFactor;
     auto metalRoughnessTexture = material->metallicRoughnessTexture.get();
@@ -259,47 +246,80 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         metalness = metalness * color.z;
     }
 
-    const auto &N = normal;
-    const auto V = -rayDir;
-    const auto Xi = glm::vec2(xorshift128plus01f(randomState), xorshift128plus01f(randomState));
-    const auto H = importanceSampleGGX(Xi, N, roughness);
-    const auto L = 2.0f * glm::dot(V, H) * H - V;
-
-    const auto NoV = std::clamp(glm::dot(N, V), 0.0f, 1.0f);
-    const auto NoL = std::clamp(glm::dot(N, L), 0.0f, 1.0f);
-    const auto NoH = std::clamp(glm::dot(N, H), 0.0f, 1.0f);
-    const auto VoH = std::clamp(glm::dot(V, H), 0.0f, 1.0f);
-
-    /* initialize ray */
-    auto nextRay = RTCRayHit();
-    nextRay.ray.dir_x = L.x;
-    nextRay.ray.dir_y = L.y;
-    nextRay.ray.dir_z = L.z;
-    nextRay.ray.org_x = p.x;
-    nextRay.ray.org_y = p.y;
-    nextRay.ray.org_z = p.z;
-    nextRay.ray.tnear = tnear;
-    nextRay.ray.tfar = tfar;
-    nextRay.ray.time = 0.0f;
-    nextRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-    auto incomingRadiance =
-        radiance(scene, camera, randomState, context, nextRay, depth + 1);
-
-
     auto specular = glm::vec3(0.0f);
+    auto diffuse = glm::vec3(0.0f);
+    if(xorshift128plus01f(randomState) < metalness){
+        const auto &N = normal;
+        const auto V = -rayDir;
+        const auto Xi = glm::vec2(xorshift128plus01f(randomState),
+                                  xorshift128plus01f(randomState));
+        const auto H = importanceSampleGGX(Xi, N, roughness);
+        const auto L = 2.0f * glm::dot(V, H) * H - V;
 
-    if (NoL > 0) {
-        auto G = G_Smith(roughness, NoV, NoL);
-        auto Fc = glm::pow(1 - VoH, 5);
-        auto F = (1 - Fc) * glm::vec3(baseColor) + Fc;
+        const auto NoV = std::clamp(glm::dot(N, V), 0.0f, 1.0f);
+        const auto NoL = std::clamp(glm::dot(N, L), 0.0f, 1.0f);
+        const auto NoH = std::clamp(glm::dot(N, H), 0.0f, 1.0f);
+        const auto VoH = std::clamp(glm::dot(V, H), 0.0f, 1.0f);
 
-        // Incident light = SampleColor * NoL
-        // Microfacet specular = D*G*F / (4*NoL*NoV)
-        // pdf = D * NoH / (4 * VoH)
-        specular = incomingRadiance * (F * G * VoH / (NoH * NoV + 1e-6));
+        /* initialize ray */
+        auto nextRay = RTCRayHit();
+        nextRay.ray.dir_x = L.x;
+        nextRay.ray.dir_y = L.y;
+        nextRay.ray.dir_z = L.z;
+        nextRay.ray.org_x = p.x;
+        nextRay.ray.org_y = p.y;
+        nextRay.ray.org_z = p.z;
+        nextRay.ray.tnear = tnear;
+        nextRay.ray.tfar = tfar;
+        nextRay.ray.time = 0.0f;
+        nextRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+        auto incomingRadiance =
+            radiance(scene, camera, randomState, context, nextRay, depth + 1);
+
+        if (NoL > 0) {
+            auto G = G_Smith(roughness, NoV, NoL);
+            auto Fc = glm::pow(1 - VoH, 5);
+            auto F = (1 - Fc) * glm::vec3(baseColor) + Fc;
+
+            // Incident light = SampleColor * NoL
+            // Microfacet specular = D*G*F / (4*NoL*NoV)
+            // pdf = D * NoH / (4 * VoH)
+            specular = incomingRadiance * (F * G * VoH / (NoH * NoV + 1e-6));
+        }
+    }
+    else {
+        const auto &N = normal;
+        glm::vec3 u, v;
+        if (glm::abs(N.x) > kEPS) {
+            u = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), N));
+        } else {
+            u = glm::normalize(glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), N));
+        }
+        v = glm::cross(N, u);
+        const float r1 = 2.0f * M_PI * xorshift128plus01f(randomState);
+        const float r2 = xorshift128plus01f(randomState), r2s = glm::sqrt(r2);
+        glm::vec3 L =
+            glm::normalize((u * glm::cos(r1) * r2s + v * glm::sin(r1) * r2s + N * glm::sqrt(1.0f - r2)));
+
+        /* initialize ray */
+        auto nextRay = RTCRayHit();
+        nextRay.ray.dir_x = L.x;
+        nextRay.ray.dir_y = L.y;
+        nextRay.ray.dir_z = L.z;
+        nextRay.ray.org_x = p.x;
+        nextRay.ray.org_y = p.y;
+        nextRay.ray.org_z = p.z;
+        nextRay.ray.tnear = tnear;
+        nextRay.ray.tfar = tfar;
+        nextRay.ray.time = 0.0f;
+        nextRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+        auto incomingRadiance =
+            radiance(scene, camera, randomState, context, nextRay, depth + 1);
+
+        diffuse = glm::vec3(baseColor) * incomingRadiance;
     }
 
-    return emissive + specular;
+    return emissive + specular + diffuse;
 }
 
 glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,

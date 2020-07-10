@@ -2,10 +2,9 @@
 
 #include "ray_tracer.hpp"
 
+#include <stb.h>
 #include <stb_image.h>
 #include <glm/ext.hpp>
-
-const auto PI = 3.14159265358979323846f;
 
 namespace {
 void intersectionFilter(const struct RTCFilterFunctionNArguments *args) {
@@ -48,9 +47,9 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
 
         for (auto ix = 0; ix <= (int32_t)widthSegments; ix++) {
             auto u = (float)ix / widthSegments;
-            vertex.x = -radius * std::cos(u * 2 * PI) * std::sin(v * PI);
-            vertex.y = radius * std::cos(v * PI);
-            vertex.z = radius * std::sin(u * 2 * PI) * std::sin(v * PI);
+            vertex.x = -radius * std::cos(u * 2 * M_PI) * std::sin(v * M_PI);
+            vertex.y = radius * std::cos(v * M_PI);
+            vertex.z = radius * std::sin(u * 2 * M_PI) * std::sin(v * M_PI);
             vertices.push_back(
                 (glm::vec3)(transform * glm::vec4(vertex, 1.0f)));
             normal = glm::normalize(

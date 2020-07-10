@@ -77,18 +77,14 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
                                               RTCScene scene) {
     ConstantPMeshList meshs;
 
-    // meshs.push_back(addCube(
-    //     device, scene,
-    //     PMaterial(new Material(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), nullptr,
-    //                            nullptr, 0.3f, glm::vec3(0.0f), nullptr)),
-    //     glm::translate(glm::vec3(-3.0f, 1.0f, 0.0f))));
-
-    for (auto i = 0; i < 10; i++) {
-        meshs.push_back(addSphere(
-            device, scene,
-            PMaterial(new Material(glm::vec4(1.0f, 0.5f, 0.5f, 1.0f), nullptr,
-                                   nullptr, i / 9.0f, 0.5f, nullptr, glm::vec3(0.0f), nullptr)),
-            1.0f, 80, 60, glm::translate(glm::vec3(20.0f * ((i / 9.0f) - 0.5f), 1.0f, 0.0f))));
+    for (auto y = 0; y < 10; y++) {
+        for (auto x = 0; x < 10; x++) {
+            meshs.push_back(addSphere(
+                device, scene,
+                PMaterial(new Material(glm::vec4(0.5, 0.5f, 1.0f, 1.0f), nullptr,
+                                    nullptr, y / 9.0f, x / 9.0f, nullptr, glm::vec3(0.0f), nullptr)),
+                1.0f, 80, 60, glm::translate(glm::vec3(20.0f * ((x / 9.0f) - 0.5f), 1.0f, 20.0f * ((y / 9.0f) - 0.5f)))));
+        }
     }
     return meshs;
 }
