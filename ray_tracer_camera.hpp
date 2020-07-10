@@ -14,8 +14,8 @@ class RayTracerCamera {
     glm::vec3 dir;
 
   public:
-    RayTracerCamera(float fov = 120.0f, float tnear = 0.001f,
-                    float tfar = 1000.0f);
+    RayTracerCamera(float fov = 120.0f, float tnear = 1e-6,
+                    float tfar = 1e+3);
 
   public:
     float getFov() const { return fov; }

@@ -4,12 +4,11 @@
 
 #include <glm/ext.hpp>
 
-
 #include <OpenImageDenoise/oidn.hpp>
 
 #include "debug_gui.hpp"
 #include "fps_camera_controller.hpp"
-#include "geometry.hpp"
+#include "mesh.hpp"
 #include "image_buffer.hpp"
 #include "mouse_camera_controller.hpp"
 #include "ray_tracer.hpp"
@@ -78,17 +77,19 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
                                               RTCScene scene) {
     ConstantPMeshList meshs;
 
-    meshs.push_back(addCube(
-        device, scene,
-        PMaterial(new Material(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), nullptr,
-                               nullptr, 1.0f, glm::vec3(0.0f), nullptr, false)),
-        glm::translate(glm::vec3(-3.0f, 1.0f, 0.0f))));
+    // meshs.push_back(addCube(
+    //     device, scene,
+    //     PMaterial(new Material(glm::vec4(0.0f, 1.0f, 0.0f, 1.0f), nullptr,
+    //                            nullptr, 0.3f, glm::vec3(0.0f), nullptr)),
+    //     glm::translate(glm::vec3(-3.0f, 1.0f, 0.0f))));
 
-    meshs.push_back(addSphere(
-        device, scene,
-        PMaterial(new Material(glm::vec4(1.0f, 0.0f, 0.0f, 1.0f), nullptr,
-                               nullptr, 1.0f, glm::vec3(0.0f), nullptr, false)),
-        1.0f, 800, 600, glm::translate(glm::vec3(3.0f, 1.0f, 0.0f))));
+    for (auto i = 0; i < 10; i++) {
+        meshs.push_back(addSphere(
+            device, scene,
+            PMaterial(new Material(glm::vec4(1.0f, 0.5f, 0.5f, 1.0f), nullptr,
+                                   nullptr, i / 9.0f, 0.5f, nullptr, glm::vec3(0.0f), nullptr)),
+            1.0f, 80, 60, glm::translate(glm::vec3(20.0f * ((i / 9.0f) - 0.5f), 1.0f, 0.0f))));
+    }
     return meshs;
 }
 
@@ -122,8 +123,8 @@ void detachMeshs(RTCScene scene, ConstantPMeshList &meshs) {
 }
 
 void loadGlbModel(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
-                          RayTracer &raytracer, RayTracerCamera &camera,
-                          ConstantPMeshList &meshs) {
+                  RayTracer &raytracer, RayTracerCamera &camera,
+                  ConstantPMeshList &meshs) {
     auto path = debugGui.getGlbPath();
     if (path.empty()) {
         return;
@@ -146,21 +147,13 @@ void loadGlbModel(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
     meshs.push_back(addGroundPlane(
         device, scene,
         PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
-                               nullptr, 1.0f, glm::vec3(0.0f), nullptr, false)),
+                               nullptr, 0.5f, 0.5f, nullptr, glm::vec3(0.0f), nullptr)),
         glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
             glm::scale(glm::vec3(
                 std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
                           std::abs(bb.lower_z), std::abs(bb.upper_x),
                           std::abs(bb.upper_y), std::abs(bb.upper_z)}) *
                 1.2f))));
-
-    // light
-    meshs.push_back(addCube(
-        device, scene,
-        PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
-                               nullptr, 1.0f, glm::vec3(1.0f), nullptr, true)),
-        glm::translate(glm::vec3(0.0f, bb.upper_y + 1.0f, 0.0f)) *
-            glm::scale(glm::vec3(bb.upper_x, 1.0f, bb.upper_z))));
 
     rtcCommitScene(scene);
 }
@@ -179,15 +172,13 @@ int main(void) {
 #endif
     auto scene = rtcNewScene(device);
 
-    // const auto buggyGLB =
-    // "glTF-Sample-Models/2.0/Buggy/glTF-Binary/Buggy.glb";
-    // auto meshs = addMeshsToScene(device, scene, buggyGLB);
-
     auto meshs = addDefaultMeshToScene(device, scene);
 
     auto debugGui = DebugGUI();
 
     auto raytracer = RayTracer(windowSize / debugGui.getBufferScale());
+
+    raytracer.loadSkybox("./assets/royal_esplanade_1k.hdr");
 
     rtcCommitScene(scene);
 
@@ -204,21 +195,11 @@ int main(void) {
         const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
         camera.lookAt(eye, target, up);
 
-        // light
-        meshs.push_back(
-            addCube(device, scene,
-                    PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                                           nullptr, nullptr, 1.0f,
-                                           glm::vec3(1.0f), nullptr, true)),
-                    glm::translate(glm::vec3(0.0f, bb.upper_y + 1.0f, 0.0f)) *
-                        glm::scale(glm::vec3(bb.upper_x, 1.0f, bb.upper_z))));
-
         // ground
         meshs.push_back(addGroundPlane(
             device, scene,
             PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
-                                   nullptr, 1.0f, glm::vec3(0.0f), nullptr,
-                                   false)),
+                                   nullptr, 0.5f, 0.5f, nullptr, glm::vec3(0.0f), nullptr)),
             glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
                 glm::scale(glm::vec3(
                     std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
@@ -297,7 +278,9 @@ int main(void) {
             windowSize = glm::i32vec2(w, h);
         }
 
-        needUpdate = controllCameraMouse(window, camera, (float)dt, mouseDelta, wheelDelta) || needUpdate;
+        needUpdate = controllCameraMouse(window, camera, (float)dt, mouseDelta,
+                                         wheelDelta) ||
+                     needUpdate;
 
         debugGui.beginFrame(raytracer, needUpdate, needResize, needRestart);
 
@@ -318,7 +301,7 @@ int main(void) {
             raytracer.setRenderingMode(debugGui.getRenderingMode());
         }
 
-        if(debugGui.getIsRendering()) {
+        if (debugGui.getIsRendering()) {
             raytracer.render(scene, camera, denoiser);
         }
 

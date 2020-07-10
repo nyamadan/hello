@@ -11,83 +11,8 @@
 
 #include "alloc.hpp"
 
-class Texture {
-  private:
-    std::shared_ptr<glm::u8vec4[]> buffer;
-    int32_t width;
-    int32_t height;
-
-    int32_t wrapS;
-    int32_t wrapT;
-
-  public:
-    const glm::u8vec4 *getBuffer() const {
-      return buffer.get();
-    }
-
-    int32_t getWidth() const {
-      return this->width;
-    }
-
-    int32_t getHeight() const {
-      return this->height;
-    }
-
-    Texture(std::shared_ptr<glm::u8vec4[]> buffer, int32_t width,
-            int32_t height, int32_t wrapS, int32_t wrapT) {
-        this->buffer = buffer;
-        this->width = width;
-        this->height = height;
-        this->wrapS = wrapS;
-        this->wrapT = wrapT;
-    }
-};
-
-class Material {
-  public:
-    void *operator new(size_t size) { return aligned_alloc(size, 16); }
-    void operator delete(void *ptr) { aligned_free(ptr); }
-    void *operator new[](size_t size) { return aligned_alloc(size, 16); }
-    void operator delete[](void *ptr) { aligned_free(ptr); }
-
-    glm::vec4 baseColorFactor;
-    std::shared_ptr<const Texture> baseColorTexture;
-    std::shared_ptr<const Texture> normalTexture;
-    float metallicFactor;
-    glm::vec3 emissiveFactor;
-    std::shared_ptr<const Texture> emissiveTexture;
-    bool isLight;
-
-    Material() {
-        this->baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        this->baseColorTexture = nullptr;
-        this->normalTexture = nullptr;
-        this->metallicFactor = 0.0f;
-        this->emissiveFactor = glm::vec3(0.0f, 0.0f, 0.0f);
-        this->emissiveTexture = nullptr;
-        isLight = false;
-    }
-
-    Material(const glm::vec4 &baseColorFactor,
-             std::shared_ptr<const Texture> baseColorTexture,
-             std::shared_ptr<const Texture> normalTexture,
-             float metallicFactor,
-             const glm::vec3 &emissiveFactor,
-             std::shared_ptr<const Texture> emissiveTexture,
-             bool isLight) {
-        this->baseColorFactor = baseColorFactor;
-        this->baseColorTexture = baseColorTexture;
-        this->normalTexture = normalTexture;
-        this->metallicFactor = metallicFactor;
-        this->emissiveFactor = emissiveFactor;
-        this->emissiveTexture = emissiveTexture;
-        this->isLight = isLight;
-    }
-};
-
-using PMaterial = std::shared_ptr<Material>;
-using ConstantPMaterial = std::shared_ptr<const Material>;
-using ConstantPMaterialList = std::list<ConstantPMaterial>;
+#include "texture.hpp"
+#include "material.hpp"
 
 class Mesh {
   public:

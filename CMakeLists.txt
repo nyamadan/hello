@@ -85,7 +85,7 @@ add_executable(
     "${PROJECT_SOURCE_DIR}/image_buffer.cpp"
     "${PROJECT_SOURCE_DIR}/debug_gui.cpp"
     "${PROJECT_SOURCE_DIR}/xorshift128plus.cpp"
-    "${PROJECT_SOURCE_DIR}/geometry.cpp"
+    "${PROJECT_SOURCE_DIR}/mesh.cpp"
     "${PROJECT_SOURCE_DIR}/ray_tracer.cpp"
     "${PROJECT_SOURCE_DIR}/ray_tracer_camera.cpp"
     "${PROJECT_SOURCE_DIR}/fps_camera_controller.cpp"

@@ -1,4 +1,4 @@
-#include "geometry.hpp"
+#include "mesh.hpp"
 
 #include "ray_tracer.hpp"
 
@@ -315,10 +315,12 @@ void addMesh(const RTCDevice device, const RTCScene scene,
 
         auto baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
         auto baseColorTextureIndex = -1;
-        auto metallicFactor = 0.5f;
+        auto roughnessFactor = 0.5f;
+        auto metalnessFactor = 0.5f;
         auto emissiveFactor = glm::vec3(0.0f, 0.0f, 0.0f);
         auto emissiveTextureIndex = -1;
         auto normalTextureIndex = -1;
+        auto metallicRoughnessTextureIndex = -1;
 
         const auto &pbr = gltfMaterial.pbrMetallicRoughness;
         switch (pbr.baseColorFactor.size()) {
@@ -331,7 +333,8 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                 break;
         }
         baseColorTextureIndex = pbr.baseColorTexture.index;
-        metallicFactor = (float)pbr.metallicFactor;
+        roughnessFactor = (float)pbr.roughnessFactor;
+        metalnessFactor = (float)pbr.metallicFactor;
 
         if (gltfMaterial.emissiveFactor.size() == 3) {
             emissiveFactor = glm::vec3(gltfMaterial.emissiveFactor[0],
@@ -340,6 +343,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
         }
         emissiveTextureIndex = gltfMaterial.emissiveTexture.index;
         normalTextureIndex = gltfMaterial.normalTexture.index;
+        metallicRoughnessTextureIndex = pbr.metallicRoughnessTexture.index;
 
         int mode = primitive.mode;
         assert(mode == TINYGLTF_MODE_TRIANGLES);
@@ -540,13 +544,13 @@ void addMesh(const RTCDevice device, const RTCScene scene,
         {
             auto material = ConstantPMaterial(new Material(
                 baseColorFactor,
-                baseColorTextureIndex >= 0 ? images[baseColorTextureIndex]
-                                           : nullptr,
+                baseColorTextureIndex >= 0 ? images[baseColorTextureIndex] : nullptr,
                 normalTextureIndex >= 0 ? images[normalTextureIndex] : nullptr,
-                metallicFactor, emissiveFactor,
-                emissiveTextureIndex >= 0 ? images[emissiveTextureIndex]
-                                          : nullptr,
-                false));
+                roughnessFactor,
+                metalnessFactor,
+                metallicRoughnessTextureIndex >= 0 ? images[metallicRoughnessTextureIndex] : nullptr,
+                emissiveFactor,
+                emissiveTextureIndex >= 0 ? images[emissiveTextureIndex] : nullptr));
 
             auto mesh = PMesh(new Mesh());
             rtcSetGeometryUserData(geom, (void *)mesh.get());

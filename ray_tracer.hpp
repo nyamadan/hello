@@ -32,6 +32,10 @@ class RayTracer {
 
     ImageBuffer image;
 
+    std::shared_ptr<glm::vec3> skybox;
+    int32_t skyboxWidth;
+    int32_t skyboxHeight;
+
     bool enableSuperSamples = true;
     int32_t maxSamples = 200;
     int32_t samples = 0;
@@ -48,7 +52,8 @@ class RayTracer {
                               xorshift128plus_state &randomState, float x,
                               float y);
 
-    glm::vec3 importanceSampleGGX(const glm::vec2 &Xi, const glm::vec3 &N, float roughness);
+    glm::vec3 importanceSampleGGX(const glm::vec2 &Xi, const glm::vec3 &N,
+                                  float roughness);
     glm::vec3 radiance(RTCScene scene, const RayTracerCamera &camera,
                        xorshift128plus_state &randomState,
                        IntersectContext context, RTCRayHit &ray, int32_t depth);
@@ -56,9 +61,10 @@ class RayTracer {
                     xorshift128plus_state &randomState, int tileIndex,
                     const int numTilesX, const int numTilesY);
     void initIntersectContext(IntersectContext *context);
+    glm::vec2 toRadialCoords(glm::vec3 coords);
 
   public:
-    RayTracer();
+    RayTracer(){};
     RayTracer(const glm::i32vec2 &size);
     void setRenderingMode(RenderingMode mode);
     void setEnableSuperSampling(bool enableSuperSampling);
@@ -72,6 +78,7 @@ class RayTracer {
     int32_t getMaxSamples() const;
     void setMaxSamples(int32_t samples);
     void intersectionFilter(const struct RTCFilterFunctionNArguments *args);
+    void loadSkybox(const std::string &path);
 };
 
 struct IntersectContext : public RTCIntersectContext {

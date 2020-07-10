@@ -5,4 +5,4 @@ struct xorshift128plus_state {
 };
 
 uint64_t xorshift128plus(struct xorshift128plus_state &state);
-double xorshift128plus01(struct xorshift128plus_state &state);
+float xorshift128plus01f(struct xorshift128plus_state &state);

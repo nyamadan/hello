@@ -12,6 +12,7 @@ uint64_t xorshift128plus(struct xorshift128plus_state &state) {
     return t + s;
 }
 
-double xorshift128plus01(struct xorshift128plus_state &state) {
-    return static_cast<double>(xorshift128plus(state)) / UINT64_MAX;
+float xorshift128plus01f(struct xorshift128plus_state &state) {
+    auto x = (xorshift128plus(state) & 8388607) | 1065353216;
+    return *(float *)(&x) - 1.0f;
 }
