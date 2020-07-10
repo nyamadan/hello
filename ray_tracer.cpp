@@ -9,10 +9,36 @@
 #include "mesh.hpp"
 #include "ray_tracer.hpp"
 
+template <typename T>
+T nearest(const glm::vec2 &uv, const T *image, int32_t width,
+                  int32_t height) {
+    auto u = static_cast<int32_t>(glm::round((width - 1) * uv.x));
+    auto v = static_cast<int32_t>(glm::round((height - 1) * uv.y));
+
+    return image[v * width + u];
+}
+
+template <typename T>
+T bilinear(const glm::vec2 &uv, const T *image, int32_t width,
+                   int32_t height) {
+    auto u = uv.x * (width - 1);
+    auto v = uv.y * (height - 1);
+    auto u0 = static_cast<int32_t>(glm::floor(u));
+    auto u1 = static_cast<int32_t>(glm::ceil(u));
+    auto v0 = static_cast<int32_t>(glm::floor(v));
+    auto v1 = static_cast<int32_t>(glm::ceil(v));
+
+    auto x = u - static_cast<float>(u0);
+    auto y = v - static_cast<float>(v0);
+    auto p0 = glm::lerp(image[v0 * width + u0], image[v0 * width + u1], x);
+    auto p1 = glm::lerp(image[v1 * width + u0], image[v1 * width + u1], x);
+    return glm::lerp(p0, p1, y);
+}
+
 glm::vec2 RayTracer::toRadialCoords(glm::vec3 coords) {
     auto normalizedCoords = glm::normalize(coords);
-    auto latitude = std::acos(normalizedCoords.y);
-    auto longitude = std::atan2(normalizedCoords.z, normalizedCoords.x);
+    auto latitude = std::acos(-normalizedCoords.y);
+    auto longitude = std::atan2(normalizedCoords.z, -normalizedCoords.x);
     auto sphereCoords =
         glm::vec2(longitude, latitude) * glm::vec2(0.5f / M_PI, 1.0f / M_PI);
     return glm::vec2(0.5f, 1.0f) - sphereCoords;
@@ -108,9 +134,9 @@ glm::vec3 RayTracer::importanceSampleGGX(const glm::vec2 &Xi,
     H.z = cosTheta;
 
     // from tangent-space vector to world-space sample vector
-    glm::vec3 up = std::abs(N.z) < 0.999f ? glm::vec3(0.0, 0.0, 1.0)
+    glm::vec3 up = glm::abs(N.z) < 0.999f ? glm::vec3(0.0, 0.0, 1.0)
                                           : glm::vec3(1.0, 0.0, 0.0);
-    glm::vec3 tangent = glm::normalize(cross(up, N));
+    glm::vec3 tangent = glm::normalize(glm::cross(up, N));
     glm::vec3 bitangent = glm::cross(N, tangent);
 
     glm::vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
@@ -147,13 +173,8 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
         const auto skybox = this->skybox.get();
 
-        auto tc = toRadialCoords(rayDir);
-
-        auto u = static_cast<int32_t>(std::roundf((skyboxWidth - 1) * tc.x));
-        auto v = static_cast<int32_t>(
-            std::roundf((skyboxHeight - 1) * (1.0f - tc.y)));
-
-        return skybox[v * skyboxWidth + u];
+        auto uv = toRadialCoords(rayDir);
+        return bilinear(uv, skybox, skyboxWidth, skyboxHeight);
     }
 
     auto geom = rtcGetGeometry(scene, ray.hit.geomID);
@@ -173,18 +194,15 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto width = emissiveTexture->getWidth();
         auto height = emissiveTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        auto u = static_cast<int32_t>(glm::round(glm::repeat(uv.x) * width));
-        auto v = static_cast<int32_t>(glm::round(glm::repeat(uv.y) * height));
-        auto index = v * width + u;
-        const auto &u8color = buffer[index];
-        const auto color = glm::vec3(u8color.r / 255.0f, u8color.g / 255.0f,
-                                     u8color.b / 255.0f);
+        const auto color = glm::vec3(bilinear(glm::repeat(uv), buffer, width, height));
         emissive = emissive * color;
     }
 
     if(depth >= kDepthLimit) {
         return emissive;
     }
+
+    const auto &worldInverseTranspose = mesh->getWorldInverseTranspose();
 
     glm::vec3 normal(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
@@ -194,20 +212,12 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
     auto normalTexture = material->normalTexture.get();
     if (normalTexture != nullptr) {
+        const auto &N = normal;
         auto buffer = normalTexture->getBuffer();
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
-        auto u = static_cast<int32_t>(std::round(uv.x * width));
-        auto v = static_cast<int32_t>(std::round(uv.y * height));
         // TODO: TEXTURE_WRAP
-        auto index =
-            std::clamp((v * width + u) % (width * height), 0, width * height);
-        const auto &u8color = buffer[index];
-        auto n = glm::vec3(u8color.r / 255.0f - 0.5f, u8color.g / 255.0f - 0.5f,
-                           u8color.b / 255.0f - 0.5f);
-
-        normal =
-            glm::normalize(glm::vec3(normal.x + n.x, normal.y + n.y, normal.z));
+        auto mapN = 2.0f * glm::vec3(nearest(glm::repeat(uv), buffer, width, height)) - 1.0f;
     }
 
     glm::vec4 baseColor = material->baseColorFactor;
@@ -217,13 +227,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto width = baseColorTexture->getWidth();
         auto height = baseColorTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        auto u = static_cast<int32_t>(glm::round(glm::repeat(uv.x) * width));
-        auto v = static_cast<int32_t>(glm::round(glm::repeat(uv.y) * height));
-        auto index = v * width + u;
-
-        const auto &u8color = buffer[index];
-        const auto color = glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,
-                                     u8color.b / 255.0f, u8color.a / 255.0f);
+        const auto color = bilinear(glm::repeat(uv), buffer, width, height);
         baseColor = baseColor * color;
     }
 
@@ -235,13 +239,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto width = metalRoughnessTexture->getWidth();
         auto height = metalRoughnessTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        auto u = static_cast<int32_t>(glm::round(glm::repeat(uv.x) * width));
-        auto v = static_cast<int32_t>(glm::round(glm::repeat(uv.y) * height));
-        auto index = v * width + u;
-
-        const auto &u8color = buffer[index];
-        const auto color = glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,
-                                     u8color.b / 255.0f, u8color.a / 255.0f);
+        const auto color = glm::vec3(bilinear(glm::repeat(uv), buffer, width, height));
         roughness = roughness * color.y;
         metalness = metalness * color.z;
     }
@@ -377,22 +375,8 @@ glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
                 auto buffer = baseColorTexture->getBuffer();
                 auto width = baseColorTexture->getWidth();
                 auto height = baseColorTexture->getHeight();
-                auto u = static_cast<int32_t>(std::round(uv.x * width));
-                auto v = static_cast<int32_t>(std::round(uv.y * height));
                 // TODO: TEXTURE_WRAP
-                if (u < 0.0f) {
-                    u = width + u;
-                }
-                u = u % width;
-                if (v < 0.0f) {
-                    v = height + v;
-                }
-                v = v % height;
-                auto index = v * width + u;
-                const auto &u8color = buffer[index];
-                const auto color =
-                    glm::vec4(u8color.r / 255.0f, u8color.g / 255.0f,
-                              u8color.b / 255.0f, u8color.a / 255.0f);
+                const auto color = bilinear(glm::repeat(uv), buffer, width, height);
                 baseColor = baseColor * color;
             }
             totalColor += glm::vec3(baseColor);
@@ -451,20 +435,12 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
 
     auto normalTexture = material->normalTexture.get();
     if (normalTexture != nullptr) {
+        const auto &N = normal;
         auto buffer = normalTexture->getBuffer();
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
-        auto u = static_cast<int32_t>(std::round(uv.x * width));
-        auto v = static_cast<int32_t>(std::round(uv.y * height));
         // TODO: TEXTURE_WRAP
-        auto index =
-            std::clamp((v * width + u) % (width * height), 0, width * height);
-        const auto &u8color = buffer[index];
-        auto n = glm::vec3(u8color.r / 255.0f - 0.5f, u8color.g / 255.0f - 0.5f,
-                           u8color.b / 255.0f - 0.5f);
-
-        normal =
-            glm::normalize(glm::vec3(normal.x + n.x, normal.y + n.y, normal.z));
+        auto mapN = 2.0f * glm::vec3(nearest(glm::repeat(uv), buffer, width, height)) - 1.0f;
     }
 
     return normal;
@@ -518,21 +494,8 @@ glm::vec3 RayTracer::renderEmissive(RTCScene scene,
         auto buffer = emissiveTexture->getBuffer();
         auto width = emissiveTexture->getWidth();
         auto height = emissiveTexture->getHeight();
-        auto u = static_cast<int32_t>(std::round(uv.x * width));
-        auto v = static_cast<int32_t>(std::round(uv.y * height));
         // TODO: TEXTURE_WRAP
-        if (u < 0.0f) {
-            u = width + u;
-        }
-        u = u % width;
-        if (v < 0.0f) {
-            v = height + v;
-        }
-        v = v % height;
-        auto index = v * width + u;
-        const auto &u8color = buffer[index];
-        const auto color = glm::vec3(u8color.r / 255.0f, u8color.g / 255.0f,
-                                     u8color.b / 255.0f);
+        const auto color = glm::vec3(bilinear(glm::repeat(uv), buffer, width, height));
         emissive = emissive * color;
     }
 

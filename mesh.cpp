@@ -305,6 +305,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
              const std::vector<std::shared_ptr<const Texture>> &images,
              const tinygltf::Mesh &gltfMesh, const glm::mat4 &world,
              ConstantPMeshList &meshs) {
+    auto worldInverseTranspose = glm::transpose(glm::inverse(world));
     for (size_t i = 0; i < gltfMesh.primitives.size(); i++) {
         const auto &primitive = gltfMesh.primitives[i];
 
@@ -491,8 +492,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                                         } break;
                                         case 2: {
                                             const auto v =
-                                                glm::transpose(
-                                                    glm::inverse(world)) *
+                                                worldInverseTranspose * 
                                                 glm::vec4(buffer[0], buffer[1],
                                                           buffer[2], 1.0f);
                                             geometryBuffer[size * i + 0] = v[0];
@@ -559,6 +559,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
             rtcReleaseGeometry(geom);
 
             mesh->setGeometryId(geomId);
+            mesh->setWorldInverseTranspose(worldInverseTranspose);
             mesh->setMaterial(material);
 
             meshs.push_back(mesh);
@@ -629,12 +630,12 @@ ConstantPMeshList addModel(const RTCDevice device, const RTCScene scene,
 
         int32_t width, height, channels;
         auto ret =
-            stbi_load_from_memory(p + bufferView.byteOffset,
+            stbi_loadf_from_memory(p + bufferView.byteOffset,
                                   static_cast<int32_t>(bufferView.byteLength),
                                   &width, &height, &channels, components);
         const size_t n = width * height;
-        auto image = std::shared_ptr<glm::u8vec4[]>(new glm::u8vec4[n]);
-        memcpy(image.get(), ret, n * sizeof(glm::u8vec4));
+        auto image = std::shared_ptr<glm::vec4[]>(new glm::vec4[n]);
+        memcpy(image.get(), ret, n * sizeof(glm::vec4));
         stbi_image_free(ret);
 
         int32_t wrapS = 0;

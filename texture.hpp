@@ -7,7 +7,7 @@
 
 class Texture {
   private:
-    std::shared_ptr<glm::u8vec4[]> buffer;
+    std::shared_ptr<glm::vec4[]> buffer;
     int32_t width;
     int32_t height;
 
@@ -15,7 +15,7 @@ class Texture {
     int32_t wrapT;
 
   public:
-    const glm::u8vec4 *getBuffer() const {
+    const glm::vec4 *getBuffer() const {
       return buffer.get();
     }
 
@@ -27,7 +27,7 @@ class Texture {
       return this->height;
     }
 
-    Texture(std::shared_ptr<glm::u8vec4[]> buffer, int32_t width,
+    Texture(std::shared_ptr<glm::vec4[]> buffer, int32_t width,
             int32_t height, int32_t wrapS, int32_t wrapT) {
         this->buffer = buffer;
         this->width = width;

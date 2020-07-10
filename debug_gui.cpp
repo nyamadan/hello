@@ -71,7 +71,7 @@ void DebugGUI::setup(GLFWwindow *window) {
 
 void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
                           bool &needResize, bool &needRestart) {
-    static bool showImGuiDemoWindow = true;
+    static bool showImGuiDemoWindow = false;
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
