@@ -206,15 +206,17 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_NORMAL, glm::value_ptr(normal),
                     3);
 
-    glm::vec4 tangent(0.0f);
+    glm::vec3 tangent(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TANGENT, glm::value_ptr(tangent),
-                    4);
+                    3);
+    tangent = glm::normalize(tangent);
 
     glm::vec4 bitangent(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_BITANGENT, glm::value_ptr(bitangent),
                     3);
+    bitangent = glm::normalize(bitangent);
 
     auto normalTexture = material->normalTexture.get();
     if (normalTexture != nullptr) {
@@ -224,7 +226,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto height = normalTexture->getHeight();
         // TODO: TEXTURE_WRAP
         const auto mapN = 2.0f * glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) - 1.0f;
-        normal = glm::normalize(glm::mat3(glm::vec3(tangent), bitangent, N) * mapN);
+        normal = glm::normalize(glm::mat3(tangent, bitangent, N) * mapN);
     }
 
     glm::vec4 baseColor = material->baseColorFactor;
@@ -440,10 +442,10 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0, glm::value_ptr(texcoord0), 2);
 
-    glm::vec4 tangent(0.0f);
+    glm::vec3 tangent(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TANGENT, glm::value_ptr(tangent),
-                    4);
+                    3);
     tangent = glm::normalize(tangent);
 
     glm::vec3 bitangent(0.0f);
@@ -460,7 +462,7 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
         auto height = normalTexture->getHeight();
         // TODO: TEXTURE_WRAP
         const auto mapN = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) * 2.0f - 1.0f;
-        const auto tbn = glm::mat3(glm::vec3(tangent), bitangent, N);
+        const auto tbn = glm::mat3(tangent, bitangent, N);
         normal = glm::normalize(tbn * mapN);
     }
 
