@@ -23,22 +23,30 @@ class Mesh {
 
   private:
     uint32_t geomId;
-    glm::mat4 worldInverseTranspose;
+    glm::mat4 worldMatrix;
+    glm::mat4 worldInverseTransposeMatrix;
     ConstantPMaterial material;
 
   public:
     Mesh() {
         this->geomId = 0;
         this->material = nullptr;
-        this->worldInverseTranspose = glm::mat4(1.0f);
+        this->worldMatrix = glm::mat4(1.0f);
+        this->worldInverseTransposeMatrix = glm::mat4(1.0f);
     }
 
     void setGeometryId(uint32_t geomId) { this->geomId = geomId; }
-    void setWorldInverseTranspose(const glm::mat4 &worldInverseTranspose) { this->worldInverseTranspose = worldInverseTranspose; }
-    uint32_t getGeometryId() const { return this->geomId; }
-    const glm::mat4 &getWorldInverseTranspose() const {
-        return this->worldInverseTranspose;
+    void setWorldInverseTransposeMatrix(const glm::mat4 &worldInverseTranspose) {
+        this->worldInverseTransposeMatrix = worldInverseTranspose;
     }
+    void setWorldMatrix(const glm::mat4 &worldMatrix) {
+        this->worldMatrix = worldMatrix;
+    }
+    uint32_t getGeometryId() const { return this->geomId; }
+    const glm::mat4 &getWorldInverseTransposeMatrix() const {
+        return this->worldInverseTransposeMatrix;
+    }
+    const glm::mat4 &getWorldMatrix() const { return this->worldMatrix; }
 
     void setMaterial(ConstantPMaterial material) { this->material = material; }
     const ConstantPMaterial getMaterial() const { return this->material; }

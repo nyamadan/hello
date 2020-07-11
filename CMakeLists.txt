@@ -71,6 +71,7 @@ include_directories(
     "${PROJECT_SOURCE_DIR}/glfw/include"
     "${PROJECT_SOURCE_DIR}/tinygltf"
     "${PROJECT_SOURCE_DIR}/imgui"
+    "${PROJECT_SOURCE_DIR}/mikktspace"
 )
 
 link_directories(
@@ -100,6 +101,7 @@ add_executable(
     "${PROJECT_SOURCE_DIR}/imgui/imgui_widgets.cpp"
     "${PROJECT_SOURCE_DIR}/imgui/examples/imgui_impl_glfw.cpp"
     "${PROJECT_SOURCE_DIR}/imgui/examples/imgui_impl_opengl3.cpp"
+    "${PROJECT_SOURCE_DIR}/mikktspace/mikktspace.c"
 )
 
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)

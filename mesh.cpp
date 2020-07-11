@@ -1,5 +1,6 @@
 #include "mesh.hpp"
 
+#include <mikktspace.h>
 #include "ray_tracer.hpp"
 
 #include <stb.h>
@@ -12,6 +13,119 @@ void intersectionFilter(const struct RTCFilterFunctionNArguments *args) {
     auto raytracer = context->raytracer;
     raytracer->intersectionFilter(args);
 }
+
+class TangentGenerator {
+  private:
+    static int getNumFaces(const SMikkTSpaceContext *pContext) {
+        const auto that = (TangentGenerator *)pContext->m_pUserData;
+
+        return that->numFaces;
+    }
+
+    static int getNumVerticesOfFace(const SMikkTSpaceContext *pContext,
+                                    const int iFace) {
+        return 3;
+    }
+
+    static void getPosition(const SMikkTSpaceContext *pContext,
+                            float fvPosOut[], const int iFace,
+                            const int iVert) {
+        const auto that = (TangentGenerator *)pContext->m_pUserData;
+
+        const auto &face = that->faces[iFace];
+        const auto &position = that->positions[face[iVert]];
+
+        memcpy(fvPosOut, &position, sizeof(glm::vec3));
+    }
+
+    static void getNormal(const SMikkTSpaceContext *pContext, float fvNormOut[],
+                          const int iFace, const int iVert) {
+        const auto that = (TangentGenerator *)pContext->m_pUserData;
+
+        const auto &face = that->faces[iFace];
+        const auto &normal = that->normals[face[iVert]];
+
+        memcpy(fvNormOut, &normal, sizeof(glm::vec3));
+    }
+
+    static void getTexCoord(const SMikkTSpaceContext *pContext,
+                            float fvTexcOut[], const int iFace,
+                            const int iVert) {
+        auto that = (TangentGenerator *)pContext->m_pUserData;
+
+        const auto &face = that->faces[iFace];
+        const auto &uv = that->uvs[face[iVert]];
+
+        memcpy(fvTexcOut, &uv, sizeof(glm::vec2));
+    }
+
+    static void setTSpaceBasic(const SMikkTSpaceContext *pContext,
+                               const float fvTangent[], const float fSign,
+                               const int iFace, const int iVert) {
+        const auto that = (TangentGenerator *)pContext->m_pUserData;
+        const auto &face = that->faces[iFace];
+        auto &tangent = that->tangents[face[iVert]];
+
+        tangent = glm::vec4(fvTangent[0], fvTangent[1], fvTangent[2], fSign);
+    }
+
+    static void setTSpace(const SMikkTSpaceContext *pContext,
+                          const float fvTangent[], const float fvBiTangent[],
+                          const float fMagS, const float fMagT,
+                          const tbool bIsOrientationPreserving, const int iFace,
+                          const int iVert) {
+    }
+
+    SMikkTSpaceContext context = {0};
+    SMikkTSpaceInterface param = {0};
+
+    int32_t numFaces;
+    const glm::uvec3 *faces;
+    const glm::vec3 *positions;
+    const glm::vec3 *normals;
+    const glm::vec2 *uvs;
+
+    std::vector<glm::vec4> tangents;
+
+    TangentGenerator() {
+        param.m_getNumFaces = getNumFaces;
+        param.m_getNumVerticesOfFace = getNumVerticesOfFace;
+        param.m_getPosition = getPosition;
+        param.m_getNormal = getNormal;
+        param.m_getTexCoord = getTexCoord;
+        param.m_setTSpaceBasic = setTSpaceBasic;
+        param.m_setTSpace = setTSpace;
+        context.m_pInterface = &param;
+        context.m_pUserData = this;
+    }
+
+    std::vector<glm::vec4> _generate(int32_t numFaces, int32_t numVertices, const glm::uvec3 *faces,
+                                     const glm::vec3 *positions,
+                                     const glm::vec3 *normals,
+                                     const glm::vec2 *uvs) {
+        tangents = std::vector<glm::vec4>(numVertices);
+
+        this->numFaces = numFaces;
+        this->faces = faces;
+        this->positions = positions;
+        this->normals = normals;
+        this->uvs = uvs;
+
+        genTangSpaceDefault(&context);
+
+        return std::move(tangents);
+    }
+
+  public:
+    static std::vector<glm::vec4> generate(int32_t numFaces,
+    int32_t numVertices,
+                                           const glm::uvec3 *faces,
+                                           const glm::vec3 *positions,
+                                           const glm::vec3 *normals,
+                                           const glm::vec2 *uvs) {
+        return TangentGenerator()._generate(numFaces, numVertices, faces, positions, normals, uvs);
+    }
+};
 }  // namespace
 
 ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
@@ -25,7 +139,7 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
     auto normal = glm::vec3();
 
     auto indices = std::vector<glm::uvec3>();
-    auto vertices = std::vector<glm::vec3>();
+    auto positions = std::vector<glm::vec3>();
     auto normals = std::vector<glm::vec3>();
     auto uvs = std::vector<glm::vec2>();
 
@@ -50,7 +164,7 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
             vertex.x = -radius * std::cos(u * 2 * M_PI) * std::sin(v * M_PI);
             vertex.y = radius * std::cos(v * M_PI);
             vertex.z = radius * std::sin(u * 2 * M_PI) * std::sin(v * M_PI);
-            vertices.push_back(
+            positions.push_back(
                 (glm::vec3)(transform * glm::vec4(vertex, 1.0f)));
             normal = glm::normalize(
                 (glm::vec3)(inverseTranspose * glm::vec4(vertex, 1.0f)));
@@ -75,11 +189,11 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
 
     auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
-    auto *_vertices = (glm::vec3 *)rtcSetNewGeometryBuffer(
+    auto *_positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
         geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
-        vertices.size());
-    for (auto i = 0; i < vertices.size(); i++) {
-        _vertices[i] = vertices[i];
+        positions.size());
+    for (auto i = 0; i < positions.size(); i++) {
+        _positions[i] = positions[i];
     }
 
     auto *_indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
@@ -89,7 +203,7 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
         _indices[i] = indices[i];
     }
 
-    rtcSetGeometryVertexAttributeCount(geom, 2);
+    rtcSetGeometryVertexAttributeCount(geom, 3);
 
     auto *_normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
         geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
@@ -103,6 +217,18 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
         sizeof(glm::vec2), uvs.size());
     for (auto i = 0; i < uvs.size(); i++) {
         _uvs[i] = uvs[i];
+    }
+
+    auto tangents =
+        TangentGenerator::generate(static_cast<int32_t>(indices.size()),
+                                   static_cast<int32_t>(positions.size()),
+                                   _indices, _positions, _normals, _uvs);
+
+    auto *_tangents = (glm::vec4 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT3,
+        sizeof(glm::vec4), tangents.size());
+    for (auto i = 0; i < tangents.size(); i++) {
+        _tangents[i] = tangents[i];
     }
 
     auto mesh = PMesh(new Mesh());
@@ -169,7 +295,7 @@ ConstantPMesh addCube(RTCDevice device, RTCScene scene,
     indices[10] = glm::uvec3(20, 21, 22);
     indices[11] = glm::uvec3(20, 22, 23);
 
-    rtcSetGeometryVertexAttributeCount(geom, 2);
+    rtcSetGeometryVertexAttributeCount(geom, 3);
     glm::vec3 *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
         geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
         sizeof(glm::vec3), 24);
@@ -230,6 +356,16 @@ ConstantPMesh addCube(RTCDevice device, RTCScene scene,
     uvs[22] = glm::vec2(0, 1);
     uvs[23] = glm::vec2(1, 1);
 
+    auto tangents = TangentGenerator::generate(12, 24, indices, positions, normals, uvs);
+
+    auto *_tangents = (glm::vec4 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT3,
+        sizeof(glm::vec4), tangents.size());
+
+    for (auto i = 0; i < tangents.size(); i++) {
+        _tangents[i] = tangents[i];
+    }
+
     auto mesh = PMesh(new Mesh());
     rtcSetGeometryUserData(geom, (void *)mesh.get());
     rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
@@ -265,7 +401,7 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
     indices[0] = glm::uvec3(0, 1, 2);
     indices[1] = glm::uvec3(1, 3, 2);
 
-    rtcSetGeometryVertexAttributeCount(geom, 2);
+    rtcSetGeometryVertexAttributeCount(geom, 3);
 
     const auto inverseTranspose = glm::transpose(glm::inverse(transform));
     auto *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
@@ -286,6 +422,16 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
     uvs[1] = glm::vec2(0.0f, 1.0f);
     uvs[2] = glm::vec2(1.0f, 0.0f);
     uvs[3] = glm::vec2(1.0f, 1.0f);
+
+    auto tangents = TangentGenerator::generate(2, 4, indices, positions, normals, uvs);
+
+    auto *_tangents = (glm::vec4 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT3,
+        sizeof(glm::vec4), tangents.size());
+
+    for (auto i = 0; i < tangents.size(); i++) {
+        _tangents[i] = tangents[i];
+    }
 
     auto mesh = PMesh(new Mesh());
     rtcSetGeometryUserData(geom, (void *)mesh.get());
@@ -349,7 +495,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
         assert(mode == TINYGLTF_MODE_TRIANGLES);
 
         auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-        rtcSetGeometryVertexAttributeCount(geom, 2);
+        rtcSetGeometryVertexAttributeCount(geom, 3);
         auto allSemantics = 0;
 
         const auto &indexAccessor = model.accessors[primitive.indices];
@@ -363,7 +509,19 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                indexAccessor.componentType ==
                    TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT);
 
-        auto *triangles = (uint32_t *)rtcSetNewGeometryBuffer(
+        static const int32_t SEM_POSITION = 1 << 0;
+        static const int32_t SEM_NORMAL = 1 << 1;
+        static const int32_t SEM_TEXCOORD_0 = 1 << 2;
+        static const int32_t SEM_TANGENT = 1 << 3;
+
+        int32_t numVertices = 0;
+        uint32_t *triangles = nullptr;
+        glm::vec3 *normals = nullptr;
+        glm::vec3 *positions = nullptr;
+        glm::vec2 *uvs = nullptr;
+        glm::vec4 *tangents = nullptr;
+
+        triangles = (uint32_t *)rtcSetNewGeometryBuffer(
             geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
             sizeof(uint32_t) * 3, indexAccessor.count / 3);
 
@@ -414,11 +572,13 @@ void addMesh(const RTCDevice device, const RTCScene scene,
 
             int semantics = 0;
             if (it->first.compare("POSITION") == 0) {
-                semantics = 1 << 0;
+                semantics = SEM_POSITION;
             } else if (it->first.compare("NORMAL") == 0) {
-                semantics = 1 << 1;
+                semantics = SEM_NORMAL;
             } else if (it->first.compare("TEXCOORD_0") == 0) {
-                semantics = 1 << 2;
+                semantics = SEM_TEXCOORD_0;
+            } else if (it->first.compare("TANGENT") == 0) {
+                semantics = SEM_TANGENT;
             }
 
             allSemantics |= semantics;
@@ -438,15 +598,20 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                         float *geometryBuffer = nullptr;
 
                         switch (semantics) {
-                            case 1: {
+                            case SEM_POSITION: {
+                                assert(size == 3);
+
                                 geometryBuffer =
                                     (float *)rtcSetNewGeometryBuffer(
                                         geom, RTC_BUFFER_TYPE_VERTEX, 0,
                                         (RTCFormat)((int)RTC_FORMAT_FLOAT +
                                                     size - 1),
                                         sizeof(float) * size, accessor.count);
+                                positions = (glm::vec3 *)geometryBuffer;
+                                numVertices = static_cast<int32_t>(accessor.count);
                             } break;
-                            case 2: {
+                            case SEM_NORMAL: {
+                                assert(size == 3);
                                 geometryBuffer =
                                     (float *)rtcSetNewGeometryBuffer(
                                         geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
@@ -454,8 +619,10 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                                         (RTCFormat)((int)RTC_FORMAT_FLOAT +
                                                     size - 1),
                                         sizeof(float) * size, accessor.count);
+                                normals = (glm::vec3 *)geometryBuffer;
                             } break;
-                            case 4: {
+                            case SEM_TEXCOORD_0: {
+                                assert(size == 2);
                                 geometryBuffer =
                                     (float *)rtcSetNewGeometryBuffer(
                                         geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
@@ -463,6 +630,18 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                                         (RTCFormat)((int)RTC_FORMAT_FLOAT +
                                                     size - 1),
                                         sizeof(float) * size, accessor.count);
+                                uvs = (glm::vec2 *)geometryBuffer;
+                            } break;
+                            case SEM_TANGENT: {
+                                assert(size == 4);
+                                geometryBuffer =
+                                    (float *)rtcSetNewGeometryBuffer(
+                                        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                                        2,
+                                        (RTCFormat)((int)RTC_FORMAT_FLOAT +
+                                                    size - 1),
+                                        sizeof(float) * size, accessor.count);
+                                tangents = (glm::vec4 *)geometryBuffer;
                             } break;
                         }
 
@@ -481,7 +660,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                                 } break;
                                 case 3: {
                                     switch (semantics) {
-                                        case 1: {
+                                        case SEM_POSITION: {
                                             const auto v =
                                                 world *
                                                 glm::vec4(buffer[0], buffer[1],
@@ -490,9 +669,9 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                                             geometryBuffer[size * i + 1] = v[1];
                                             geometryBuffer[size * i + 2] = v[2];
                                         } break;
-                                        case 2: {
+                                        case SEM_NORMAL: {
                                             const auto v =
-                                                worldInverseTranspose * 
+                                                worldInverseTranspose *
                                                 glm::vec4(buffer[0], buffer[1],
                                                           buffer[2], 1.0f);
                                             geometryBuffer[size * i + 0] = v[0];
@@ -526,30 +705,61 @@ void addMesh(const RTCDevice device, const RTCScene scene,
             }
         }
 
-        if (!(allSemantics & 2)) {
-            auto normals = (float *)rtcSetNewGeometryBuffer(
+        assert(numVertices > 0);
+
+        if (!(allSemantics & SEM_NORMAL)) {
+            auto geometryBuffer = (float *)rtcSetNewGeometryBuffer(
                 geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
                 (RTCFormat)(RTC_FORMAT_FLOAT3), sizeof(glm::vec3),
                 indexAccessor.count / 3);
+            normals = (glm::vec3 *)geometryBuffer;
+
+            // TODO: COMPUTE NORMALs
+            for(auto i = 0; i < numVertices; i++) {
+                normals[i] = glm::vec3(0.0f, 0.0f, 1.0f);
+            }
         }
 
-        if (!(allSemantics & 4)) {
-            auto uvs = (float *)rtcSetNewGeometryBuffer(
+        if (!(allSemantics & SEM_TEXCOORD_0)) {
+            auto geometryBuffer = (float *)rtcSetNewGeometryBuffer(
                 geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1,
                 (RTCFormat)(RTC_FORMAT_FLOAT2), sizeof(glm::vec3),
                 indexAccessor.count / 2);
+            uvs = (glm::vec2 *)geometryBuffer;
+
+            // TODO: COMPUTE UVs
+            for(auto i = 0; i < numVertices; i++) {
+                uvs[i] = glm::vec2(0.0f, 0.0f);
+            }
+        }
+
+        if (!(allSemantics & SEM_TANGENT)) {
+            auto tangents = TangentGenerator::generate(
+                static_cast<int32_t>(indexAccessor.count / 3), numVertices,
+                (const glm::uvec3 *)triangles, positions, normals, uvs);
+
+            auto *_tangents = (glm::vec4 *)rtcSetNewGeometryBuffer(
+                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT3,
+                sizeof(glm::vec4), tangents.size());
+
+            for (auto i = 0; i < tangents.size(); i++) {
+                _tangents[i] = tangents[i];
+            }
         }
 
         {
             auto material = ConstantPMaterial(new Material(
                 baseColorFactor,
-                baseColorTextureIndex >= 0 ? images[baseColorTextureIndex] : nullptr,
+                baseColorTextureIndex >= 0 ? images[baseColorTextureIndex]
+                                           : nullptr,
                 normalTextureIndex >= 0 ? images[normalTextureIndex] : nullptr,
-                roughnessFactor,
-                metalnessFactor,
-                metallicRoughnessTextureIndex >= 0 ? images[metallicRoughnessTextureIndex] : nullptr,
+                roughnessFactor, metalnessFactor,
+                metallicRoughnessTextureIndex >= 0
+                    ? images[metallicRoughnessTextureIndex]
+                    : nullptr,
                 emissiveFactor,
-                emissiveTextureIndex >= 0 ? images[emissiveTextureIndex] : nullptr));
+                emissiveTextureIndex >= 0 ? images[emissiveTextureIndex]
+                                          : nullptr));
 
             auto mesh = PMesh(new Mesh());
             rtcSetGeometryUserData(geom, (void *)mesh.get());
@@ -559,7 +769,8 @@ void addMesh(const RTCDevice device, const RTCScene scene,
             rtcReleaseGeometry(geom);
 
             mesh->setGeometryId(geomId);
-            mesh->setWorldInverseTranspose(worldInverseTranspose);
+            mesh->setWorldMatrix(world);
+            mesh->setWorldInverseTransposeMatrix(worldInverseTranspose);
             mesh->setMaterial(material);
 
             meshs.push_back(mesh);
@@ -587,9 +798,9 @@ void addNode(const RTCDevice device, const RTCScene scene,
 
         if (node.rotation.size() == 4) {
             const auto &r = node.rotation;
-            matrix = static_cast<glm::mat4>(
-                glm::quat((float)r[3], (float)r[0], (float)r[1], (float)r[2])) *
-                matrix;
+            matrix = static_cast<glm::mat4>(glm::quat(
+                         (float)r[3], (float)r[0], (float)r[1], (float)r[2])) *
+                     matrix;
         }
 
         if (node.translation.size() == 3) {
@@ -631,8 +842,8 @@ ConstantPMeshList addModel(const RTCDevice device, const RTCScene scene,
         int32_t width, height, channels;
         auto ret =
             stbi_loadf_from_memory(p + bufferView.byteOffset,
-                                  static_cast<int32_t>(bufferView.byteLength),
-                                  &width, &height, &channels, components);
+                                   static_cast<int32_t>(bufferView.byteLength),
+                                   &width, &height, &channels, components);
         const size_t n = width * height;
         auto image = std::shared_ptr<glm::vec4[]>(new glm::vec4[n]);
         memcpy(image.get(), ret, n * sizeof(glm::vec4));
@@ -640,13 +851,14 @@ ConstantPMeshList addModel(const RTCDevice device, const RTCScene scene,
 
         int32_t wrapS = 0;
         int32_t wrapT = 0;
-        if(it->sampler >= 0) {
+        if (it->sampler >= 0) {
             const auto &sampler = model.samplers[it->sampler];
             wrapS = sampler.wrapS;
             wrapT = sampler.wrapT;
         }
 
-        textures.push_back(std::make_shared<Texture>(image, width, height, wrapS, wrapT));
+        textures.push_back(
+            std::make_shared<Texture>(image, width, height, wrapS, wrapT));
     }
 
     for (size_t i = 0; i < gltfScene.nodes.size(); i++) {

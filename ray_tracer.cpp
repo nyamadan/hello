@@ -138,7 +138,6 @@ glm::vec3 RayTracer::importanceSampleGGX(const glm::vec2 &Xi,
                                           : glm::vec3(1.0, 0.0, 0.0);
     glm::vec3 tangent = glm::normalize(glm::cross(up, N));
     glm::vec3 bitangent = glm::cross(N, tangent);
-
     glm::vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
     return glm::normalize(sampleVec);
 }
@@ -202,13 +201,15 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         return emissive;
     }
 
-    const auto &worldInverseTranspose = mesh->getWorldInverseTranspose();
-
     glm::vec3 normal(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, glm::value_ptr(normal),
                     3);
-    normal = glm::normalize(normal);
+
+    glm::vec4 tangent(0.0f);
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, glm::value_ptr(tangent),
+                    4);
 
     auto normalTexture = material->normalTexture.get();
     if (normalTexture != nullptr) {
@@ -216,8 +217,11 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto buffer = normalTexture->getBuffer();
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
+        auto bitangent = tangent.w * glm::cross(N, glm::vec3(tangent));
+
         // TODO: TEXTURE_WRAP
-        auto mapN = 2.0f * glm::vec3(nearest(glm::repeat(uv), buffer, width, height)) - 1.0f;
+        const auto mapN = glm::normalize(2.0f * glm::vec3(nearest(glm::repeat(uv), buffer, width, height)) - 1.0f);
+        // normal = glm::normalize(glm::vec3(tangent) * mapN.x + bitangent * mapN.y + N * mapN.z);
     }
 
     glm::vec4 baseColor = material->baseColorFactor;
@@ -423,15 +427,19 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
     auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
     auto material = mesh->getMaterial().get();
 
-    glm::vec2 uv(0.0f);
-    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, glm::value_ptr(uv), 2);
-
     glm::vec3 normal(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, glm::value_ptr(normal),
                     3);
-    normal = glm::normalize(normal);
+
+    glm::vec2 uv(0.0f);
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, glm::value_ptr(uv), 2);
+
+    glm::vec4 tangent(0.0f);
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, glm::value_ptr(tangent),
+                    4);
 
     auto normalTexture = material->normalTexture.get();
     if (normalTexture != nullptr) {
@@ -439,8 +447,11 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
         auto buffer = normalTexture->getBuffer();
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
+        auto objectTangent = glm::vec3(tangent);
         // TODO: TEXTURE_WRAP
-        auto mapN = 2.0f * glm::vec3(nearest(glm::repeat(uv), buffer, width, height)) - 1.0f;
+        const auto mapN = glm::normalize(2.0f * glm::vec3(nearest(glm::repeat(uv), buffer, width, height)) - 1.0f);
+        auto bitangent = glm::cross(N, objectTangent) * tangent.w;
+        // normal = glm::normalize(objectTangent * mapN.x + bitangent * mapN.y + N * mapN.z);
     }
 
     return normal;
