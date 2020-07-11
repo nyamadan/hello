@@ -1,6 +1,6 @@
-#include "mesh.hpp"
-
 #include <mikktspace.h>
+
+#include "mesh.hpp"
 #include "ray_tracer.hpp"
 
 #include <stb.h>
@@ -8,6 +8,7 @@
 #include <glm/ext.hpp>
 
 namespace {
+
 void intersectionFilter(const struct RTCFilterFunctionNArguments *args) {
     auto context = (IntersectContext *)args->context;
     auto raytracer = context->raytracer;
@@ -113,7 +114,7 @@ class TangentGenerator {
 
         genTangSpaceDefault(&context);
 
-        return std::move(tangents);
+        return tangents;
     }
 
   public:
@@ -135,13 +136,13 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
     auto index = 0;
     auto grid = std::vector<std::vector<uint32_t>>();
 
-    auto vertex = glm::vec3();
+    auto position = glm::vec3();
     auto normal = glm::vec3();
 
-    auto indices = std::vector<glm::uvec3>();
-    auto positions = std::vector<glm::vec3>();
-    auto normals = std::vector<glm::vec3>();
-    auto uvs = std::vector<glm::vec2>();
+    auto srcIndices = std::vector<glm::uvec3>();
+    auto srcPositions = std::vector<glm::vec3>();
+    auto srcNormals = std::vector<glm::vec3>();
+    auto srcTexcoords0 = std::vector<glm::vec2>();
 
     const auto inverseTranspose = glm::transpose(glm::inverse(transform));
 
@@ -161,15 +162,13 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
 
         for (auto ix = 0; ix <= (int32_t)widthSegments; ix++) {
             auto u = (float)ix / widthSegments;
-            vertex.x = -radius * std::cos(u * 2 * M_PI) * std::sin(v * M_PI);
-            vertex.y = radius * std::cos(v * M_PI);
-            vertex.z = radius * std::sin(u * 2 * M_PI) * std::sin(v * M_PI);
-            positions.push_back(
-                (glm::vec3)(transform * glm::vec4(vertex, 1.0f)));
-            normal = glm::normalize(
-                (glm::vec3)(inverseTranspose * glm::vec4(vertex, 1.0f)));
-            normals.push_back(normal);
-            uvs.push_back(glm::vec2(u + uOffset, 1.0f - v));
+            position.x = -radius * std::cos(u * 2 * M_PI) * std::sin(v * M_PI);
+            position.y = radius * std::cos(v * M_PI);
+            position.z = radius * std::sin(u * 2 * M_PI) * std::sin(v * M_PI);
+            srcPositions.push_back(position);
+            normal = glm::normalize(position);
+            srcNormals.push_back(normal);
+            srcTexcoords0.push_back(glm::vec2(u + uOffset, 1.0f - v));
             verticesRow.push_back(index++);
         }
         grid.push_back(verticesRow);
@@ -181,54 +180,75 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
             auto c = grid[iy + 1][ix];
             auto d = grid[iy + 1][ix + 1];
 
-            if (iy != 0) indices.push_back(glm::uvec3(a, b, d));
+            if (iy != 0) srcIndices.push_back(glm::uvec3(a, b, d));
             if (iy != heightSegments - 1)
-                indices.push_back(glm::uvec3(b, c, d));
+                srcIndices.push_back(glm::uvec3(b, c, d));
         }
     }
 
+    const auto numVertices = srcPositions.size();
+    const auto numFaces = srcIndices.size();
+
     auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
-    auto *_positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
+    rtcSetGeometryVertexAttributeCount(geom, (uint32_t)VertexAttributeSlot::NUM_VERTEX_ATTRIBUTE_SLOTS);
+
+    auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
         geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
-        positions.size());
-    for (auto i = 0; i < positions.size(); i++) {
-        _positions[i] = positions[i];
+        srcPositions.size());
+    for (auto i = 0; i < srcPositions.size(); i++) {
+        positions[i] = srcPositions[i];
     }
 
-    auto *_indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
+    auto *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
         geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
-        indices.size());
-    for (auto i = 0; i < indices.size(); i++) {
-        _indices[i] = indices[i];
+        srcIndices.size());
+    for (auto i = 0; i < srcIndices.size(); i++) {
+        indices[i] = srcIndices[i];
     }
 
-    rtcSetGeometryVertexAttributeCount(geom, 3);
-
-    auto *_normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), normals.size());
-    for (auto i = 0; i < normals.size(); i++) {
-        _normals[i] = normals[i];
+    auto *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_NORMAL, RTC_FORMAT_FLOAT3,
+        sizeof(glm::vec3), srcNormals.size());
+    for (auto i = 0; i < srcNormals.size(); i++) {
+        normals[i] = srcNormals[i];
     }
 
-    auto *_uvs = (glm::vec2 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT2,
-        sizeof(glm::vec2), uvs.size());
-    for (auto i = 0; i < uvs.size(); i++) {
-        _uvs[i] = uvs[i];
+    auto *texCoords0 = (glm::vec2 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0, RTC_FORMAT_FLOAT2,
+        sizeof(glm::vec2), srcTexcoords0.size());
+    for (auto i = 0; i < srcTexcoords0.size(); i++) {
+        texCoords0[i] = srcTexcoords0[i];
     }
 
-    auto tangents =
-        TangentGenerator::generate(static_cast<int32_t>(indices.size()),
-                                   static_cast<int32_t>(positions.size()),
-                                   _indices, _positions, _normals, _uvs);
+    auto srcTangents =
+        TangentGenerator::generate(static_cast<int32_t>(numFaces),
+                                   static_cast<int32_t>(numVertices),
+                                   indices, positions, normals, texCoords0);
 
-    auto *_tangents = (glm::vec4 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec4), tangents.size());
-    for (auto i = 0; i < tangents.size(); i++) {
-        _tangents[i] = tangents[i];
+    auto *tangents = (glm::vec4 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_TANGENT, RTC_FORMAT_FLOAT4,
+        sizeof(glm::vec4), srcTangents.size());
+    for (auto i = 0; i < srcTangents.size(); i++) {
+        tangents[i] = srcTangents[i];
+    }
+
+    auto *bitangents = (glm::vec3 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_BITANGENT, RTC_FORMAT_FLOAT3,
+        sizeof(glm::vec3), srcTangents.size());
+
+    for (auto i = 0; i < srcPositions.size(); i++) {
+        auto &p = positions[i];
+        auto &n = normals[i];
+        auto &t = tangents[i];
+        auto &bt = bitangents[i];
+        p = glm::vec3(transform * glm::vec4(p, 1.0f));
+        n = glm::normalize(
+            glm::vec3(inverseTranspose * glm::vec4(n, 1.0f)));
+        t = glm::vec4(
+            glm::normalize(glm::vec3(transform * glm::vec4(glm::vec3(t), 0.0f))),
+            t.w);
+        bt = glm::normalize(glm::cross(n, glm::vec3(t)) * t.w);
     }
 
     auto mesh = PMesh(new Mesh());
@@ -240,6 +260,8 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
 
     mesh->setGeometryId(geomId);
     mesh->setMaterial(material);
+    mesh->setWorldMatrix(transform);
+    mesh->setWorldInverseTransposeMatrix(inverseTranspose);
     return mesh;
 }
 
@@ -249,39 +271,44 @@ ConstantPMesh addCube(RTCDevice device, RTCScene scene,
     /* create a triangulated cube with 12 triangles and 8 vertices */
     auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
+    rtcSetGeometryVertexAttributeCount(geom, (uint32_t)VertexAttributeSlot::NUM_VERTEX_ATTRIBUTE_SLOTS);
+
+    const auto numFaces = 12;
+    const auto numVertices = 24;
+
     /* set vertices and vertex colors */
     auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
         geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
-        24);
-    positions[0] = transform * glm::vec4(1, 1, -1, 1.0f);
-    positions[1] = transform * glm::vec4(1, 1, 1, 1.0f);
-    positions[2] = transform * glm::vec4(1, -1, 1, 1.0f);
-    positions[3] = transform * glm::vec4(1, -1, -1, 1.0f);
-    positions[4] = transform * glm::vec4(-1, 1, 1, 1.0f);
-    positions[5] = transform * glm::vec4(-1, 1, -1, 1.0f);
-    positions[6] = transform * glm::vec4(-1, -1, -1, 1.0f);
-    positions[7] = transform * glm::vec4(-1, -1, 1, 1.0f);
-    positions[8] = transform * glm::vec4(-1, 1, 1, 1.0f);
-    positions[9] = transform * glm::vec4(1, 1, 1, 1.0f);
-    positions[10] = transform * glm::vec4(1, 1, -1, 1.0f);
-    positions[11] = transform * glm::vec4(-1, 1, -1, 1.0f);
-    positions[12] = transform * glm::vec4(-1, -1, -1, 1.0f);
-    positions[13] = transform * glm::vec4(1, -1, -1, 1.0f);
-    positions[14] = transform * glm::vec4(1, -1, 1, 1.0f);
-    positions[15] = transform * glm::vec4(-1, -1, 1, 1.0f);
-    positions[16] = transform * glm::vec4(1, 1, 1, 1.0f);
-    positions[17] = transform * glm::vec4(-1, 1, 1, 1.0f);
-    positions[18] = transform * glm::vec4(-1, -1, 1, 1.0f);
-    positions[19] = transform * glm::vec4(1, -1, 1, 1.0f);
-    positions[20] = transform * glm::vec4(-1, 1, -1, 1.0f);
-    positions[21] = transform * glm::vec4(1, 1, -1, 1.0f);
-    positions[22] = transform * glm::vec4(1, -1, -1, 1.0f);
-    positions[23] = transform * glm::vec4(-1, -1, -1, 1.0f);
+        numVertices);
+    positions[0] =  glm::vec3(1, 1, -1);
+    positions[1] =  glm::vec3(1, 1, 1);
+    positions[2] =  glm::vec3(1, -1, 1);
+    positions[3] =  glm::vec3(1, -1, -1);
+    positions[4] =  glm::vec3(-1, 1, 1);
+    positions[5] =  glm::vec3(-1, 1, -1);
+    positions[6] =  glm::vec3(-1, -1, -1);
+    positions[7] =  glm::vec3(-1, -1, 1);
+    positions[8] =  glm::vec3(-1, 1, 1);
+    positions[9] =  glm::vec3(1, 1, 1);
+    positions[10] = glm::vec3(1, 1, -1);
+    positions[11] = glm::vec3(-1, 1, -1);
+    positions[12] = glm::vec3(-1, -1, -1);
+    positions[13] = glm::vec3(1, -1, -1);
+    positions[14] = glm::vec3(1, -1, 1);
+    positions[15] = glm::vec3(-1, -1, 1);
+    positions[16] = glm::vec3(1, 1, 1);
+    positions[17] = glm::vec3(-1, 1, 1);
+    positions[18] = glm::vec3(-1, -1, 1);
+    positions[19] = glm::vec3(1, -1, 1);
+    positions[20] = glm::vec3(-1, 1, -1);
+    positions[21] = glm::vec3(1, 1, -1);
+    positions[22] = glm::vec3(1, -1, -1);
+    positions[23] = glm::vec3(-1, -1, -1);
 
     /* set triangles and face colors */
     glm::uvec3 *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
         geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
-        12);
+        numFaces);
     indices[0] = glm::uvec3(0, 1, 2);
     indices[1] = glm::uvec3(0, 2, 3);
     indices[2] = glm::uvec3(4, 5, 6);
@@ -295,75 +322,89 @@ ConstantPMesh addCube(RTCDevice device, RTCScene scene,
     indices[10] = glm::uvec3(20, 21, 22);
     indices[11] = glm::uvec3(20, 22, 23);
 
-    rtcSetGeometryVertexAttributeCount(geom, 3);
     glm::vec3 *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), 24);
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_NORMAL, RTC_FORMAT_FLOAT3,
+        sizeof(glm::vec3), numVertices);
     const auto inverseTranspose = glm::transpose(glm::inverse(transform));
-    normals[0] = inverseTranspose * glm::vec4(1, 0, 0, 1);
-    normals[1] = inverseTranspose * glm::vec4(1, 0, 0, 1);
-    normals[2] = inverseTranspose * glm::vec4(1, 0, 0, 1);
-    normals[3] = inverseTranspose * glm::vec4(1, 0, 0, 1);
-    normals[4] = inverseTranspose * glm::vec4(-1, 0, 0, 1);
-    normals[5] = inverseTranspose * glm::vec4(-1, 0, 0, 1);
-    normals[6] = inverseTranspose * glm::vec4(-1, 0, 0, 1);
-    normals[7] = inverseTranspose * glm::vec4(-1, 0, 0, 1);
-    normals[8] = inverseTranspose * glm::vec4(0, 1, 0, 1);
-    normals[9] = inverseTranspose * glm::vec4(0, 1, 0, 1);
-    normals[10] = inverseTranspose * glm::vec4(0, 1, 0, 1);
-    normals[11] = inverseTranspose * glm::vec4(0, 1, 0, 1);
-    normals[12] = inverseTranspose * glm::vec4(0, -1, 0, 1);
-    normals[13] = inverseTranspose * glm::vec4(0, -1, 0, 1);
-    normals[14] = inverseTranspose * glm::vec4(0, -1, 0, 1);
-    normals[15] = inverseTranspose * glm::vec4(0, -1, 0, 1);
-    normals[16] = inverseTranspose * glm::vec4(0, 0, 1, 1);
-    normals[17] = inverseTranspose * glm::vec4(0, 0, 1, 1);
-    normals[18] = inverseTranspose * glm::vec4(0, 0, 1, 1);
-    normals[19] = inverseTranspose * glm::vec4(0, 0, 1, 1);
-    normals[20] = inverseTranspose * glm::vec4(0, 0, -1, 1);
-    normals[21] = inverseTranspose * glm::vec4(0, 0, -1, 1);
-    normals[22] = inverseTranspose * glm::vec4(0, 0, -1, 1);
-    normals[23] = inverseTranspose * glm::vec4(0, 0, -1, 1);
-    for (auto i = 0; i < 24; i++) {
-        normals[i] = glm::normalize(normals[i]);
+    normals[0] =   glm::vec3(1, 0, 0);
+    normals[1] =   glm::vec3(1, 0, 0);
+    normals[2] =   glm::vec3(1, 0, 0);
+    normals[3] =   glm::vec3(1, 0, 0);
+    normals[4] =  glm::vec3(-1, 0, 0);
+    normals[5] =  glm::vec3(-1, 0, 0);
+    normals[6] =  glm::vec3(-1, 0, 0);
+    normals[7] =  glm::vec3(-1, 0, 0);
+    normals[8] =   glm::vec3(0, 1, 0);
+    normals[9] =   glm::vec3(0, 1, 0);
+    normals[10] =  glm::vec3(0, 1, 0);
+    normals[11] =  glm::vec3(0, 1, 0);
+    normals[12] = glm::vec3(0, -1, 0);
+    normals[13] = glm::vec3(0, -1, 0);
+    normals[14] = glm::vec3(0, -1, 0);
+    normals[15] = glm::vec3(0, -1, 0);
+    normals[16] =  glm::vec3(0, 0, 1);
+    normals[17] =  glm::vec3(0, 0, 1);
+    normals[18] =  glm::vec3(0, 0, 1);
+    normals[19] =  glm::vec3(0, 0, 1);
+    normals[20] = glm::vec3(0, 0, -1);
+    normals[21] = glm::vec3(0, 0, -1);
+    normals[22] = glm::vec3(0, 0, -1);
+    normals[23] = glm::vec3(0, 0, -1);
+
+    glm::vec2 *texCoords0 = (glm::vec2 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0, RTC_FORMAT_FLOAT3,
+        sizeof(glm::vec2), numVertices);
+    texCoords0[0] = glm::vec2(1, 0);
+    texCoords0[1] = glm::vec2(0, 0);
+    texCoords0[2] = glm::vec2(0, 1);
+    texCoords0[3] = glm::vec2(1, 1);
+    texCoords0[4] = glm::vec2(1, 0);
+    texCoords0[5] = glm::vec2(0, 0);
+    texCoords0[6] = glm::vec2(0, 1);
+    texCoords0[7] = glm::vec2(1, 1);
+    texCoords0[8] = glm::vec2(1, 0);
+    texCoords0[9] = glm::vec2(0, 0);
+    texCoords0[10] = glm::vec2(0, 1);
+    texCoords0[11] = glm::vec2(1, 1);
+    texCoords0[12] = glm::vec2(1, 0);
+    texCoords0[13] = glm::vec2(0, 0);
+    texCoords0[14] = glm::vec2(0, 1);
+    texCoords0[15] = glm::vec2(1, 1);
+    texCoords0[16] = glm::vec2(1, 0);
+    texCoords0[17] = glm::vec2(0, 0);
+    texCoords0[18] = glm::vec2(0, 1);
+    texCoords0[19] = glm::vec2(1, 1);
+    texCoords0[20] = glm::vec2(1, 0);
+    texCoords0[21] = glm::vec2(0, 0);
+    texCoords0[22] = glm::vec2(0, 1);
+    texCoords0[23] = glm::vec2(1, 1);
+
+    auto srcTangents = TangentGenerator::generate(numFaces, numVertices, indices, positions, normals, texCoords0);
+
+    auto *tangents = (glm::vec4 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_TANGENT, RTC_FORMAT_FLOAT4,
+        sizeof(glm::vec4), srcTangents.size());
+
+    for (auto i = 0; i < srcTangents.size(); i++) {
+        tangents[i] = srcTangents[i];
     }
 
-    glm::vec2 *uvs = (glm::vec2 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec2), 24);
-    uvs[0] = glm::vec2(1, 0);
-    uvs[1] = glm::vec2(0, 0);
-    uvs[2] = glm::vec2(0, 1);
-    uvs[3] = glm::vec2(1, 1);
-    uvs[4] = glm::vec2(1, 0);
-    uvs[5] = glm::vec2(0, 0);
-    uvs[6] = glm::vec2(0, 1);
-    uvs[7] = glm::vec2(1, 1);
-    uvs[8] = glm::vec2(1, 0);
-    uvs[9] = glm::vec2(0, 0);
-    uvs[10] = glm::vec2(0, 1);
-    uvs[11] = glm::vec2(1, 1);
-    uvs[12] = glm::vec2(1, 0);
-    uvs[13] = glm::vec2(0, 0);
-    uvs[14] = glm::vec2(0, 1);
-    uvs[15] = glm::vec2(1, 1);
-    uvs[16] = glm::vec2(1, 0);
-    uvs[17] = glm::vec2(0, 0);
-    uvs[18] = glm::vec2(0, 1);
-    uvs[19] = glm::vec2(1, 1);
-    uvs[20] = glm::vec2(1, 0);
-    uvs[21] = glm::vec2(0, 0);
-    uvs[22] = glm::vec2(0, 1);
-    uvs[23] = glm::vec2(1, 1);
+    auto *bitangents = (glm::vec3 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_BITANGENT, RTC_FORMAT_FLOAT3,
+        sizeof(glm::vec3), srcTangents.size());
 
-    auto tangents = TangentGenerator::generate(12, 24, indices, positions, normals, uvs);
-
-    auto *_tangents = (glm::vec4 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec4), tangents.size());
-
-    for (auto i = 0; i < tangents.size(); i++) {
-        _tangents[i] = tangents[i];
+    for (auto i = 0; i < numVertices; i++) {
+        auto &p = positions[i];
+        auto &n = normals[i];
+        auto &t = tangents[i];
+        auto &bt = bitangents[i];
+        p = glm::vec3(transform * glm::vec4(p, 1.0f));
+        n = glm::normalize(
+            glm::vec3(inverseTranspose * glm::vec4(n, 1.0f)));
+        t = glm::vec4(
+            glm::normalize(glm::vec3(transform * glm::vec4(glm::vec3(t), 0.0f))),
+            t.w);
+        bt = glm::normalize(glm::cross(n, glm::vec3(t)) * t.w);
     }
 
     auto mesh = PMesh(new Mesh());
@@ -375,6 +416,8 @@ ConstantPMesh addCube(RTCDevice device, RTCScene scene,
 
     mesh->setGeometryId(geomId);
     mesh->setMaterial(material);
+    mesh->setWorldMatrix(transform);
+    mesh->setWorldInverseTransposeMatrix(inverseTranspose);
     return mesh;
 }
 
@@ -385,52 +428,70 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
     /* create a triangulated plane with 2 triangles and 4 vertices */
     auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
 
+    const auto numFaces = 2;
+    const auto numVertices = 4;
+
+    rtcSetGeometryVertexAttributeCount(geom, (uint32_t)VertexAttributeSlot::NUM_VERTEX_ATTRIBUTE_SLOTS);
+
     /* set vertices */
     auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
         geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
-        4);
-    positions[0] = transform * glm::vec4(-1, 0, -1, 1);
-    positions[1] = transform * glm::vec4(-1, 0, +1, 1);
-    positions[2] = transform * glm::vec4(+1, 0, -1, 1);
-    positions[3] = transform * glm::vec4(+1, 0, +1, 1);
+        numVertices);
+    positions[0] = glm::vec3(-1, 0, -1);
+    positions[1] = glm::vec3(-1, 0, +1);
+    positions[2] = glm::vec3(+1, 0, -1);
+    positions[3] = glm::vec3(+1, 0, +1);
 
     /* set triangles */
     auto *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
         geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
-        2);
+        numFaces);
     indices[0] = glm::uvec3(0, 1, 2);
     indices[1] = glm::uvec3(1, 3, 2);
 
-    rtcSetGeometryVertexAttributeCount(geom, 3);
-
     const auto inverseTranspose = glm::transpose(glm::inverse(transform));
     auto *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), 4);
-    normals[0] = inverseTranspose * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-    normals[1] = inverseTranspose * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-    normals[2] = inverseTranspose * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-    normals[3] = inverseTranspose * glm::vec4(0.0f, 1.0f, 0.0f, 1.0f);
-    for (auto i = 0; i < 4; i++) {
-        normals[i] = glm::normalize(normals[i]);
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_NORMAL, RTC_FORMAT_FLOAT3,
+        sizeof(glm::vec3), numVertices);
+    normals[0] = glm::vec3(0.0f, 1.0f, 0.0f);
+    normals[1] = glm::vec3(0.0f, 1.0f, 0.0f);
+    normals[2] = glm::vec3(0.0f, 1.0f, 0.0f);
+    normals[3] = glm::vec3(0.0f, 1.0f, 0.0f);
+
+    auto *texCoords0 = (glm::vec2 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0, RTC_FORMAT_FLOAT2,
+        sizeof(glm::vec2), 4);
+    texCoords0[0] = glm::vec2(0.0f, 0.0f);
+    texCoords0[1] = glm::vec2(0.0f, 1.0f);
+    texCoords0[2] = glm::vec2(1.0f, 0.0f);
+    texCoords0[3] = glm::vec2(1.0f, 1.0f);
+
+    auto srcTangents = TangentGenerator::generate(numFaces, numVertices, indices, positions, normals, texCoords0);
+
+    auto *tangents = (glm::vec4 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_TANGENT, RTC_FORMAT_FLOAT4,
+        sizeof(glm::vec4), srcTangents.size());
+
+    for (auto i = 0; i < srcTangents.size(); i++) {
+        tangents[i] = srcTangents[i];
     }
 
-    auto *uvs = (glm::vec2 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, RTC_FORMAT_FLOAT2,
-        sizeof(glm::vec2), 4);
-    uvs[0] = glm::vec2(0.0f, 0.0f);
-    uvs[1] = glm::vec2(0.0f, 1.0f);
-    uvs[2] = glm::vec2(1.0f, 0.0f);
-    uvs[3] = glm::vec2(1.0f, 1.0f);
+    auto *bitangents = (glm::vec3 *)rtcSetNewGeometryBuffer(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_BITANGENT, RTC_FORMAT_FLOAT3,
+        sizeof(glm::vec3), srcTangents.size());
 
-    auto tangents = TangentGenerator::generate(2, 4, indices, positions, normals, uvs);
-
-    auto *_tangents = (glm::vec4 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec4), tangents.size());
-
-    for (auto i = 0; i < tangents.size(); i++) {
-        _tangents[i] = tangents[i];
+    for (auto i = 0; i < numVertices; i++) {
+        auto &p = positions[i];
+        auto &n = normals[i];
+        auto &t = tangents[i];
+        auto &bt = bitangents[i];
+        p = glm::vec3(transform * glm::vec4(p, 1.0f));
+        n = glm::normalize(
+            glm::vec3(inverseTranspose * glm::vec4(n, 1.0f)));
+        t = glm::vec4(
+            glm::normalize(glm::vec3(transform * glm::vec4(glm::vec3(t), 0.0f))),
+            t.w);
+        bt = glm::normalize(glm::cross(n, glm::vec3(t)) * t.w);
     }
 
     auto mesh = PMesh(new Mesh());
@@ -442,6 +503,8 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
 
     mesh->setGeometryId(geomId);
     mesh->setMaterial(material);
+    mesh->setWorldMatrix(transform);
+    mesh->setWorldInverseTransposeMatrix(inverseTranspose);
 
     return mesh;
 }
@@ -449,9 +512,9 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
 void addMesh(const RTCDevice device, const RTCScene scene,
              const tinygltf::Model &model,
              const std::vector<std::shared_ptr<const Texture>> &images,
-             const tinygltf::Mesh &gltfMesh, const glm::mat4 &world,
+             const tinygltf::Mesh &gltfMesh, const glm::mat4 &transform,
              ConstantPMeshList &meshs) {
-    auto worldInverseTranspose = glm::transpose(glm::inverse(world));
+    auto inverseTranspose = glm::transpose(glm::inverse(transform));
     for (size_t i = 0; i < gltfMesh.primitives.size(); i++) {
         const auto &primitive = gltfMesh.primitives[i];
 
@@ -495,7 +558,8 @@ void addMesh(const RTCDevice device, const RTCScene scene,
         assert(mode == TINYGLTF_MODE_TRIANGLES);
 
         auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-        rtcSetGeometryVertexAttributeCount(geom, 3);
+        rtcSetGeometryVertexAttributeCount(
+            geom, (uint32_t)VertexAttributeSlot::NUM_VERTEX_ATTRIBUTE_SLOTS);
         auto allSemantics = 0;
 
         const auto &indexAccessor = model.accessors[primitive.indices];
@@ -514,11 +578,12 @@ void addMesh(const RTCDevice device, const RTCScene scene,
         static const int32_t SEM_TEXCOORD_0 = 1 << 2;
         static const int32_t SEM_TANGENT = 1 << 3;
 
+        int32_t numFaces = indexAccessor.count / 3;
         int32_t numVertices = 0;
         uint32_t *triangles = nullptr;
         glm::vec3 *normals = nullptr;
         glm::vec3 *positions = nullptr;
-        glm::vec2 *uvs = nullptr;
+        glm::vec2 *texCoords0 = nullptr;
         glm::vec4 *tangents = nullptr;
 
         triangles = (uint32_t *)rtcSetNewGeometryBuffer(
@@ -615,7 +680,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                                 geometryBuffer =
                                     (float *)rtcSetNewGeometryBuffer(
                                         geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                                        0,
+                                        (uint32_t)VertexAttributeSlot::SLOT_NORMAL,
                                         (RTCFormat)((int)RTC_FORMAT_FLOAT +
                                                     size - 1),
                                         sizeof(float) * size, accessor.count);
@@ -626,18 +691,18 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                                 geometryBuffer =
                                     (float *)rtcSetNewGeometryBuffer(
                                         geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                                        1,
+                                        (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0,
                                         (RTCFormat)((int)RTC_FORMAT_FLOAT +
                                                     size - 1),
                                         sizeof(float) * size, accessor.count);
-                                uvs = (glm::vec2 *)geometryBuffer;
+                                texCoords0 = (glm::vec2 *)geometryBuffer;
                             } break;
                             case SEM_TANGENT: {
                                 assert(size == 4);
                                 geometryBuffer =
                                     (float *)rtcSetNewGeometryBuffer(
                                         geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                                        2,
+                                        (uint32_t)VertexAttributeSlot::SLOT_TANGENT,
                                         (RTCFormat)((int)RTC_FORMAT_FLOAT +
                                                     size - 1),
                                         sizeof(float) * size, accessor.count);
@@ -659,35 +724,12 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                                     geometryBuffer[size * i + 1] = v[1];
                                 } break;
                                 case 3: {
-                                    switch (semantics) {
-                                        case SEM_POSITION: {
-                                            const auto v =
-                                                world *
-                                                glm::vec4(buffer[0], buffer[1],
-                                                          buffer[2], 1.0f);
-                                            geometryBuffer[size * i + 0] = v[0];
-                                            geometryBuffer[size * i + 1] = v[1];
-                                            geometryBuffer[size * i + 2] = v[2];
-                                        } break;
-                                        case SEM_NORMAL: {
-                                            const auto v =
-                                                worldInverseTranspose *
-                                                glm::vec4(buffer[0], buffer[1],
-                                                          buffer[2], 1.0f);
-                                            geometryBuffer[size * i + 0] = v[0];
-                                            geometryBuffer[size * i + 1] = v[1];
-                                            geometryBuffer[size * i + 2] = v[2];
-                                        } break;
-                                        default: {
-                                            const auto v =
-                                                glm::vec4(buffer[0], buffer[1],
-                                                          buffer[2], 1.0f);
-                                            geometryBuffer[size * i + 0] = v[0];
-                                            geometryBuffer[size * i + 1] = v[1];
-                                            geometryBuffer[size * i + 2] = v[2];
-                                        } break;
-                                    }
-
+                                    const auto v =
+                                        glm::vec4(buffer[0], buffer[1],
+                                                    buffer[2], 1.0f);
+                                    geometryBuffer[size * i + 0] = v[0];
+                                    geometryBuffer[size * i + 1] = v[1];
+                                    geometryBuffer[size * i + 2] = v[2];
                                 } break;
                                 case 4: {
                                     const auto v =
@@ -709,9 +751,9 @@ void addMesh(const RTCDevice device, const RTCScene scene,
 
         if (!(allSemantics & SEM_NORMAL)) {
             auto geometryBuffer = (float *)rtcSetNewGeometryBuffer(
-                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0,
+                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_NORMAL,
                 (RTCFormat)(RTC_FORMAT_FLOAT3), sizeof(glm::vec3),
-                indexAccessor.count / 3);
+                numVertices);
             normals = (glm::vec3 *)geometryBuffer;
 
             // TODO: COMPUTE NORMALs
@@ -722,29 +764,45 @@ void addMesh(const RTCDevice device, const RTCScene scene,
 
         if (!(allSemantics & SEM_TEXCOORD_0)) {
             auto geometryBuffer = (float *)rtcSetNewGeometryBuffer(
-                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1,
+                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0,
                 (RTCFormat)(RTC_FORMAT_FLOAT2), sizeof(glm::vec3),
-                indexAccessor.count / 2);
-            uvs = (glm::vec2 *)geometryBuffer;
+                numVertices);
+            texCoords0 = (glm::vec2 *)geometryBuffer;
 
             // TODO: COMPUTE UVs
             for(auto i = 0; i < numVertices; i++) {
-                uvs[i] = glm::vec2(0.0f, 0.0f);
+                texCoords0[i] = glm::vec2(0.0f, 0.0f);
             }
         }
 
         if (!(allSemantics & SEM_TANGENT)) {
-            auto tangents = TangentGenerator::generate(
-                static_cast<int32_t>(indexAccessor.count / 3), numVertices,
-                (const glm::uvec3 *)triangles, positions, normals, uvs);
+            auto srcTangents = TangentGenerator::generate(
+                numFaces, numVertices,
+                (const glm::uvec3 *)triangles, positions, normals, texCoords0);
 
-            auto *_tangents = (glm::vec4 *)rtcSetNewGeometryBuffer(
-                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, RTC_FORMAT_FLOAT3,
-                sizeof(glm::vec4), tangents.size());
+            tangents = (glm::vec4 *)rtcSetNewGeometryBuffer(
+                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_TANGENT, RTC_FORMAT_FLOAT4,
+                sizeof(glm::vec4), numVertices);
 
-            for (auto i = 0; i < tangents.size(); i++) {
-                _tangents[i] = tangents[i];
+            for (auto i = 0; i < srcTangents.size(); i++) {
+                tangents[i] = srcTangents[i];
             }
+        }
+
+        auto bitangents = (glm::vec3 *)rtcSetNewGeometryBuffer(
+            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, (uint32_t)VertexAttributeSlot::SLOT_BITANGENT, RTC_FORMAT_FLOAT3,
+            sizeof(glm::vec3), numVertices);
+
+        for(auto i = 0; i < numVertices; i++) {
+            auto &p = positions[i];
+            auto &n = normals[i];
+            auto &t = tangents[i];
+            auto &bt = bitangents[i];
+            p = glm::vec3(transform * glm::vec4(p, 1.0f));
+
+            n = glm::normalize(glm::vec3(inverseTranspose * glm::vec4(n, 0.0f)));
+            t = glm::vec4(glm::normalize(glm::vec3(transform * glm::vec4(glm::vec3(t), 0.0f))), t.w);
+            bt = glm::normalize(glm::cross(n, glm::vec3(t))) * t.w;
         }
 
         {
@@ -769,8 +827,8 @@ void addMesh(const RTCDevice device, const RTCScene scene,
             rtcReleaseGeometry(geom);
 
             mesh->setGeometryId(geomId);
-            mesh->setWorldMatrix(world);
-            mesh->setWorldInverseTransposeMatrix(worldInverseTranspose);
+            mesh->setWorldMatrix(transform);
+            mesh->setWorldInverseTransposeMatrix(inverseTranspose);
             mesh->setMaterial(material);
 
             meshs.push_back(mesh);

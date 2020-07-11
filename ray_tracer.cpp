@@ -180,9 +180,9 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
     auto material = mesh->getMaterial().get();
 
-    glm::vec2 uv(0.0f);
+    glm::vec2 texcoord0(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, glm::value_ptr(uv), 2);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0, glm::value_ptr(texcoord0), 2);
 
     auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
 
@@ -193,7 +193,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto width = emissiveTexture->getWidth();
         auto height = emissiveTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        const auto color = glm::vec3(bilinear(glm::repeat(uv), buffer, width, height));
+        const auto color = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height));
         emissive = emissive * color;
     }
 
@@ -203,13 +203,18 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
     glm::vec3 normal(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, glm::value_ptr(normal),
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_NORMAL, glm::value_ptr(normal),
                     3);
 
     glm::vec4 tangent(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, glm::value_ptr(tangent),
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TANGENT, glm::value_ptr(tangent),
                     4);
+
+    glm::vec4 bitangent(0.0f);
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_BITANGENT, glm::value_ptr(bitangent),
+                    3);
 
     auto normalTexture = material->normalTexture.get();
     if (normalTexture != nullptr) {
@@ -217,11 +222,9 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto buffer = normalTexture->getBuffer();
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
-        auto bitangent = tangent.w * glm::cross(N, glm::vec3(tangent));
-
         // TODO: TEXTURE_WRAP
-        const auto mapN = glm::normalize(2.0f * glm::vec3(nearest(glm::repeat(uv), buffer, width, height)) - 1.0f);
-        // normal = glm::normalize(glm::vec3(tangent) * mapN.x + bitangent * mapN.y + N * mapN.z);
+        const auto mapN = 2.0f * glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) - 1.0f;
+        normal = glm::normalize(glm::mat3(glm::vec3(tangent), bitangent, N) * mapN);
     }
 
     glm::vec4 baseColor = material->baseColorFactor;
@@ -231,7 +234,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto width = baseColorTexture->getWidth();
         auto height = baseColorTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        const auto color = bilinear(glm::repeat(uv), buffer, width, height);
+        const auto color = bilinear(glm::repeat(texcoord0), buffer, width, height);
         baseColor = baseColor * color;
     }
 
@@ -243,7 +246,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto width = metalRoughnessTexture->getWidth();
         auto height = metalRoughnessTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        const auto color = glm::vec3(bilinear(glm::repeat(uv), buffer, width, height));
+        const auto color = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height));
         roughness = roughness * color.y;
         metalness = metalness * color.z;
     }
@@ -368,10 +371,10 @@ glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
             auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
             auto material = mesh->getMaterial().get();
 
-            glm::vec2 uv(0.0f);
+            glm::vec2 texcoord0(0.0f);
             rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1,
-                            glm::value_ptr(uv), 2);
+                            RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0,
+                            glm::value_ptr(texcoord0), 2);
 
             glm::vec4 baseColor = material->baseColorFactor;
             auto baseColorTexture = material->baseColorTexture.get();
@@ -380,7 +383,7 @@ glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
                 auto width = baseColorTexture->getWidth();
                 auto height = baseColorTexture->getHeight();
                 // TODO: TEXTURE_WRAP
-                const auto color = bilinear(glm::repeat(uv), buffer, width, height);
+                const auto color = bilinear(glm::repeat(texcoord0), buffer, width, height);
                 baseColor = baseColor * color;
             }
             totalColor += glm::vec3(baseColor);
@@ -429,17 +432,25 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
 
     glm::vec3 normal(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 0, glm::value_ptr(normal),
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_NORMAL, glm::value_ptr(normal),
                     3);
+    glm::normalize(normal);
 
-    glm::vec2 uv(0.0f);
+    glm::vec2 texcoord0(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, glm::value_ptr(uv), 2);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0, glm::value_ptr(texcoord0), 2);
 
     glm::vec4 tangent(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 2, glm::value_ptr(tangent),
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TANGENT, glm::value_ptr(tangent),
                     4);
+    tangent = glm::normalize(tangent);
+
+    glm::vec3 bitangent(0.0f);
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_BITANGENT, glm::value_ptr(bitangent),
+                    3);
+    bitangent = glm::normalize(bitangent);
 
     auto normalTexture = material->normalTexture.get();
     if (normalTexture != nullptr) {
@@ -447,11 +458,10 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
         auto buffer = normalTexture->getBuffer();
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
-        auto objectTangent = glm::vec3(tangent);
         // TODO: TEXTURE_WRAP
-        const auto mapN = glm::normalize(2.0f * glm::vec3(nearest(glm::repeat(uv), buffer, width, height)) - 1.0f);
-        auto bitangent = glm::cross(N, objectTangent) * tangent.w;
-        // normal = glm::normalize(objectTangent * mapN.x + bitangent * mapN.y + N * mapN.z);
+        const auto mapN = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) * 2.0f - 1.0f;
+        const auto tbn = glm::mat3(glm::vec3(tangent), bitangent, N);
+        normal = glm::normalize(tbn * mapN);
     }
 
     return normal;
@@ -495,9 +505,9 @@ glm::vec3 RayTracer::renderEmissive(RTCScene scene,
     auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
     auto material = mesh->getMaterial().get();
 
-    glm::vec2 uv(0.0f);
+    glm::vec2 texCoord0(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, 1, glm::value_ptr(uv), 2);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0, glm::value_ptr(texCoord0), 2);
 
     glm::vec3 emissive = material->emissiveFactor;
     auto emissiveTexture = material->emissiveTexture.get();
@@ -506,7 +516,7 @@ glm::vec3 RayTracer::renderEmissive(RTCScene scene,
         auto width = emissiveTexture->getWidth();
         auto height = emissiveTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        const auto color = glm::vec3(bilinear(glm::repeat(uv), buffer, width, height));
+        const auto color = glm::vec3(bilinear(glm::repeat(texCoord0), buffer, width, height));
         emissive = emissive * color;
     }
 

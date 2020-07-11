@@ -14,6 +14,14 @@
 #include "texture.hpp"
 #include "material.hpp"
 
+enum VertexAttributeSlot {
+    SLOT_NORMAL = 0,
+    SLOT_TEXCOORD_0,
+    SLOT_TANGENT,
+    SLOT_BITANGENT,
+    NUM_VERTEX_ATTRIBUTE_SLOTS
+};
+
 class Mesh {
   public:
     void *operator new(size_t size) { return aligned_alloc(size, 16); }
