@@ -893,7 +893,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                     : nullptr,
                 emissiveFactor,
                 emissiveTextureIndex >= 0 ? images[emissiveTextureIndex]
-                                          : nullptr));
+                                          : nullptr, false));
 
             auto mesh = PMesh(new Mesh());
             rtcSetGeometryUserData(geom, (void *)mesh.get());
@@ -1031,7 +1031,7 @@ ConstantPMeshList addObjModel(const RTCDevice device, const RTCScene scene,
             glm::vec3(mp->emission[0], mp->emission[1], mp->emission[2]),
             textures.find(mp->emissive_texname) == textures.end()
                 ? textures[mp->emissive_texname]
-                : nullptr));
+                : nullptr, false));
         materials.push_back(material);
     }
 

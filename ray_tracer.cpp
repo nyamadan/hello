@@ -353,7 +353,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
     const glm::vec3 orientingNormal = glm::dot(normal , rayDir) < 0.0f ? normal: (-1.0f * normal);
 
-    if(false){
+    if(material->refraction){
         const auto reflectionDir = rayDir - normal * 2.0f * glm::dot(normal, rayDir);
         auto reflectionRay = RTCRayHit();
         reflectionRay.ray.dir_x = reflectionDir.x;
