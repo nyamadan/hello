@@ -235,6 +235,37 @@ glm::vec3 RayTracer::computeSpecular(RTCScene scene,
     return glm::vec3(0.0f);
 }
 
+glm::vec3 RayTracer::computeReflection(RTCScene scene,
+                                     const RayTracerCamera &camera,
+                                     xorshift128plus_state &randomState,
+                                     IntersectContext context,
+                                     int32_t depth, const glm::vec4 &baseColor,
+                                     float roughness, float metalness, const glm::vec3 &p,
+                                     const glm::vec3 &N, const glm::vec3 &V) {
+    auto specular = glm::vec3(0.0f);
+    auto diffuse = glm::vec3(0.0f);
+
+    if (depth > 2) {
+        if (xorshift128plus01f(randomState) < metalness) {
+            specular =
+                computeSpecular(scene, camera, randomState, context, depth,
+                                baseColor, roughness, p, N, V);
+        } else {
+            diffuse = computeDiffuse(scene, camera, randomState, context, depth,
+                                     baseColor, p, N);
+        }
+    } else {
+        specular = metalness * computeSpecular(scene, camera, randomState,
+                                               context, depth, baseColor,
+                                               roughness, p, N, V);
+        diffuse = (1.0f - metalness) *
+                  computeDiffuse(scene, camera, randomState, context, depth,
+                                 baseColor, p, N);
+    }
+
+    return specular + diffuse;
+}
+
 glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
                               xorshift128plus_state &randomState,
                               IntersectContext context, RTCRayHit &ray,
@@ -354,19 +385,6 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     const glm::vec3 orientingNormal = glm::dot(normal , rayDir) < 0.0f ? normal: (-1.0f * normal);
 
     if(material->refraction){
-        const auto reflectionDir = rayDir - normal * 2.0f * glm::dot(normal, rayDir);
-        auto reflectionRay = RTCRayHit();
-        reflectionRay.ray.dir_x = reflectionDir.x;
-        reflectionRay.ray.dir_y = reflectionDir.y;
-        reflectionRay.ray.dir_z = reflectionDir.z;
-        reflectionRay.ray.org_x = p.x;
-        reflectionRay.ray.org_y = p.y;
-        reflectionRay.ray.org_z = p.z;
-        reflectionRay.ray.tnear = camera.getNear();
-        reflectionRay.ray.tfar = camera.getFar();
-        reflectionRay.ray.time = 0.0f;
-        reflectionRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-
         const bool into = glm::dot(normal, orientingNormal) > 0.0f;
 
         const auto nc = 1.0f;
@@ -376,12 +394,11 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         const auto cos2t = 1.0f - nnt * nnt * (1.0f - ddn * ddn);
 
         if (cos2t < 0.0) {
-            auto incomingRadiance = radiance(scene, camera, randomState, context, reflectionRay, depth + 1);
-            return emissive + glm::vec3(baseColor) * incomingRadiance / russianRouletteProbability;
+            auto reflection = computeReflection(scene, camera, randomState, context, depth, baseColor, roughness, metalness, p, orientingNormal, -rayDir);
+            return emissive + reflection / russianRouletteProbability;
         }
-        const auto refractionDir =
-            glm::normalize(rayDir * nnt - normal * (into ? 1.0f : -1.0f) *
-                                          (ddn * nnt + sqrt(cos2t)));
+
+        const auto refractionDir = glm::normalize(rayDir * nnt - normal * (into ? 1.0f : -1.0f) * (ddn * nnt + glm::sqrt(cos2t)));
         auto refractionRay = RTCRayHit();
         refractionRay.ray.dir_x = refractionDir.x;
         refractionRay.ray.dir_y = refractionDir.y;
@@ -405,42 +422,20 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         const auto probability = 0.25f + 0.5f * Re;
         if (depth > 2) {
             if (xorshift128plus01f(randomState) < probability) {
-                auto incomingRadiance = radiance(scene, camera, randomState, context, reflectionRay, depth + 1) * Re;
-                return emissive + glm::vec3(baseColor) * incomingRadiance / (probability * russianRouletteProbability);
+                auto reflection = computeReflection(scene, camera, randomState, context, depth, baseColor, roughness, metalness, p, orientingNormal, -rayDir) * Re;
+                return emissive + reflection / (probability * russianRouletteProbability);
             } else {
-                auto incomingRadiance =
-                    radiance(scene, camera, randomState, context, refractionRay, depth + 1) * Tr;
-                return emissive + glm::vec3(baseColor) * incomingRadiance / ((1.0f - probability) * russianRouletteProbability);
+                auto refraction = glm::vec3(baseColor) * radiance(scene, camera, randomState, context, refractionRay, depth + 1) * Tr;
+                return emissive + refraction / ((1.0f - probability) * russianRouletteProbability);
             }
-        } else {  // 屈折と反射の両方を追跡
-            auto incomingRadiance = radiance(scene, camera, randomState, context, reflectionRay, depth + 1) * Re +
-                radiance(scene, camera, randomState, context, refractionRay, depth + 1) * Tr;
-            return emissive + glm::vec3(baseColor) * incomingRadiance / russianRouletteProbability;
-        }
-    }
-
-    auto specular = glm::vec3(0.0f);
-    auto diffuse = glm::vec3(0.0f);
-
-    if (depth > 2) {
-        if (xorshift128plus01f(randomState) < metalness) {
-            specular =
-                computeSpecular(scene, camera, randomState, context, depth,
-                                baseColor, roughness, p, orientingNormal, -rayDir);
         } else {
-            diffuse = computeDiffuse(scene, camera, randomState, context, depth,
-                                     baseColor, p, orientingNormal);
+            auto reflection = computeReflection(scene, camera, randomState, context, depth, baseColor, roughness, metalness, p, orientingNormal, -rayDir) * Re;
+            auto refraction = glm::vec3(baseColor) * radiance(scene, camera, randomState, context, refractionRay, depth + 1) * Tr;
+            return emissive + (reflection + refraction) / russianRouletteProbability;
         }
-    } else {
-        specular = metalness * computeSpecular(scene, camera, randomState,
-                                               context, depth, baseColor,
-                                               roughness, p, orientingNormal, -rayDir);
-        diffuse = (1.0f - metalness) *
-                  computeDiffuse(scene, camera, randomState, context, depth,
-                                 baseColor, p, orientingNormal);
     }
 
-    return emissive + (specular + diffuse) / russianRouletteProbability;
+    return emissive + computeReflection(scene, camera, randomState, context, depth, baseColor, roughness, metalness, p, orientingNormal, -rayDir) / russianRouletteProbability;
 }
 
 glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,

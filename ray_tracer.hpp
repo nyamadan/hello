@@ -65,6 +65,12 @@ class RayTracer {
                               int32_t depth, const glm::vec4 &baseColor,
                               float roughness, const glm::vec3 &p,
                               const glm::vec3 &N, const glm::vec3 &V);
+    glm::vec3 RayTracer::computeReflection(
+        RTCScene scene, const RayTracerCamera &camera,
+        xorshift128plus_state &randomState, IntersectContext context,
+        int32_t depth, const glm::vec4 &baseColor, float roughness,
+        float metalness, const glm::vec3 &p, const glm::vec3 &N,
+        const glm::vec3 &V);
     glm::vec3 importanceSampleGGX(const glm::vec2 &Xi, const glm::vec3 &N,
                                   float roughness);
     glm::vec3 radiance(RTCScene scene, const RayTracerCamera &camera,
