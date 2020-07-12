@@ -10,8 +10,7 @@
 #include "ray_tracer.hpp"
 
 template <typename T>
-T nearest(const glm::vec2 &uv, const T *image, int32_t width,
-                  int32_t height) {
+T nearest(const glm::vec2 &uv, const T *image, int32_t width, int32_t height) {
     auto u = static_cast<int32_t>(glm::round((width - 1) * uv.x));
     auto v = static_cast<int32_t>(glm::round((height - 1) * uv.y));
 
@@ -19,8 +18,7 @@ T nearest(const glm::vec2 &uv, const T *image, int32_t width,
 }
 
 template <typename T>
-T bilinear(const glm::vec2 &uv, const T *image, int32_t width,
-                   int32_t height) {
+T bilinear(const glm::vec2 &uv, const T *image, int32_t width, int32_t height) {
     auto u = uv.x * (width - 1);
     auto v = uv.y * (height - 1);
     auto u0 = static_cast<int32_t>(glm::floor(u));
@@ -152,48 +150,48 @@ float G_Smith(float roughness, float NdotV, float NdotL) {
 }
 
 glm::vec3 RayTracer::computeDiffuse(RTCScene scene,
-                                     const RayTracerCamera &camera,
-                                     xorshift128plus_state &randomState,
-                                     IntersectContext context,
-                                     int32_t depth, const glm::vec4 &baseColor,
-                                     const glm::vec3 &p,
-                                     const glm::vec3 &N) {
+                                    const RayTracerCamera &camera,
+                                    xorshift128plus_state &randomState,
+                                    IntersectContext context, int32_t depth,
+                                    const glm::vec4 &baseColor,
+                                    const glm::vec3 &p, const glm::vec3 &N) {
     const auto kEPS = 0.001f;
-        glm::vec3 u, v;
-        if (glm::abs(N.x) > kEPS) {
-            u = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), N));
-        } else {
-            u = glm::normalize(glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), N));
-        }
-        v = glm::cross(N, u);
-        const float r1 = 2.0f * M_PI * xorshift128plus01f(randomState);
-        const float r2 = xorshift128plus01f(randomState), r2s = glm::sqrt(r2);
-        glm::vec3 L =
-            glm::normalize((u * glm::cos(r1) * r2s + v * glm::sin(r1) * r2s + N * glm::sqrt(1.0f - r2)));
+    glm::vec3 u, v;
+    if (glm::abs(N.x) > kEPS) {
+        u = glm::normalize(glm::cross(glm::vec3(0.0f, 1.0f, 0.0f), N));
+    } else {
+        u = glm::normalize(glm::cross(glm::vec3(1.0f, 0.0f, 0.0f), N));
+    }
+    v = glm::cross(N, u);
+    const float r1 = 2.0f * M_PI * xorshift128plus01f(randomState);
+    const float r2 = xorshift128plus01f(randomState), r2s = glm::sqrt(r2);
+    glm::vec3 L =
+        glm::normalize((u * glm::cos(r1) * r2s + v * glm::sin(r1) * r2s +
+                        N * glm::sqrt(1.0f - r2)));
 
-        /* initialize ray */
-        auto nextRay = RTCRayHit();
-        nextRay.ray.dir_x = L.x;
-        nextRay.ray.dir_y = L.y;
-        nextRay.ray.dir_z = L.z;
-        nextRay.ray.org_x = p.x;
-        nextRay.ray.org_y = p.y;
-        nextRay.ray.org_z = p.z;
-        nextRay.ray.tnear = camera.getNear();
-        nextRay.ray.tfar = camera.getFar();
-        nextRay.ray.time = 0.0f;
-        nextRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-        auto incomingRadiance =
-            radiance(scene, camera, randomState, context, nextRay, depth + 1);
+    /* initialize ray */
+    auto nextRay = RTCRayHit();
+    nextRay.ray.dir_x = L.x;
+    nextRay.ray.dir_y = L.y;
+    nextRay.ray.dir_z = L.z;
+    nextRay.ray.org_x = p.x;
+    nextRay.ray.org_y = p.y;
+    nextRay.ray.org_z = p.z;
+    nextRay.ray.tnear = camera.getNear();
+    nextRay.ray.tfar = camera.getFar();
+    nextRay.ray.time = 0.0f;
+    nextRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+    auto incomingRadiance =
+        radiance(scene, camera, randomState, context, nextRay, depth + 1);
 
-        return glm::vec3(baseColor) * incomingRadiance;
+    return glm::vec3(baseColor) * incomingRadiance;
 }
 
 glm::vec3 RayTracer::computeSpecular(RTCScene scene,
                                      const RayTracerCamera &camera,
                                      xorshift128plus_state &randomState,
-                                     IntersectContext context,
-                                     int32_t depth, const glm::vec4 &baseColor,
+                                     IntersectContext context, int32_t depth,
+                                     const glm::vec4 &baseColor,
                                      float roughness, const glm::vec3 &p,
                                      const glm::vec3 &N, const glm::vec3 &V) {
     const auto Xi = glm::vec2(xorshift128plus01f(randomState),
@@ -235,35 +233,107 @@ glm::vec3 RayTracer::computeSpecular(RTCScene scene,
     return glm::vec3(0.0f);
 }
 
-glm::vec3 RayTracer::computeReflection(RTCScene scene,
-                                     const RayTracerCamera &camera,
-                                     xorshift128plus_state &randomState,
-                                     IntersectContext context,
-                                     int32_t depth, const glm::vec4 &baseColor,
-                                     float roughness, float metalness, const glm::vec3 &p,
-                                     const glm::vec3 &N, const glm::vec3 &V) {
+glm::vec3 RayTracer::computeReflection(
+    RTCScene scene, const RayTracerCamera &camera,
+    xorshift128plus_state &randomState, IntersectContext context, int32_t depth,
+    const glm::vec4 &baseColor, float roughness, float metalness,
+    const glm::vec3 &p, const glm::vec3 &N, const glm::vec3 &V) {
     auto specular = glm::vec3(0.0f);
     auto diffuse = glm::vec3(0.0f);
 
     if (depth > 2) {
         if (xorshift128plus01f(randomState) < metalness) {
-            specular =
-                computeSpecular(scene, camera, randomState, context, depth,
-                                baseColor, roughness, p, N, V);
+            specular = computeSpecular(scene, camera, randomState, context,
+                                       depth, baseColor, roughness, p, N, V);
         } else {
             diffuse = computeDiffuse(scene, camera, randomState, context, depth,
                                      baseColor, p, N);
         }
     } else {
-        specular = metalness * computeSpecular(scene, camera, randomState,
-                                               context, depth, baseColor,
-                                               roughness, p, N, V);
-        diffuse = (1.0f - metalness) *
-                  computeDiffuse(scene, camera, randomState, context, depth,
-                                 baseColor, p, N);
+        specular =
+            metalness * computeSpecular(scene, camera, randomState, context,
+                                        depth, baseColor, roughness, p, N, V);
+        diffuse = (1.0f - metalness) * computeDiffuse(scene, camera,
+                                                      randomState, context,
+                                                      depth, baseColor, p, N);
     }
 
     return specular + diffuse;
+}
+
+glm::vec3 RayTracer::computeRefraction(
+    RTCScene scene, const RayTracerCamera &camera,
+    xorshift128plus_state &randomState, IntersectContext context, int32_t depth,
+    const glm::vec4 &baseColor, float roughness, float metalness,
+    const glm::vec3 &p, const glm::vec3 &normal,
+    const glm::vec3 &orientingNormal, const glm::vec3 &rayDir) {
+    const bool into = glm::dot(normal, orientingNormal) > 0.0f;
+
+    const auto nc = 1.0f;
+    const auto nt = 1.5f;
+    const auto nnt = into ? nc / nt : nt / nc;
+    const auto ddn = glm::dot(rayDir, orientingNormal);
+    const auto cos2t = 1.0f - nnt * nnt * (1.0f - ddn * ddn);
+
+    if (cos2t < 0.0) {
+        auto reflection = computeReflection(
+            scene, camera, randomState, context, depth, baseColor, roughness,
+            metalness, p, orientingNormal, -rayDir);
+        return reflection;
+    }
+
+    const auto refractionDir =
+        glm::normalize(rayDir * nnt - normal * (into ? 1.0f : -1.0f) *
+                                          (ddn * nnt + glm::sqrt(cos2t)));
+    auto refractionRay = RTCRayHit();
+    refractionRay.ray.dir_x = refractionDir.x;
+    refractionRay.ray.dir_y = refractionDir.y;
+    refractionRay.ray.dir_z = refractionDir.z;
+    refractionRay.ray.org_x = p.x;
+    refractionRay.ray.org_y = p.y;
+    refractionRay.ray.org_z = p.z;
+    refractionRay.ray.tnear = camera.getNear();
+    refractionRay.ray.tfar = camera.getFar();
+    refractionRay.ray.time = 0.0f;
+    refractionRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+
+    const auto a = nt - nc, b = nt + nc;
+    const auto R0 = (a * a) / (b * b);
+
+    const auto c =
+        1.0f - (into ? -ddn : glm::dot(refractionDir, -1.0f * orientingNormal));
+    const auto Re = R0 + (1.0f - R0) * glm::pow(c, 5.0f);
+    const auto nnt2 = glm::pow(into ? nc / nt : nt / nc, 2.0f);
+    const auto Tr = (1.0f - Re) * nnt2;
+
+    const auto probability = 0.25f + 0.5f * Re;
+    if (depth > 2) {
+        if (xorshift128plus01f(randomState) < probability) {
+            auto reflection =
+                computeReflection(scene, camera, randomState, context, depth,
+                                  baseColor, roughness, metalness, p,
+                                  orientingNormal, -rayDir) *
+                Re;
+            return reflection / probability;
+        } else {
+            auto refraction = glm::vec3(baseColor) *
+                              radiance(scene, camera, randomState, context,
+                                       refractionRay, depth + 1) *
+                              Tr;
+            return refraction / (1.0f - probability);
+        }
+    } else {
+        auto reflection =
+            computeReflection(scene, camera, randomState, context, depth,
+                              baseColor, roughness, metalness, p,
+                              orientingNormal, -rayDir) *
+            Re;
+        auto refraction = glm::vec3(baseColor) *
+                          radiance(scene, camera, randomState, context,
+                                   refractionRay, depth + 1) *
+                          Tr;
+        return reflection + refraction;
+    }
 }
 
 glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
@@ -296,7 +366,8 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
     glm::vec2 texcoord0(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0, glm::value_ptr(texcoord0), 2);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0,
+                    glm::value_ptr(texcoord0), 2);
 
     glm::vec3 emissive = material->emissiveFactor;
     auto emissiveTexture = material->emissiveTexture.get();
@@ -305,14 +376,15 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto width = emissiveTexture->getWidth();
         auto height = emissiveTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        const auto color = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height));
+        const auto color =
+            glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height));
         emissive = emissive * color;
     }
 
     glm::vec3 normal(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_NORMAL, glm::value_ptr(normal),
-                    3);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_NORMAL,
+                    glm::value_ptr(normal), 3);
     normal = glm::normalize(normal);
     auto normalIsNan = glm::isnan(normal);
     if (normalIsNan.x || normalIsNan.y || normalIsNan.z) {
@@ -321,14 +393,14 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
     glm::vec3 tangent(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TANGENT, glm::value_ptr(tangent),
-                    3);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TANGENT,
+                    glm::value_ptr(tangent), 3);
     tangent = glm::normalize(tangent);
 
     glm::vec4 bitangent(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_BITANGENT, glm::value_ptr(bitangent),
-                    3);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_BITANGENT,
+                    glm::value_ptr(bitangent), 3);
     bitangent = glm::normalize(bitangent);
 
     auto normalTexture = material->normalTexture.get();
@@ -337,7 +409,9 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        auto mapN = 2.0f * glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) - 1.0f;
+        auto mapN = 2.0f * glm::vec3(bilinear(glm::repeat(texcoord0), buffer,
+                                              width, height)) -
+                    1.0f;
         const auto tbn = glm::mat3(tangent, bitangent, normal);
         // normal = glm::normalize(tbn * mapN);
     }
@@ -349,7 +423,8 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto width = baseColorTexture->getWidth();
         auto height = baseColorTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        const auto color = bilinear(glm::repeat(texcoord0), buffer, width, height);
+        const auto color =
+            bilinear(glm::repeat(texcoord0), buffer, width, height);
         baseColor = baseColor * color;
     }
 
@@ -361,7 +436,8 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         auto width = metalRoughnessTexture->getWidth();
         auto height = metalRoughnessTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        const auto color = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height));
+        const auto color =
+            glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height));
         roughness = roughness * color.y;
         metalness = metalness * color.z;
     }
@@ -382,60 +458,21 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         russianRouletteProbability = 1.0f;
     }
 
-    const glm::vec3 orientingNormal = glm::dot(normal , rayDir) < 0.0f ? normal: (-1.0f * normal);
+    const glm::vec3 orientingNormal =
+        glm::dot(normal, rayDir) < 0.0f ? normal : (-1.0f * normal);
 
-    if(material->refraction){
-        const bool into = glm::dot(normal, orientingNormal) > 0.0f;
-
-        const auto nc = 1.0f;
-        const auto nt = 1.5f;
-        const auto nnt = into ? nc / nt : nt / nc;
-        const auto ddn = glm::dot(rayDir, orientingNormal);
-        const auto cos2t = 1.0f - nnt * nnt * (1.0f - ddn * ddn);
-
-        if (cos2t < 0.0) {
-            auto reflection = computeReflection(scene, camera, randomState, context, depth, baseColor, roughness, metalness, p, orientingNormal, -rayDir);
-            return emissive + reflection / russianRouletteProbability;
-        }
-
-        const auto refractionDir = glm::normalize(rayDir * nnt - normal * (into ? 1.0f : -1.0f) * (ddn * nnt + glm::sqrt(cos2t)));
-        auto refractionRay = RTCRayHit();
-        refractionRay.ray.dir_x = refractionDir.x;
-        refractionRay.ray.dir_y = refractionDir.y;
-        refractionRay.ray.dir_z = refractionDir.z;
-        refractionRay.ray.org_x = p.x;
-        refractionRay.ray.org_y = p.y;
-        refractionRay.ray.org_z = p.z;
-        refractionRay.ray.tnear = camera.getNear();
-        refractionRay.ray.tfar = camera.getFar();
-        refractionRay.ray.time = 0.0f;
-        refractionRay.hit.geomID = RTC_INVALID_GEOMETRY_ID;
-
-        const auto a = nt - nc, b = nt + nc;
-        const auto R0 = (a * a) / (b * b);
-
-        const auto c = 1.0f - (into ? -ddn : glm::dot(refractionDir, -1.0f * orientingNormal));
-        const auto Re = R0 + (1.0f - R0) * glm::pow(c, 5.0f);
-        const auto nnt2 = glm::pow(into ? nc / nt : nt / nc, 2.0f);
-        const auto Tr = (1.0f - Re) * nnt2;
-
-        const auto probability = 0.25f + 0.5f * Re;
-        if (depth > 2) {
-            if (xorshift128plus01f(randomState) < probability) {
-                auto reflection = computeReflection(scene, camera, randomState, context, depth, baseColor, roughness, metalness, p, orientingNormal, -rayDir) * Re;
-                return emissive + reflection / (probability * russianRouletteProbability);
-            } else {
-                auto refraction = glm::vec3(baseColor) * radiance(scene, camera, randomState, context, refractionRay, depth + 1) * Tr;
-                return emissive + refraction / ((1.0f - probability) * russianRouletteProbability);
-            }
-        } else {
-            auto reflection = computeReflection(scene, camera, randomState, context, depth, baseColor, roughness, metalness, p, orientingNormal, -rayDir) * Re;
-            auto refraction = glm::vec3(baseColor) * radiance(scene, camera, randomState, context, refractionRay, depth + 1) * Tr;
-            return emissive + (reflection + refraction) / russianRouletteProbability;
-        }
+    if (baseColor.a < 1.0f) {
+        return emissive + computeRefraction(scene, camera, randomState, context,
+                                            depth, baseColor, roughness,
+                                            metalness, p, normal,
+                                            orientingNormal, rayDir) /
+                              russianRouletteProbability;
     }
 
-    return emissive + computeReflection(scene, camera, randomState, context, depth, baseColor, roughness, metalness, p, orientingNormal, -rayDir) / russianRouletteProbability;
+    return emissive + computeReflection(scene, camera, randomState, context,
+                                        depth, baseColor, roughness, metalness,
+                                        p, orientingNormal, -rayDir) /
+                          russianRouletteProbability;
 }
 
 glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
@@ -494,7 +531,8 @@ glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
                 auto width = baseColorTexture->getWidth();
                 auto height = baseColorTexture->getHeight();
                 // TODO: TEXTURE_WRAP
-                const auto color = bilinear(glm::repeat(texcoord0), buffer, width, height);
+                const auto color =
+                    bilinear(glm::repeat(texcoord0), buffer, width, height);
                 baseColor = baseColor * color;
             }
             totalColor += glm::vec3(baseColor);
@@ -542,12 +580,13 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
 
     glm::vec2 texcoord0(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0, glm::value_ptr(texcoord0), 2);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0,
+                    glm::value_ptr(texcoord0), 2);
 
     glm::vec3 normal(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_NORMAL, glm::value_ptr(normal),
-                    3);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_NORMAL,
+                    glm::value_ptr(normal), 3);
     normal = glm::normalize(normal);
     auto normalIsNan = glm::isnan(normal);
     if (normalIsNan.x || normalIsNan.y || normalIsNan.z) {
@@ -556,14 +595,14 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
 
     glm::vec3 tangent(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TANGENT, glm::value_ptr(tangent),
-                    3);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TANGENT,
+                    glm::value_ptr(tangent), 3);
     tangent = glm::normalize(tangent);
 
     glm::vec3 bitangent(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_BITANGENT, glm::value_ptr(bitangent),
-                    3);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_BITANGENT,
+                    glm::value_ptr(bitangent), 3);
     bitangent = glm::normalize(bitangent);
 
     auto normalTexture = material->normalTexture.get();
@@ -572,7 +611,10 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        auto mapN = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) * 2.0f - 1.0f;
+        auto mapN =
+            glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) *
+                2.0f -
+            1.0f;
         const auto tbn = glm::mat3(tangent, bitangent, normal);
         // normal = glm::normalize(tbn * mapN);
     }
@@ -620,7 +662,8 @@ glm::vec3 RayTracer::renderEmissive(RTCScene scene,
 
     glm::vec2 texCoord0(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0, glm::value_ptr(texCoord0), 2);
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0,
+                    glm::value_ptr(texCoord0), 2);
 
     glm::vec3 emissive = material->emissiveFactor;
     auto emissiveTexture = material->emissiveTexture.get();
@@ -629,7 +672,8 @@ glm::vec3 RayTracer::renderEmissive(RTCScene scene,
         auto width = emissiveTexture->getWidth();
         auto height = emissiveTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        const auto color = glm::vec3(bilinear(glm::repeat(texCoord0), buffer, width, height));
+        const auto color =
+            glm::vec3(bilinear(glm::repeat(texCoord0), buffer, width, height));
         emissive = emissive * color;
     }
 

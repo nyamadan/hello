@@ -22,7 +22,6 @@ class Material {
     glm::vec3 emissiveFactor;
     std::shared_ptr<const Texture> emissiveTexture;
     std::shared_ptr<const Texture> metallicRoughnessTexture;
-    bool refraction = false;
 
     Material() {
         this->baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -33,7 +32,6 @@ class Material {
         this->metallicRoughnessTexture = nullptr;
         this->emissiveFactor = glm::vec3(0.0f, 0.0f, 0.0f);
         this->emissiveTexture = nullptr;
-        this->refraction = false;
     }
 
     Material(const glm::vec4 &baseColorFactor,
@@ -42,8 +40,7 @@ class Material {
              float roughnessFactor, float metalnessFactor,
              std::shared_ptr<const Texture> metallicRoughnessTexture,
              const glm::vec3 &emissiveFactor,
-             std::shared_ptr<const Texture> emissiveTexture,
-             bool refraction) {
+             std::shared_ptr<const Texture> emissiveTexture) {
         this->baseColorFactor = baseColorFactor;
         this->baseColorTexture = baseColorTexture;
         this->normalTexture = normalTexture;
@@ -52,7 +49,6 @@ class Material {
         this->metallicRoughnessTexture = metallicRoughnessTexture;
         this->emissiveFactor = emissiveFactor;
         this->emissiveTexture = emissiveTexture;
-        this->refraction = refraction;
     }
 };
 

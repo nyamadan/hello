@@ -81,21 +81,21 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
         addCube(device, scene,
                 PMaterial(new Material(glm::vec4(0.0, 0.0f, 1.0f, 1.0f),
                                        nullptr, nullptr, 0.25f, 0.75f, nullptr,
-                                       glm::vec3(0.0f), nullptr, false)),
+                                       glm::vec3(0.0f), nullptr)),
                 glm::translate(glm::vec3(-3.0f, 1.0f,-3.0f))));
 
     meshs.push_back(
         addSphere(device, scene,
                   PMaterial(new Material(glm::vec4(1.0, 0.0f, 0.0f, 1.0f),
                                          nullptr, nullptr, 0.25f, 0.75f,
-                                         nullptr, glm::vec3(0.0f), nullptr, false)),
+                                         nullptr, glm::vec3(0.0f), nullptr)),
                   1.0f, 80, 60, glm::translate(glm::vec3(+3.0f, 1.0f,-3.0f))));
 
     meshs.push_back(
         addSphere(device, scene,
-                  PMaterial(new Material(glm::vec4(0.0, 1.0f, 0.0f, 1.0f),
+                  PMaterial(new Material(glm::vec4(0.0, 1.0f, 0.0f, 0.0f),
                                          nullptr, nullptr, 0.25f, 0.75f,
-                                         nullptr, glm::vec3(0.0f), nullptr, true)),
+                                         nullptr, glm::vec3(0.0f), nullptr)),
                   1.0f, 80, 60, glm::translate(glm::vec3(0.0f, 1.0f,+3.0f))));
     return meshs;
 }
@@ -159,7 +159,7 @@ void loadGlbModel(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
         device, scene,
         PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
                                nullptr, 0.5f, 0.5f, nullptr, glm::vec3(0.0f),
-                               nullptr, false)),
+                               nullptr)),
         glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
             glm::scale(glm::vec3(
                 std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
@@ -212,7 +212,7 @@ int main(void) {
             device, scene,
             PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
                                    nullptr, 0.5f, 0.5f, nullptr,
-                                   glm::vec3(0.0f), nullptr, false)),
+                                   glm::vec3(0.0f), nullptr)),
             glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
                 glm::scale(glm::vec3(
                     std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
