@@ -52,6 +52,19 @@ class RayTracer {
                               xorshift128plus_state &randomState, float x,
                               float y);
 
+    glm::vec3 computeDiffuse(RTCScene scene, const RayTracerCamera &camera,
+                              xorshift128plus_state &randomState,
+                              IntersectContext context,
+                              int32_t depth, const glm::vec4 &baseColor,
+                              const glm::vec3 &p,
+                              const glm::vec3 &N);
+
+    glm::vec3 computeSpecular(RTCScene scene, const RayTracerCamera &camera,
+                              xorshift128plus_state &randomState,
+                              IntersectContext context,
+                              int32_t depth, const glm::vec4 &baseColor,
+                              float roughness, const glm::vec3 &p,
+                              const glm::vec3 &N, const glm::vec3 &V);
     glm::vec3 importanceSampleGGX(const glm::vec2 &Xi, const glm::vec3 &N,
                                   float roughness);
     glm::vec3 radiance(RTCScene scene, const RayTracerCamera &camera,
