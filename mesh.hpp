@@ -8,6 +8,7 @@
 
 #include <embree3/rtcore.h>
 #include <tiny_gltf.h>
+#include <tiny_obj_loader.h>
 
 #include "alloc.hpp"
 
@@ -91,5 +92,8 @@ void addNode(const RTCDevice device, const RTCScene scene,
              const tinygltf::Node &node, const glm::mat4 world,
              std::list<PMesh> &meshs);
 
-ConstantPMeshList addModel(const RTCDevice device, const RTCScene scene,
-                           const tinygltf::Model &model);
+ConstantPMeshList addGlbModel(const RTCDevice device, const RTCScene scene,
+                              const tinygltf::Model &model);
+
+ConstantPMeshList addObjModel(const RTCDevice device, const RTCScene scene,
+                              const std::string &filename);

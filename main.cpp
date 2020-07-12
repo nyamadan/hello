@@ -8,8 +8,8 @@
 
 #include "debug_gui.hpp"
 #include "fps_camera_controller.hpp"
-#include "mesh.hpp"
 #include "image_buffer.hpp"
+#include "mesh.hpp"
 #include "mouse_camera_controller.hpp"
 #include "ray_tracer.hpp"
 
@@ -79,18 +79,17 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
 
     meshs.push_back(
         addCube(device, scene,
-                  PMaterial(new Material(glm::vec4(0.0, 0.0f, 1.0f, 1.0f),
-                                         nullptr, nullptr, 0.25f, 0.75f,
-                                         nullptr, glm::vec3(0.0f), nullptr)),
-                  glm::translate(glm::vec3(-3.0f, 1.0f, 0.0f))));
+                PMaterial(new Material(glm::vec4(0.0, 0.0f, 1.0f, 1.0f),
+                                       nullptr, nullptr, 0.25f, 0.75f, nullptr,
+                                       glm::vec3(0.0f), nullptr)),
+                glm::translate(glm::vec3(-3.0f, 1.0f, 0.0f))));
 
     meshs.push_back(
         addSphere(device, scene,
                   PMaterial(new Material(glm::vec4(1.0, 0.0f, 0.0f, 1.0f),
                                          nullptr, nullptr, 0.25f, 0.75f,
                                          nullptr, glm::vec3(0.0f), nullptr)),
-                  1.0f, 80, 60,
-                  glm::translate(glm::vec3(+3.0f, 1.0f, 0.0f))));
+                  1.0f, 80, 60, glm::translate(glm::vec3(+3.0f, 1.0f, 0.0f))));
     return meshs;
 }
 
@@ -103,10 +102,14 @@ const ConstantPMeshList addMeshsToScene(RTCDevice device, RTCScene scene,
     tinygltf::TinyGLTF loader;
     std::string err;
     std::string warn;
+    if (loader.LoadBinaryFromFile(&model, &err, &warn, path)) {
+        const auto x = addGlbModel(device, scene, model);
+        meshs.insert(meshs.cend(), x.cbegin(), x.cend());
+    } else {
+        std::string warn;
+        std::string err;
 
-    const auto ret = loader.LoadBinaryFromFile(&model, &err, &warn, path);
-    if (ret) {
-        const auto x = addModel(device, scene, model);
+        const auto x = addObjModel(device, scene, path);
         meshs.insert(meshs.cend(), x.cbegin(), x.cend());
     }
 
@@ -148,7 +151,8 @@ void loadGlbModel(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
     meshs.push_back(addGroundPlane(
         device, scene,
         PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
-                               nullptr, 0.5f, 0.5f, nullptr, glm::vec3(0.0f), nullptr)),
+                               nullptr, 0.5f, 0.5f, nullptr, glm::vec3(0.0f),
+                               nullptr)),
         glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
             glm::scale(glm::vec3(
                 std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
@@ -200,7 +204,8 @@ int main(void) {
         meshs.push_back(addGroundPlane(
             device, scene,
             PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
-                                   nullptr, 0.5f, 0.5f, nullptr, glm::vec3(0.0f), nullptr)),
+                                   nullptr, 0.5f, 0.5f, nullptr,
+                                   glm::vec3(0.0f), nullptr)),
             glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
                 glm::scale(glm::vec3(
                     std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),

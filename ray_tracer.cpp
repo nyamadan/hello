@@ -156,6 +156,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
                               IntersectContext context, RTCRayHit &ray,
                               int32_t depth) {
     const auto kDepthLimit = 64;
+    const auto kDepth = 5;
     const auto kEPS = 0.001f;
 
     const auto tnear = camera.getNear();
@@ -165,6 +166,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     context.depth = depth;
     rtcIntersect1(scene, &context, &ray);
 
+    auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
     const auto rayDir = glm::vec3(ray.ray.dir_x, ray.ray.dir_y, ray.ray.dir_z);
     const auto p = glm::vec3(ray.ray.org_x, ray.ray.org_y, ray.ray.org_z) +
                    ray.ray.tfar * rayDir;
@@ -184,8 +186,6 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0, glm::value_ptr(texcoord0), 2);
 
-    auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
-
     glm::vec3 emissive = material->emissiveFactor;
     auto emissiveTexture = material->emissiveTexture.get();
     if (emissiveTexture != nullptr) {
@@ -197,14 +197,15 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         emissive = emissive * color;
     }
 
-    if(depth >= kDepthLimit) {
-        return emissive;
-    }
-
     glm::vec3 normal(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_NORMAL, glm::value_ptr(normal),
                     3);
+    normal = glm::normalize(normal);
+    auto normalIsNan = glm::isnan(normal);
+    if (normalIsNan.x || normalIsNan.y || normalIsNan.z) {
+        normal = normalize(Ng);
+    }
 
     glm::vec3 tangent(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
@@ -220,13 +221,13 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
     auto normalTexture = material->normalTexture.get();
     if (normalTexture != nullptr) {
-        const auto &N = normal;
         auto buffer = normalTexture->getBuffer();
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        const auto mapN = 2.0f * glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) - 1.0f;
-        normal = glm::normalize(glm::mat3(tangent, bitangent, N) * mapN);
+        auto mapN = 2.0f * glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) - 1.0f;
+        const auto tbn = glm::mat3(tangent, bitangent, normal);
+        // normal = glm::normalize(tbn * mapN);
     }
 
     glm::vec4 baseColor = material->baseColorFactor;
@@ -251,6 +252,22 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         const auto color = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height));
         roughness = roughness * color.y;
         metalness = metalness * color.z;
+    }
+
+    auto russianRouletteProbability = glm::max(
+        material->baseColorFactor.x,
+        glm::max(material->baseColorFactor.y, material->baseColorFactor.z));
+
+    if (depth > kDepthLimit) {
+        russianRouletteProbability *= pow(0.5f, depth - kDepthLimit);
+    }
+
+    if (depth > kDepth) {
+        if (xorshift128plus01f(randomState) >= russianRouletteProbability) {
+            return material->emissiveFactor;
+        }
+    } else {
+        russianRouletteProbability = 1.0f;
     }
 
     auto specular = glm::vec3(0.0f);
@@ -326,7 +343,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         diffuse = glm::vec3(baseColor) * incomingRadiance;
     }
 
-    return emissive + specular + diffuse;
+    return emissive + (specular + diffuse) / russianRouletteProbability;
 }
 
 glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
@@ -421,26 +438,29 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
     /* intersect ray with scene */
     rtcIntersect1(scene, &context, &ray);
 
+    auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
+
     if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
         return glm::vec3(0.0f);
     }
-
-    // const auto Ng = glm::vec3(ray.hit.Ng_x, ray.hit.Ng_y, ray.hit.Ng_z);
-    // return glm::normalize(Ng);
 
     auto geom = rtcGetGeometry(scene, ray.hit.geomID);
     auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
     auto material = mesh->getMaterial().get();
 
+    glm::vec2 texcoord0(0.0f);
+    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
+                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0, glm::value_ptr(texcoord0), 2);
+
     glm::vec3 normal(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
                     RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_NORMAL, glm::value_ptr(normal),
                     3);
-    glm::normalize(normal);
-
-    glm::vec2 texcoord0(0.0f);
-    rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0, glm::value_ptr(texcoord0), 2);
+    normal = glm::normalize(normal);
+    auto normalIsNan = glm::isnan(normal);
+    if (normalIsNan.x || normalIsNan.y || normalIsNan.z) {
+        normal = normalize(Ng);
+    }
 
     glm::vec3 tangent(0.0f);
     rtcInterpolate0(geom, ray.hit.primID, ray.hit.u, ray.hit.v,
@@ -456,14 +476,13 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
 
     auto normalTexture = material->normalTexture.get();
     if (normalTexture != nullptr) {
-        const auto &N = normal;
         auto buffer = normalTexture->getBuffer();
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        const auto mapN = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) * 2.0f - 1.0f;
-        const auto tbn = glm::mat3(tangent, bitangent, N);
-        normal = glm::normalize(tbn * mapN);
+        auto mapN = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) * 2.0f - 1.0f;
+        const auto tbn = glm::mat3(tangent, bitangent, normal);
+        // normal = glm::normalize(tbn * mapN);
     }
 
     return normal;

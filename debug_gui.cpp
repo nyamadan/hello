@@ -84,7 +84,7 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open", "Ctrl+O")) {
-                openFileDialog(glbPath, "GLB File {*.glb}");
+                openFileDialog(glbPath, "GLB File (*.glb)\0*.glb\0OBJ File (*.obj)\0*.obj\0\0");
                 if (!glbPath.empty()) {
                     needRestart = true;
                 }
@@ -93,7 +93,7 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
             if (ImGui::MenuItem("Save", "Ctrl+S")) {
                 const auto image = raytracer.getImage();
                 std::string path;
-                saveFileDialog(path, "Image File {*.png}", "png");
+                saveFileDialog(path, "Image File (*.png)\0*.png\0\0", "png");
                 if (!path.empty()) {
                     stbi_flip_vertically_on_write(true);
                     stbi_write_png(path.c_str(), image.getWidth(),

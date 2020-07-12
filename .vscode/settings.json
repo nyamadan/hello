@@ -28,6 +28,7 @@
     "type_traits": "cpp",
     "utility": "cpp",
     "xlocmes": "cpp",
-    "cmath": "cpp"
+    "cmath": "cpp",
+    "vector": "cpp"
   }
 }

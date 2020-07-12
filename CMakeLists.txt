@@ -72,6 +72,7 @@ include_directories(
     "${PROJECT_SOURCE_DIR}/tinygltf"
     "${PROJECT_SOURCE_DIR}/imgui"
     "${PROJECT_SOURCE_DIR}/mikktspace"
+    "${PROJECT_SOURCE_DIR}/tinyobjloader"
 )
 
 link_directories(
@@ -94,6 +95,7 @@ add_executable(
     "${PROJECT_SOURCE_DIR}/stb_image.cpp"
     "${PROJECT_SOURCE_DIR}/stb_image_write.cpp"
     "${PROJECT_SOURCE_DIR}/tiny_gltf.cpp"
+    "${PROJECT_SOURCE_DIR}/tiny_obj_loader.cpp"
     "${PROJECT_SOURCE_DIR}/gl3w/src/gl3w.c"
     "${PROJECT_SOURCE_DIR}/imgui/imgui.cpp"
     "${PROJECT_SOURCE_DIR}/imgui/imgui_draw.cpp"
