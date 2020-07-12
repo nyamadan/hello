@@ -94,7 +94,7 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
     meshs.push_back(
         addSphere(device, scene,
                   PMaterial(new Material(glm::vec4(0.0, 1.0f, 0.0f, 0.0f),
-                                         nullptr, nullptr, 0.25f, 0.75f,
+                                         nullptr, nullptr, 0.0f, 1.0f,
                                          nullptr, glm::vec3(0.0f), nullptr)),
                   1.0f, 80, 60, glm::translate(glm::vec3(0.0f, 1.0f,+3.0f))));
     return meshs;
