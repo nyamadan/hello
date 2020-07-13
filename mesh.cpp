@@ -883,6 +883,7 @@ void addMesh(const RTCDevice device, const RTCScene scene,
 
         {
             auto material = ConstantPMaterial(new Material(
+                REFLECTION,
                 baseColorFactor,
                 baseColorTextureIndex >= 0 ? images[baseColorTextureIndex]
                                            : nullptr,
@@ -1020,6 +1021,7 @@ ConstantPMeshList addObjModel(const RTCDevice device, const RTCScene scene,
         }
 
         auto material = ConstantPMaterial(new Material(
+            REFLECTION,
             glm::vec4(mp->diffuse[0], mp->diffuse[1], mp->diffuse[2], 1.0f),
             textures.find(mp->diffuse_texname) == textures.end()
                 ? textures[mp->diffuse_texname]

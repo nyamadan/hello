@@ -122,8 +122,8 @@ glm::vec3 RayTracer::importanceSampleGGX(const glm::vec2 &Xi,
     float alpha2 = alpha * alpha;
 
     float phi = 2.0f * M_PI * Xi.x;
-    float cosTheta = sqrt((1.0f - Xi.y) / (1.0f + (alpha2 - 1.0f) * Xi.y));
-    float sinTheta = sqrt(1.0f - cosTheta * cosTheta);
+    float cosTheta = glm::sqrt((1.0f - Xi.y) / (1.0f + (alpha2 - 1.0f) * Xi.y));
+    float sinTheta = glm::sqrt(1.0f - cosTheta * cosTheta);
 
     // from spherical coordinates to cartesian coordinates
     glm::vec3 H;
@@ -466,36 +466,18 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     const glm::vec3 orientingNormal =
         glm::dot(normal, rayDir) < 0.0f ? normal : (-1.0f * normal);
 
-    if (depth > 2) {
-        if (xorshift128plus01f(randomState) < baseColor.a) {
-            auto reflection = computeReflection(scene, camera, randomState, context,
-                                        depth, baseColor, roughness, metalness,
-                                        p, orientingNormal, -rayDir);
-        return emissive + reflection / russianRouletteProbability;
-        } else {
+    switch (material->materialType) {
+        case REFRACTION:
             auto refraction = computeRefraction(
                 scene, camera, randomState, context, depth, baseColor,
                 roughness, metalness, p, normal, orientingNormal, rayDir);
             return emissive + refraction / russianRouletteProbability;
-        }
-    } else {
-        auto refraction = glm::vec3(0.0f);
-        auto reflection = glm::vec3(0.0f);
-
-        if (baseColor.a != 0.0f) {
-            reflection = computeReflection(scene, camera, randomState, context,
-                                        depth, baseColor, roughness, metalness,
-                                        p, orientingNormal, -rayDir);
-        }
-
-        if (baseColor.a != 1.0f) {
-            refraction = computeRefraction(
+        default:
+        case REFLECTION:
+            auto reflection = computeReflection(
                 scene, camera, randomState, context, depth, baseColor,
-                roughness, metalness, p, normal, orientingNormal, rayDir);
-        }
-
-        return emissive + glm::lerp(refraction, reflection, baseColor.a) /
-                              russianRouletteProbability;
+                roughness, metalness, p, orientingNormal, -rayDir);
+            return emissive + reflection / russianRouletteProbability;
     }
 }
 

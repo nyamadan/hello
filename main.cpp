@@ -79,21 +79,21 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
 
     meshs.push_back(
         addCube(device, scene,
-                PMaterial(new Material(glm::vec4(0.0, 0.0f, 1.0f, 1.0f),
+                PMaterial(new Material(REFLECTION, glm::vec4(0.0, 0.0f, 1.0f, 1.0f),
                                        nullptr, nullptr, 0.25f, 0.75f, nullptr,
                                        glm::vec3(0.0f), nullptr)),
                 glm::translate(glm::vec3(-3.0f, 1.0f,-3.0f))));
 
     meshs.push_back(
         addSphere(device, scene,
-                  PMaterial(new Material(glm::vec4(1.0, 0.0f, 0.0f, 1.0f),
+                  PMaterial(new Material(REFLECTION, glm::vec4(1.0, 0.0f, 0.0f, 1.0f),
                                          nullptr, nullptr, 0.25f, 0.75f,
                                          nullptr, glm::vec3(0.0f), nullptr)),
                   1.0f, 80, 60, glm::translate(glm::vec3(+3.0f, 1.0f,-3.0f))));
 
     meshs.push_back(
         addSphere(device, scene,
-                  PMaterial(new Material(glm::vec4(0.0, 1.0f, 0.0f, 0.0f),
+                  PMaterial(new Material(REFRACTION, glm::vec4(0.0, 1.0f, 0.0f, 1.0f),
                                          nullptr, nullptr, 0.0f, 1.0f,
                                          nullptr, glm::vec3(0.0f), nullptr)),
                   1.0f, 80, 60, glm::translate(glm::vec3(0.0f, 1.0f,+3.0f))));
@@ -157,7 +157,7 @@ void loadGlbModel(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
     // ground
     meshs.push_back(addGroundPlane(
         device, scene,
-        PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
+        PMaterial(new Material(REFLECTION, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
                                nullptr, 0.5f, 0.5f, nullptr, glm::vec3(0.0f),
                                nullptr)),
         glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
@@ -210,7 +210,7 @@ int main(void) {
         // ground
         meshs.push_back(addGroundPlane(
             device, scene,
-            PMaterial(new Material(glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
+            PMaterial(new Material(REFLECTION, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
                                    nullptr, 0.5f, 0.5f, nullptr,
                                    glm::vec3(0.0f), nullptr)),
             glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *

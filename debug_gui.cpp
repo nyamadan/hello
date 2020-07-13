@@ -84,7 +84,7 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open", "Ctrl+O")) {
-                openFileDialog(glbPath, "GLB File (*.glb)\0*.glb\0OBJ File (*.obj)\0*.obj\0\0");
+                openFileDialog(glbPath, "GLB File (*.glb)\0*.glb\0OBJ File (*.obj)\0*.obj\0All Files (*.*)\0*.*\0\0");
                 if (!glbPath.empty()) {
                     needRestart = true;
                 }

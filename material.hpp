@@ -7,6 +7,11 @@
 
 #include "alloc.hpp"
 
+enum MaterialType {
+  REFLECTION,
+  REFRACTION
+};
+
 class Material {
   public:
     void *operator new(size_t size) { return aligned_alloc(size, 16); }
@@ -22,6 +27,7 @@ class Material {
     glm::vec3 emissiveFactor;
     std::shared_ptr<const Texture> emissiveTexture;
     std::shared_ptr<const Texture> metallicRoughnessTexture;
+    MaterialType materialType;
 
     Material() {
         this->baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
@@ -32,9 +38,10 @@ class Material {
         this->metallicRoughnessTexture = nullptr;
         this->emissiveFactor = glm::vec3(0.0f, 0.0f, 0.0f);
         this->emissiveTexture = nullptr;
+        this->materialType = REFLECTION;
     }
 
-    Material(const glm::vec4 &baseColorFactor,
+    Material(MaterialType materialType, const glm::vec4 &baseColorFactor,
              std::shared_ptr<const Texture> baseColorTexture,
              std::shared_ptr<const Texture> normalTexture,
              float roughnessFactor, float metalnessFactor,
@@ -49,6 +56,7 @@ class Material {
         this->metallicRoughnessTexture = metallicRoughnessTexture;
         this->emissiveFactor = emissiveFactor;
         this->emissiveTexture = emissiveTexture;
+        this->materialType = materialType;
     }
 };
 
