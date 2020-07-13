@@ -86,7 +86,7 @@ glm::vec3 computeRefraction(RTCScene scene,
     void renderTile(RTCScene scene, const RayTracerCamera &camera,
                     xorshift128plus_state &randomState, int tileIndex,
                     const int numTilesX, const int numTilesY);
-    void initIntersectContext(IntersectContext *context);
+    void initIntersectContext(IntersectContext *context, RTCScene scene, xorshift128plus_state *randomState);
     glm::vec2 toRadialCoords(glm::vec3 coords);
 
   public:
@@ -108,6 +108,17 @@ glm::vec3 computeRefraction(RTCScene scene,
 };
 
 struct IntersectContext : public RTCIntersectContext {
-    int depth;
     RayTracer *raytracer;
+    RTCScene scene;
+    xorshift128plus_state *randomState;
+
+    int depth;
+    glm::vec4 baseColor;
+    glm::vec3 emissive;
+    glm::vec3 normal;
+    glm::vec3 tangent;
+    glm::vec3 bitangent;
+    glm::vec2 texcoord0;
+    float roughness;
+    float metalness;
 };
