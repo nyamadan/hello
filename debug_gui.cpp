@@ -139,6 +139,14 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
 
         ImGui::Separator();
 
+        if (ImGui::Combo("CameraControl",
+                         reinterpret_cast<int32_t *>(&cameraMode),
+                         CameraModeNames, IM_ARRAYSIZE(CameraModeNames))) {
+            // needUpdate = true;
+        }
+
+        ImGui::Separator();
+
         if (ImGui::Combo("Mode", reinterpret_cast<int32_t *>(&renderingMode),
                          RenderingModeName, IM_ARRAYSIZE(RenderingModeName))) {
             needUpdate = true;
@@ -158,6 +166,10 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
             needUpdate = true;
         }
 
+        if (ImGui::Checkbox("isEquirectangular", &isEquirectangular)) {
+            needResize = true;
+        }
+
         if (ImGui::Checkbox("isRendering", &isRendering)) {
             needUpdate = true;
         }
@@ -174,8 +186,12 @@ void DebugGUI::renderFrame() const {
 
 std::string DebugGUI::getGlbPath() const { return glbPath; }
 
+CameraMode DebugGUI::getCameraMode() const { return cameraMode; }
+
 int32_t DebugGUI::getBufferScale() const { return bufferScale; }
 
 int32_t DebugGUI::getSamples() const { return samples; }
 
 bool DebugGUI::getIsRendering() const { return isRendering; }
+
+bool DebugGUI::getIsEquirectangular() const { return isEquirectangular; }

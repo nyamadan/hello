@@ -225,9 +225,10 @@ class TangentGenerator {
 }  // namespace
 
 ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
-                        ConstantPMaterial material, float radius,
+                        ConstantPMaterial material,
                         uint32_t widthSegments, uint32_t heightSegments,
                         const glm::mat4 transform) {
+    const auto radius = 1.0f;
     auto index = 0;
     auto grid = std::vector<std::vector<uint32_t>>();
 

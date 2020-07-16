@@ -66,7 +66,7 @@ using ConstantPMesh = std::shared_ptr<const Mesh>;
 using ConstantPMeshList = std::list<ConstantPMesh>;
 
 ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
-                        ConstantPMaterial material, float radius = 1.0f,
+                        ConstantPMaterial material,
                         uint32_t widthSegments = 8, uint32_t heightSegments = 6,
                         const glm::mat4 transform = glm::mat4(1.0f));
 

@@ -6,6 +6,9 @@
 
 #include <OpenImageDenoise/oidn.hpp>
 
+#include <chrono>
+#include <random>
+
 #include "debug_gui.hpp"
 #include "fps_camera_controller.hpp"
 #include "image_buffer.hpp"
@@ -13,7 +16,7 @@
 #include "mouse_camera_controller.hpp"
 #include "ray_tracer.hpp"
 
-auto wheelDelta = glm::dvec2(0.0, 0.0f);
+auto wheelDelta = glm::dvec2(0.0, 0.0);
 
 void WINAPI glfwErrorCallback(int error, const char *description) {
     fprintf(stderr, "error %d: %s\n", error, description);
@@ -77,26 +80,55 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
                                               RTCScene scene) {
     ConstantPMeshList meshs;
 
-    meshs.push_back(
-        addCube(device, scene,
-                PMaterial(new Material(REFLECTION, glm::vec4(0.0, 0.0f, 1.0f, 1.0f),
-                                       nullptr, nullptr, 0.25f, 0.75f, nullptr,
-                                       glm::vec3(0.0f), nullptr)),
-                glm::translate(glm::vec3(-3.0f, 1.0f,-3.0f))));
+    if (true) {
+        meshs.push_back(addCube(
+            device, scene,
+            PMaterial(new Material(REFLECTION, glm::vec4(0.0, 0.0f, 1.0f, 1.0f),
+                                   nullptr, nullptr, 0.25f, 0.75f, nullptr,
+                                   glm::vec3(0.0f), nullptr)),
+            glm::translate(glm::vec3(-3.0f, 1.0f, -3.0f))));
 
-    meshs.push_back(
-        addSphere(device, scene,
-                  PMaterial(new Material(REFLECTION, glm::vec4(1.0, 0.0f, 0.0f, 0.6f),
-                                         nullptr, nullptr, 0.25f, 0.75f,
-                                         nullptr, glm::vec3(0.0f), nullptr)),
-                  1.0f, 80, 60, glm::translate(glm::vec3(+3.0f, 1.0f,-3.0f))));
+        meshs.push_back(addSphere(
+            device, scene,
+            PMaterial(new Material(REFLECTION, glm::vec4(1.0, 0.0f, 0.0f, 1.0f),
+                                   nullptr, nullptr, 0.25f, 1.0, nullptr,
+                                   glm::vec3(0.0f), nullptr)),
+            80, 60, glm::translate(glm::vec3(+3.0f, 1.0f, -3.0f))));
 
-    meshs.push_back(
-        addSphere(device, scene,
-                  PMaterial(new Material(REFRACTION, glm::vec4(0.0, 1.0f, 0.0f, 1.0f),
-                                         nullptr, nullptr, 0.0f, 1.0f,
-                                         nullptr, glm::vec3(0.0f), nullptr)),
-                  1.0f, 80, 60, glm::translate(glm::vec3(0.0f, 1.0f,+3.0f))));
+        meshs.push_back(addSphere(
+            device, scene,
+            PMaterial(new Material(REFRACTION, glm::vec4(0.0, 1.0f, 0.0f, 1.0f),
+                                   nullptr, nullptr, 0.0f, 1.0f, nullptr,
+                                   glm::vec3(0.0f), nullptr)),
+            80, 60, glm::translate(glm::vec3(0.0f, 1.0f, +3.0f))));
+    }
+
+    if(false) {
+        std::random_device rng;
+        xorshift128plus_state seed;
+
+        seed.a = rng();
+        seed.b = std::chrono::system_clock::now().time_since_epoch().count();
+
+        for(auto i = 0; i < 100; i++) {
+            auto radius = 5.0f * xorshift128plus01f(seed) + 1.0f;
+            auto r = xorshift128plus01f(seed);
+            auto g = xorshift128plus01f(seed);
+            auto b = xorshift128plus01f(seed);
+            auto metalness = xorshift128plus01f(seed);
+            auto roughness = xorshift128plus01f(seed);
+            auto x = 100.0f * (xorshift128plus01f(seed) - 0.5f);
+            auto y = 100.0f * xorshift128plus01f(seed) + radius;
+            auto z = 100.0f * (xorshift128plus01f(seed) - 0.5f);
+            auto material = xorshift128plus01f(seed) > 0.5f ? REFLECTION : REFRACTION;
+            meshs.push_back(addSphere(
+                device, scene,
+                PMaterial(new Material(material, glm::vec4(r, g, b, 1.0f),
+                                    nullptr, nullptr, roughness, metalness, nullptr,
+                                    glm::vec3(0.0f), nullptr)),
+                80, 60, glm::translate(glm::vec3(x, y, z)) * glm::scale(glm::vec3(radius))));
+        }
+    }
     return meshs;
 }
 
@@ -152,20 +184,21 @@ void loadGlbModel(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
     const auto eye = glm::vec3(bb.upper_x, bb.upper_y, bb.upper_z);
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
+    const auto bbmax = std::max({glm::abs(bb.lower_x), glm::abs(bb.lower_y),
+                                 glm::abs(bb.lower_z), glm::abs(bb.upper_x),
+                                 glm::abs(bb.upper_y), glm::abs(bb.upper_z)});
+    const auto tfar = 4.0f * glm::length(glm::vec3(bbmax));
+    camera.setFar(tfar);
     camera.lookAt(eye, target, up);
 
     // ground
     meshs.push_back(addGroundPlane(
         device, scene,
-        PMaterial(new Material(REFLECTION, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
-                               nullptr, 0.5f, 0.5f, nullptr, glm::vec3(0.0f),
-                               nullptr)),
+        PMaterial(new Material(REFLECTION, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
+                               nullptr, nullptr, 0.5f, 0.5f, nullptr,
+                               glm::vec3(0.0f), nullptr)),
         glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
-            glm::scale(glm::vec3(
-                std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
-                          std::abs(bb.lower_z), std::abs(bb.upper_x),
-                          std::abs(bb.upper_y), std::abs(bb.upper_z)}) *
-                1.2f))));
+            glm::scale(glm::vec3(bbmax * 1.2f))));
 
     rtcCommitScene(scene);
 }
@@ -190,14 +223,14 @@ int main(void) {
 
     auto raytracer = RayTracer(windowSize / debugGui.getBufferScale());
 
-    raytracer.loadSkybox("./assets/royal_esplanade_1k.hdr");
+    raytracer.loadSkybox("./assets/small_rural_road_2k.hdr");
 
     rtcCommitScene(scene);
 
     RTCBounds bb;
     rtcGetSceneBounds(scene, &bb);
 
-    auto camera = RayTracerCamera(120.0f, 0.001f, 1000.0f);
+    auto camera = RayTracerCamera();
     {
         RTCBounds bb;
         rtcGetSceneBounds(scene, &bb);
@@ -205,20 +238,21 @@ int main(void) {
         const auto eye = glm::vec3(bb.upper_x, bb.upper_y, bb.upper_z);
         const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
         const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
+        const auto bbmax = std::max(
+            {glm::abs(bb.lower_x), glm::abs(bb.lower_y), glm::abs(bb.lower_z),
+             glm::abs(bb.upper_x), glm::abs(bb.upper_y), glm::abs(bb.upper_z)});
+        const auto tfar = 4.0f * glm::length(glm::vec3(bbmax));
+        camera.setFar(tfar);
         camera.lookAt(eye, target, up);
 
         // ground
         meshs.push_back(addGroundPlane(
             device, scene,
-            PMaterial(new Material(REFLECTION, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr,
-                                   nullptr, 0.5f, 0.5f, nullptr,
-                                   glm::vec3(0.0f), nullptr)),
+            PMaterial(new Material(
+                REFLECTION, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr, nullptr,
+                0.2f, 0.8f, nullptr, glm::vec3(0.0f), nullptr)),
             glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
-                glm::scale(glm::vec3(
-                    std::max({std::abs(bb.lower_x), std::abs(bb.lower_y),
-                              std::abs(bb.lower_z), std::abs(bb.upper_x),
-                              std::abs(bb.upper_y), std::abs(bb.upper_z)}) *
-                    1.2f))));
+                glm::scale(glm::vec3(bbmax * 1.2f))));
 
         rtcCommitScene(scene);
     }
@@ -278,8 +312,6 @@ int main(void) {
         glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
         glm::vec2 mouseDelta = mousePos - prevMousePos;
 
-        // controllCameraFPS(window, camera, dt, mouseDelta);
-
         bool needResize = false;
         bool needUpdate = false;
         bool needRestart = false;
@@ -291,16 +323,43 @@ int main(void) {
             windowSize = glm::i32vec2(w, h);
         }
 
-        needUpdate = controllCameraMouse(window, camera, (float)dt, mouseDelta,
-                                         wheelDelta) ||
-                     needUpdate;
+        switch (debugGui.getCameraMode()) {
+            case ORBIT:
+                needUpdate = controllCameraMouse(window, camera, (float)dt,
+                                                 mouseDelta, wheelDelta) ||
+                             needUpdate;
+                break;
+            case FPS:
+                needUpdate =
+                    controllCameraFPS(window, camera, dt, mouseDelta) ||
+                    needUpdate;
+                break;
+        }
 
         debugGui.beginFrame(raytracer, needUpdate, needResize, needRestart);
 
         needUpdate = needUpdate || needResize || needRestart;
 
         if (needResize) {
+            camera.setIsEquirectangula(debugGui.getIsEquirectangular());
+
+            if(camera.getIsEquirectangula()) {
+                camera.setCameraUp(glm::vec3(0.0f, 1.0f, 0.0f));
+                camera.setCameraDir(glm::vec3(0.0f, 0.0f, 1.0f));
+
+                if(windowSize.x > 2 * windowSize.y) {
+                    windowSize.y = windowSize.x / 2;
+                } else {
+                    windowSize.x = windowSize.y * 2;
+                }
+
+                glfwSetWindowSize(window, windowSize.x, windowSize.y);
+            } else {
+                camera.lookAt(camera.getCameraOrigin(), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+            }
+
             raytracer.resize(windowSize / debugGui.getBufferScale());
+
             glViewport(0, 0, windowSize.x, windowSize.y);
         }
 

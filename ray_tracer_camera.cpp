@@ -1,4 +1,7 @@
 #pragma once
+
+#include "stb.h"
+
 #include "ray_tracer_camera.hpp"
 
 RayTracerCamera::RayTracerCamera(float fov, float tnear, float tfar) {
@@ -19,6 +22,20 @@ glm::vec3 RayTracerCamera::getCameraUp(const glm::vec3 &side) const {
     return glm::normalize(glm::cross(side, dir));
 }
 
+glm::vec3 RayTracerCamera::getRayDirEquirectangular(float x, float y,
+                                                    int32_t width,
+                                                    int32_t height) const {
+    const auto theta = 2.0f * M_PI * x * height / width;
+    const auto phi = M_PI * y;
+
+    const auto &dir = getCameraDir();
+    const auto side = glm::normalize(glm::cross(dir, getCameraUp()));
+    const auto m = glm::mat3(side, glm::normalize(glm::cross(side, dir)), dir);
+
+    return m * glm::vec3(glm::cos(phi) * glm::cos(theta), glm::sin(phi),
+                      glm::cos(phi) * glm::sin(theta));
+}
+
 glm::vec3 RayTracerCamera::getRayDir(float x, float y) const {
     const auto side = getCameraSide();
     const auto up = getCameraUp(side);
@@ -26,7 +43,7 @@ glm::vec3 RayTracerCamera::getRayDir(float x, float y) const {
     return glm::normalize(scale * x * side + scale * y * up + this->dir);
 }
 
-const void RayTracerCamera::lookAt(const glm::vec3 &eye,
+void RayTracerCamera::lookAt(const glm::vec3 &eye,
                                    const glm::vec3 &target,
                                    const glm::vec3 &up) {
     this->dir = glm::normalize(target - eye);

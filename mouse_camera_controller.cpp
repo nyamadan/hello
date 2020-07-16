@@ -11,20 +11,18 @@ bool controllCameraMouse(GLFWwindow *window, RayTracerCamera &camera,
 
     const auto side = camera.getCameraSide();
     const auto up = camera.getCameraUp();
-    const auto scrollSpeed = 0.5f;
-    const auto mouseSpeed = 1.0f;
 
     auto origin = camera.getCameraOrigin();
-    auto length = glm::length(origin) + scrollDelta.y * scrollSpeed;
+    auto length = glm::length(origin) + glm::sign(scrollDelta.y) * 0.05f * camera.getFar();
 
-    length = std::max(length, 0.01f);
+    length = glm::max(length, camera.getNear());
 
     origin = glm::normalize(origin) * length;
 
     if (rbtn == GLFW_PRESS) {
         camera.setCameraOrigin(
-            glm::rotate(glm::rotate(origin, mouseDelta.y * mouseSpeed, side),
-                        -mouseDelta.x * mouseSpeed, up));
+            glm::rotate(glm::rotate(origin, mouseDelta.y, side),
+                        -mouseDelta.x, up));
         camera.setCameraUp(glm::vec3(0.0f, 1.0f, 0.0f));
         camera.setCameraDir(-glm::normalize(camera.getCameraOrigin()));
     } else {

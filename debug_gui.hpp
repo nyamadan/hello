@@ -8,6 +8,13 @@
 #include "image_buffer.hpp"
 #include "ray_tracer.hpp"
 
+enum CameraMode {
+  ORBIT,
+  FPS
+};
+
+static const char * const CameraModeNames[] = {"Orbit", "FPS"};
+
 class DebugGUI {
   public:
     DebugGUI();
@@ -19,10 +26,12 @@ class DebugGUI {
     RenderingMode getRenderingMode() const;
     bool getEnableSuperSampling() const;
 
+    CameraMode getCameraMode() const;
     std::string getGlbPath() const;
     int32_t getBufferScale() const;
     int32_t getSamples() const;
     bool getIsRendering() const;
+    bool getIsEquirectangular() const;
 
   private:
     static const int32_t DeltaTimesBufferSize = 90;
@@ -34,6 +43,8 @@ class DebugGUI {
     int32_t deltaTimesOffset = 0;
 
     RenderingMode renderingMode = ALBEDO;
+    CameraMode cameraMode = ORBIT;
+    bool isEquirectangular = false;
     bool enableSuperSampling = true;
     int32_t bufferScale = 4;
     int32_t samples = 200;

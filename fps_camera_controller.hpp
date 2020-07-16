@@ -5,5 +5,5 @@
 
 #include "ray_tracer_camera.hpp"
 
-void controllCameraFPS(GLFWwindow *window, RayTracerCamera &camera,
+bool controllCameraFPS(GLFWwindow *window, RayTracerCamera &camera,
                        float deltaT, const glm::vec2 &mouseDelta);

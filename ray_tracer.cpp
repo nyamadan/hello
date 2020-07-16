@@ -552,8 +552,13 @@ glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
             const auto rate = 1.0f / samples;
             const auto r1 = (sx * rate + rate / 2.0f);
             const auto r2 = (sy * rate + rate / 2.0f);
+
+            const auto uv = glm::vec2(x + r1 / width, y + r2 / height);
+
             const auto rayDir =
-                camera.getRayDir(x + r1 / height, y + r2 / height);
+                camera.getIsEquirectangula()
+                    ? camera.getRayDirEquirectangular(uv.x, uv.y, width, height)
+                    : camera.getRayDir(uv.x, uv.y);
 
             IntersectContext context;
             initIntersectContext(&context, scene, nullptr);
@@ -592,7 +597,15 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
     const auto tnear = camera.getNear();
     const auto tfar = camera.getFar();
     const auto cameraFrom = camera.getCameraOrigin();
-    const auto rayDir = camera.getRayDir(x, y);
+
+    const auto width = image.getWidth();
+    const auto height = image.getHeight();
+
+    const auto uv = glm::vec2(x, y);
+    const auto rayDir =
+        camera.getIsEquirectangula()
+            ? camera.getRayDirEquirectangular(uv.x, uv.y, width, height)
+            : camera.getRayDir(uv.x, uv.y);
 
     IntersectContext context;
     initIntersectContext(&context, scene, nullptr);
@@ -626,7 +639,15 @@ glm::vec3 RayTracer::renderEmissive(RTCScene scene,
     const auto tnear = camera.getNear();
     const auto tfar = camera.getFar();
     const auto cameraFrom = camera.getCameraOrigin();
-    const auto rayDir = camera.getRayDir(x, y);
+
+    const auto width = image.getWidth();
+    const auto height = image.getHeight();
+
+    const auto uv = glm::vec2(x, y);
+    const auto rayDir =
+        camera.getIsEquirectangula()
+            ? camera.getRayDirEquirectangular(uv.x, uv.y, width, height)
+            : camera.getRayDir(uv.x, uv.y);
 
     IntersectContext context;
     initIntersectContext(&context, scene, nullptr);
@@ -671,8 +692,15 @@ glm::vec3 RayTracer::renderPathTrace(RTCScene scene,
             const auto rate = 1.0f / samples;
             const auto r1 = (sx * rate + rate / 2.0f);
             const auto r2 = (sy * rate + rate / 2.0f);
+
+            const auto width = image.getWidth();
+            const auto height = image.getHeight();
+
+            const auto uv = glm::vec2(x, y);
             const auto rayDir =
-                camera.getRayDir(x + r1 / height, y + r2 / height);
+                camera.getIsEquirectangula()
+                    ? camera.getRayDirEquirectangular(uv.x, uv.y, width, height)
+                    : camera.getRayDir(uv.x, uv.y);
 
             IntersectContext context;
             initIntersectContext(&context, scene, &randomState);
