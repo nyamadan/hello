@@ -108,7 +108,7 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
         xorshift128plus_state seed;
 
         seed.a = rng();
-        seed.b = std::chrono::system_clock::now().time_since_epoch().count();
+        seed.b = ~seed.a;
 
         for(auto i = 0; i < 100; i++) {
             auto radius = 5.0f * xorshift128plus01f(seed) + 1.0f;

@@ -25,7 +25,7 @@ glm::vec3 RayTracerCamera::getCameraUp(const glm::vec3 &side) const {
 glm::vec3 RayTracerCamera::getRayDirEquirectangular(float x, float y,
                                                     int32_t width,
                                                     int32_t height) const {
-    const auto theta = 2.0f * M_PI * x * height / width;
+    const auto theta = -2.0f * M_PI * x * height / width;
     const auto phi = M_PI * y;
 
     const auto &dir = getCameraDir();
