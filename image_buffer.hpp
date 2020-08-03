@@ -35,7 +35,7 @@ class ImageBuffer {
         return static_cast<const glm::u8vec3 *>(this->textureBuffer.get());
     }
 
-    void updateTextureBuffer();
+    void updateTextureBuffer(bool filtered);
 };
 
 using PImageBuffer = std::shared_ptr<ImageBuffer>;

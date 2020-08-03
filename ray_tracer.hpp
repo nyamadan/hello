@@ -9,15 +9,19 @@
 
 enum RenderingMode {
     ALBEDO,
-    NORMAL,
     EMISSIVE,
+    NORMAL,
+    TANGENT,
+    BITANGENT,
     PATHTRACING,
 };
 
 const char *const RenderingModeName[] = {
     "Albedo",
-    "Normal",
     "Emissive",
+    "Normal",
+    "Tangent",
+    "Bitangent",
     "Path Tracing",
 };
 
@@ -43,6 +47,10 @@ class RayTracer {
     glm::vec3 renderPixel(RTCScene scene, const RayTracerCamera &camera,
                           xorshift128plus_state &randomState, float x, float y);
     glm::vec3 renderNormal(RTCScene scene, const RayTracerCamera &camera,
+                           float x, float y);
+    glm::vec3 renderTangent(RTCScene scene, const RayTracerCamera &camera,
+                           float x, float y);
+    glm::vec3 renderBitangent(RTCScene scene, const RayTracerCamera &camera,
                            float x, float y);
     glm::vec3 renderEmissive(RTCScene scene, const RayTracerCamera &camera,
                              float x, float y);

@@ -319,8 +319,10 @@ int main(void) {
         {
             int32_t w, h;
             glfwGetWindowSize(window, &w, &h);
-            needResize = (w != windowSize.x || h != windowSize.y) || needResize;
-            windowSize = glm::i32vec2(w, h);
+            if(w != 0 && h != 0) {
+                needResize = (w != windowSize.x || h != windowSize.y) || needResize;
+                windowSize = glm::i32vec2(w, h);
+            }
         }
 
         switch (debugGui.getCameraMode()) {
@@ -331,7 +333,7 @@ int main(void) {
                 break;
             case FPS:
                 needUpdate =
-                    controllCameraFPS(window, camera, dt, mouseDelta) ||
+                    controllCameraFPS(window, camera, static_cast<float>(dt), mouseDelta) ||
                     needUpdate;
                 break;
         }

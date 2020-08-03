@@ -9,6 +9,16 @@
 #include "mesh.hpp"
 #include "ray_tracer.hpp"
 
+namespace {
+uint64_t murmurHash3(uint64_t h) {
+    h ^= h >> 33;
+    h *= 0xff51afd7ed558ccd;
+    h ^= h >> 33;
+    h *= 0xc4ceb9fe1a85ec53;
+    h ^= h >> 33;
+    return h;
+}
+
 template <typename T>
 T nearest(const glm::vec2 &uv, const T *image, int32_t width, int32_t height) {
     auto u = static_cast<int32_t>(glm::round((width - 1) * uv.x));
@@ -32,6 +42,7 @@ T bilinear(const glm::vec2 &uv, const T *image, int32_t width, int32_t height) {
     auto p1 = glm::lerp(image[v1 * width + u0], image[v1 * width + u1], x);
     return glm::lerp(p0, p1, y);
 }
+}  // namespace
 
 glm::vec2 RayTracer::toRadialCoords(glm::vec3 coords) {
     auto normalizedCoords = glm::normalize(coords);
@@ -42,7 +53,8 @@ glm::vec2 RayTracer::toRadialCoords(glm::vec3 coords) {
     return glm::vec2(0.5f, 1.0f) - sphereCoords;
 }
 
-void RayTracer::initIntersectContext(IntersectContext *context, RTCScene scene, xorshift128plus_state *randomState) {
+void RayTracer::initIntersectContext(IntersectContext *context, RTCScene scene,
+                                     xorshift128plus_state *randomState) {
     rtcInitIntersectContext(context);
     context->raytracer = this;
     context->randomState = randomState;
@@ -60,17 +72,13 @@ void RayTracer::intersectionFilter(
     auto depth = context->depth;
     auto scene = context->scene;
 
-    auto Ng = glm::vec3(
-        RTCHitN_Ng_x(args->hit, args->N, 0),
-        RTCHitN_Ng_y(args->hit, args->N, 0),
-        RTCHitN_Ng_z(args->hit, args->N, 0)
-    );
+    auto Ng = glm::vec3(RTCHitN_Ng_x(args->hit, args->N, 0),
+                        RTCHitN_Ng_y(args->hit, args->N, 0),
+                        RTCHitN_Ng_z(args->hit, args->N, 0));
 
-    auto rayDir = glm::vec3(
-        RTCRayN_dir_x(args->ray, args->N, 0),
-        RTCRayN_dir_y(args->ray, args->N, 0),
-        RTCRayN_dir_z(args->ray, args->N, 0)
-    );
+    auto rayDir = glm::vec3(RTCRayN_dir_x(args->ray, args->N, 0),
+                            RTCRayN_dir_y(args->ray, args->N, 0),
+                            RTCRayN_dir_z(args->ray, args->N, 0));
 
     auto u = RTCHitN_u(args->hit, args->N, 0);
     auto v = RTCHitN_v(args->hit, args->N, 0);
@@ -81,9 +89,8 @@ void RayTracer::intersectionFilter(
     auto geom = rtcGetGeometry(scene, geomId);
 
     glm::vec2 texcoord0(0.0f);
-    rtcInterpolate0(geom, primId, u, v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TEXCOORD_0,
-                    glm::value_ptr(texcoord0), 2);
+    rtcInterpolate0(geom, primId, u, v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                    SLOT_TEXCOORD_0, glm::value_ptr(texcoord0), 2);
     context->texcoord0 = texcoord0;
 
     glm::vec3 emissive = material->emissiveFactor;
@@ -100,27 +107,19 @@ void RayTracer::intersectionFilter(
     context->emissive = emissive;
 
     glm::vec3 normal(0.0f);
-    rtcInterpolate0(geom, primId, u, v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_NORMAL,
-                    glm::value_ptr(normal), 3);
+    rtcInterpolate0(geom, primId, u, v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                    SLOT_NORMAL, glm::value_ptr(normal), 3);
     normal = glm::normalize(normal);
-    auto normalIsNan = glm::isnan(normal);
-    if (normalIsNan.x || normalIsNan.y || normalIsNan.z) {
-        normal = glm::normalize(Ng);
-    }
-    context->normal = normal;
 
     glm::vec3 tangent(0.0f);
-    rtcInterpolate0(geom, primId, u, v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TANGENT,
-                    glm::value_ptr(tangent), 3);
+    rtcInterpolate0(geom, primId, u, v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                    SLOT_TANGENT, glm::value_ptr(tangent), 3);
     tangent = glm::normalize(tangent);
     context->tangent = tangent;
 
-    glm::vec4 bitangent(0.0f);
-    rtcInterpolate0(geom, primId, u, v,
-                    RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_BITANGENT,
-                    glm::value_ptr(bitangent), 3);
+    glm::vec3 bitangent(0.0f);
+    rtcInterpolate0(geom, primId, u, v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                    SLOT_BITANGENT, glm::value_ptr(bitangent), 3);
     bitangent = glm::normalize(bitangent);
     context->bitangent = bitangent;
 
@@ -130,11 +129,8 @@ void RayTracer::intersectionFilter(
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        auto mapN = 2.0f * glm::vec3(bilinear(glm::repeat(texcoord0), buffer,
-                                              width, height)) -
-                    1.0f;
-        const auto tbn = glm::mat3(tangent, bitangent, normal);
-        // normal = glm::normalize(tbn * mapN);
+        auto mapN = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) * 2.0f - 1.0f;
+        normal = glm::normalize(glm::mat3(tangent, bitangent, normal) * mapN );
     }
     context->normal = normal;
 
@@ -167,19 +163,19 @@ void RayTracer::intersectionFilter(
     context->metalness = metalness;
     context->roughness = roughness;
 
-    if(material->materialType == REFLECTION) {
-        if(glm::dot(normal, rayDir) > 0.0f) {
-            args->valid[0] = 0;
-        }
-    }
+    // if (material->materialType == REFLECTION) {
+    //     if (glm::dot(normal, rayDir) > 0.0f) {
+    //         args->valid[0] = 0;
+    //     }
+    // }
 
-    if(context->randomState != nullptr) {
+    if (context->randomState != nullptr) {
         auto &randomState = *context->randomState;
-        if(baseColor.a < xorshift128plus01f(randomState)) {
+        if (baseColor.a < xorshift128plus01f(randomState)) {
             args->valid[0] = 0;
         }
     } else {
-        if(baseColor.a < 0.5f) {
+        if (baseColor.a < 0.5f) {
             args->valid[0] = 0;
         }
     }
@@ -221,12 +217,10 @@ void RayTracer::setMaxSamples(int32_t samples) { this->maxSamples = samples; }
 
 int32_t RayTracer::getMaxSamples() const {
     switch (mode) {
-        case NORMAL:
-        case ALBEDO:
-        case EMISSIVE:
-            return 1;
-        default:
+        case PATHTRACING:
             return this->maxSamples;
+        default:
+            return 1;
     }
 }
 
@@ -633,6 +627,91 @@ glm::vec3 RayTracer::renderNormal(RTCScene scene, const RayTracerCamera &camera,
     return context.normal;
 }
 
+glm::vec3 RayTracer::renderTangent(RTCScene scene,
+                                   const RayTracerCamera &camera, float x,
+                                   float y) {
+    const auto tnear = camera.getNear();
+    const auto tfar = camera.getFar();
+    const auto cameraFrom = camera.getCameraOrigin();
+
+    const auto width = image.getWidth();
+    const auto height = image.getHeight();
+
+    const auto uv = glm::vec2(x, y);
+    const auto rayDir =
+        camera.getIsEquirectangula()
+            ? camera.getRayDirEquirectangular(uv.x, uv.y, width, height)
+            : camera.getRayDir(uv.x, uv.y);
+
+    IntersectContext context;
+    initIntersectContext(&context, scene, nullptr);
+
+    /* initialize ray */
+    auto ray = RTCRayHit();
+    ray.ray.dir_x = rayDir.x;
+    ray.ray.dir_y = rayDir.y;
+    ray.ray.dir_z = rayDir.z;
+    ray.ray.org_x = cameraFrom.x;
+    ray.ray.org_y = cameraFrom.y;
+    ray.ray.org_z = cameraFrom.z;
+    ray.ray.tnear = tnear;
+    ray.ray.tfar = tfar;
+    ray.ray.time = 0.0f;
+    ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+
+    /* intersect ray with scene */
+    rtcIntersect1(scene, &context, &ray);
+
+    if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
+        return glm::vec3(0.0f);
+    }
+
+    return context.tangent;
+}
+
+glm::vec3 RayTracer::renderBitangent(RTCScene scene,
+                                   const RayTracerCamera &camera, float x,
+                                   float y) {
+    const auto tnear = camera.getNear();
+    const auto tfar = camera.getFar();
+    const auto cameraFrom = camera.getCameraOrigin();
+
+    const auto width = image.getWidth();
+    const auto height = image.getHeight();
+
+    const auto uv = glm::vec2(x, y);
+    const auto rayDir =
+        camera.getIsEquirectangula()
+            ? camera.getRayDirEquirectangular(uv.x, uv.y, width, height)
+            : camera.getRayDir(uv.x, uv.y);
+
+    IntersectContext context;
+    initIntersectContext(&context, scene, nullptr);
+
+    /* initialize ray */
+    auto ray = RTCRayHit();
+    ray.ray.dir_x = rayDir.x;
+    ray.ray.dir_y = rayDir.y;
+    ray.ray.dir_z = rayDir.z;
+    ray.ray.org_x = cameraFrom.x;
+    ray.ray.org_y = cameraFrom.y;
+    ray.ray.org_z = cameraFrom.z;
+    ray.ray.tnear = tnear;
+    ray.ray.tfar = tfar;
+    ray.ray.time = 0.0f;
+    ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
+
+    /* intersect ray with scene */
+    rtcIntersect1(scene, &context, &ray);
+
+    if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
+        return glm::vec3(0.0f);
+    }
+
+    return context.bitangent;
+}
+
+
 glm::vec3 RayTracer::renderEmissive(RTCScene scene,
                                     const RayTracerCamera &camera, float x,
                                     float y) {
@@ -734,6 +813,12 @@ glm::vec3 RayTracer::renderPixel(RTCScene scene, const RayTracerCamera &camera,
         case NORMAL: {
             return renderNormal(scene, camera, x, y);
         } break;
+        case TANGENT: {
+            return renderTangent(scene, camera, x, y);
+        } break;
+        case BITANGENT: {
+            return renderBitangent(scene, camera, x, y);
+        } break;
         case ALBEDO: {
             return renderAlbedo(scene, camera, x, y);
         } break;
@@ -785,15 +870,16 @@ bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
     const auto numTilesY = (height + TILE_SIZE_Y - 1) / TILE_SIZE_Y;
     const auto tileSize = numTilesX * numTilesY;
 
-    std::random_device seed;
+    std::random_device random;
     xorshift128plus_state randomState;
-    randomState.a = 1;
-    randomState.b = seed();
+    auto seed = (static_cast<uint64_t>(random()) << 32) + random();
+    randomState.a = murmurHash3(seed);
+    randomState.b = murmurHash3(~randomState.a);
     std::vector<xorshift128plus_state> randomStates(tileSize);
 
     for (auto it = randomStates.begin(); it != randomStates.end(); it++) {
-        it->a = 1;
-        it->b = xorshift128plus(randomState);
+        it->a = murmurHash3(xorshift128plus(randomState));
+        it->b = murmurHash3(~it->a);
     }
 
     if (this->samples == 0) {
@@ -829,8 +915,7 @@ bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
 
     bool done = false;
 
-    if (this->getSamples() >= this->getMaxSamples() && mode != NORMAL &&
-        mode != ALBEDO && mode != EMISSIVE) {
+    if (this->getSamples() >= this->getMaxSamples() && mode == PATHTRACING) {
         auto length = image.getWidth() * image.getHeight();
         auto bufferSize = static_cast<uint64_t>(length) * sizeof(glm::vec3);
         auto filter = denoiser.newFilter("RT");
@@ -855,6 +940,6 @@ bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
         done = true;
     }
 
-    this->image.updateTextureBuffer();
+    this->image.updateTextureBuffer(mode == PATHTRACING);
     return done;
 }

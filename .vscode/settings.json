@@ -29,6 +29,8 @@
     "utility": "cpp",
     "xlocmes": "cpp",
     "cmath": "cpp",
-    "vector": "cpp"
+    "vector": "cpp",
+    "filesystem": "cpp",
+    "regex": "cpp"
   }
 }
