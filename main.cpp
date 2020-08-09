@@ -77,58 +77,26 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
                                               RTCScene scene) {
     ConstantPMeshList meshs;
 
-    if (false) {
-        meshs.push_back(addCube(
-            device, scene,
-            PMaterial(new Material(REFLECTION, glm::vec4(0.0, 0.0f, 1.0f, 1.0f),
-                                   nullptr, nullptr, 0.25f, 0.75f, nullptr,
-                                   glm::vec3(0.0f), nullptr)),
-            glm::translate(glm::vec3(-3.0f, 1.0f, -3.0f))));
+    meshs.push_back(addCube(
+        device, scene,
+        PMaterial(new Material(REFLECTION, glm::vec4(0.0, 0.0f, 1.0f, 1.0f),
+                               nullptr, nullptr, 0.25f, 0.75f, nullptr,
+                               glm::vec3(0.0f), nullptr)),
+        glm::translate(glm::vec3(-3.0f, 1.0f, -3.0f))));
 
-        meshs.push_back(addSphere(
-            device, scene,
-            PMaterial(new Material(REFLECTION, glm::vec4(1.0, 0.0f, 0.0f, 1.0f),
-                                   nullptr, nullptr, 0.25f, 1.0, nullptr,
-                                   glm::vec3(0.0f), nullptr)),
-            80, 60, glm::translate(glm::vec3(+3.0f, 1.0f, -3.0f))));
+    meshs.push_back(addSphere(
+        device, scene,
+        PMaterial(new Material(REFLECTION, glm::vec4(1.0, 0.0f, 0.0f, 1.0f),
+                               nullptr, nullptr, 0.25f, 1.0, nullptr,
+                               glm::vec3(0.0f), nullptr)),
+        80, 60, glm::translate(glm::vec3(+3.0f, 1.0f, -3.0f))));
 
-        meshs.push_back(addSphere(
-            device, scene,
-            PMaterial(new Material(REFRACTION, glm::vec4(0.0, 1.0f, 0.0f, 1.0f),
-                                   nullptr, nullptr, 0.0f, 1.0f, nullptr,
-                                   glm::vec3(0.0f), nullptr)),
-            80, 60, glm::translate(glm::vec3(0.0f, 1.0f, +3.0f))));
-    }
-
-    if (true) {
-        std::random_device rng;
-        xorshift128plus_state seed;
-
-        seed.a = rng();
-        seed.b = ~seed.a;
-
-        for (auto i = 0; i < 100; i++) {
-            auto radius = 5.0f * xorshift128plus01f(seed) + 1.0f;
-            auto r = xorshift128plus01f(seed);
-            auto g = xorshift128plus01f(seed);
-            auto b = xorshift128plus01f(seed);
-            auto metalness = xorshift128plus01f(seed);
-            auto roughness = xorshift128plus01f(seed);
-            auto x = 100.0f * (xorshift128plus01f(seed) - 0.5f);
-            auto y = 100.0f * xorshift128plus01f(seed) + radius;
-            auto z = 100.0f * (xorshift128plus01f(seed) - 0.5f);
-            auto material =
-                xorshift128plus01f(seed) > 0.5f ? REFLECTION : REFRACTION;
-            meshs.push_back(addSphere(
-                device, scene,
-                PMaterial(new Material(material, glm::vec4(r, g, b, 1.0f),
-                                       nullptr, nullptr, roughness, metalness,
-                                       nullptr, glm::vec3(0.0f), nullptr)),
-                80, 60,
-                glm::translate(glm::vec3(x, y, z)) *
-                    glm::scale(glm::vec3(radius))));
-        }
-    }
+    meshs.push_back(addSphere(
+        device, scene,
+        PMaterial(new Material(REFRACTION, glm::vec4(0.0, 1.0f, 0.0f, 1.0f),
+                               nullptr, nullptr, 0.0f, 1.0f, nullptr,
+                               glm::vec3(0.0f), nullptr)),
+        80, 60, glm::translate(glm::vec3(0.0f, 1.0f, +3.0f))));
     return meshs;
 }
 
@@ -190,15 +158,6 @@ void loadGlbModel(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
     const auto tfar = 4.0f * glm::length(glm::vec3(bbmax));
     camera.setFar(tfar);
     camera.lookAt(eye, target, up);
-
-    // ground
-    meshs.push_back(addGroundPlane(
-        device, scene,
-        PMaterial(new Material(REFLECTION, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f),
-                               nullptr, nullptr, 0.5f, 0.5f, nullptr,
-                               glm::vec3(0.0f), nullptr)),
-        glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
-            glm::scale(glm::vec3(bbmax * 1.2f))));
 
     rtcCommitScene(scene);
 }

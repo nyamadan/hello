@@ -198,7 +198,7 @@ void RayTracer::intersectionFilter(
         normal = glm::normalize(glm::mat3(tangent, bitangent, normal) * mapN);
     }
 
-    if(glm::isnan(normal.x) || glm::isnan(normal.y) || glm::isnan(normal.z)) {
+    if (glm::isnan(normal.x) || glm::isnan(normal.y) || glm::isnan(normal.z)) {
         normal = glm::normalize(Ng);
     }
 
