@@ -20,15 +20,31 @@ uint64_t murmurHash3(uint64_t h) {
 }
 
 template <typename T>
-T nearest(const glm::vec2 &uv, const T *image, int32_t width, int32_t height) {
-    auto u = static_cast<int32_t>(glm::round((width - 1) * uv.x));
-    auto v = static_cast<int32_t>(glm::round((height - 1) * uv.y));
+T srgb2linear(const T &x) {
+    return glm::pow(x, 2.2f);
+}
 
-    return image[v * width + u];
+glm::vec3 srgb2linear(const glm::vec3 &x) {
+    return glm::vec3(srgb2linear(x.r), srgb2linear(x.g), srgb2linear(x.b));
+}
+
+glm::vec4 srgb2linear(const glm::vec4 &x) {
+    return glm::vec4(srgb2linear(x.r), srgb2linear(x.g), srgb2linear(x.b), x.a);
 }
 
 template <typename T>
-T bilinear(const glm::vec2 &uv, const T *image, int32_t width, int32_t height) {
+T nearest(const glm::vec2 &uv, const T *image, int32_t width, int32_t height,
+          bool sRGB) {
+    auto u = static_cast<int32_t>(glm::round((width - 1) * uv.x));
+    auto v = static_cast<int32_t>(glm::round((height - 1) * uv.y));
+
+    const auto &p = image[v * width + u];
+    return sRGB ? srgb2linear(p) : p;
+}
+
+template <typename T>
+T bilinear(const glm::vec2 &uv, const T *image, int32_t width, int32_t height,
+           bool sRGB) {
     auto u = uv.x * (width - 1);
     auto v = uv.y * (height - 1);
     auto u0 = static_cast<int32_t>(glm::floor(u));
@@ -38,8 +54,21 @@ T bilinear(const glm::vec2 &uv, const T *image, int32_t width, int32_t height) {
 
     auto x = u - static_cast<float>(u0);
     auto y = v - static_cast<float>(v0);
-    auto p0 = glm::lerp(image[v0 * width + u0], image[v0 * width + u1], x);
-    auto p1 = glm::lerp(image[v1 * width + u0], image[v1 * width + u1], x);
+
+    auto p00 = image[v0 * width + u0];
+    auto p01 = image[v0 * width + u1];
+    auto p10 = image[v1 * width + u0];
+    auto p11 = image[v1 * width + u1];
+
+    if (sRGB) {
+        p00 = srgb2linear(p00);
+        p01 = srgb2linear(p01);
+        p10 = srgb2linear(p10);
+        p11 = srgb2linear(p11);
+    }
+
+    auto p0 = glm::lerp(p00, p01, x);
+    auto p1 = glm::lerp(p10, p11, x);
     return glm::lerp(p0, p1, y);
 }
 }  // namespace
@@ -100,8 +129,8 @@ void RayTracer::intersectionFilter(
         auto width = emissiveTexture->getWidth();
         auto height = emissiveTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        const auto color =
-            glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height));
+        const auto color = glm::vec3(
+            bilinear(glm::repeat(texcoord0), buffer, width, height, false));
         emissive = emissive * color;
     }
     context->emissive = emissive;
@@ -129,10 +158,10 @@ void RayTracer::intersectionFilter(
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        auto mapN =
-            glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) *
-                2.0f -
-            1.0f;
+        auto mapN = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width,
+                                       height, false)) *
+                        2.0f -
+                    1.0f;
         normal = glm::normalize(glm::mat3(tangent, bitangent, normal) * mapN);
     }
     context->normal = normal;
@@ -145,7 +174,7 @@ void RayTracer::intersectionFilter(
         auto height = baseColorTexture->getHeight();
         // TODO: TEXTURE_WRAP
         const auto color =
-            bilinear(glm::repeat(texcoord0), buffer, width, height);
+            bilinear(glm::repeat(texcoord0), buffer, width, height, true);
         baseColor = baseColor * color;
     }
     context->baseColor = baseColor;
@@ -158,8 +187,8 @@ void RayTracer::intersectionFilter(
         auto width = metalRoughnessTexture->getWidth();
         auto height = metalRoughnessTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        const auto color =
-            glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height));
+        const auto color = glm::vec3(
+            bilinear(glm::repeat(texcoord0), buffer, width, height, false));
         roughness = roughness * color.y;
         metalness = metalness * color.z;
     }
@@ -485,7 +514,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
         const auto skybox = this->skybox.get();
         auto uv = toRadialCoords(rayDir);
-        return bilinear(uv, skybox, skyboxWidth, skyboxHeight);
+        return bilinear(uv, skybox, skyboxWidth, skyboxHeight, false);
     }
 
     auto geom = rtcGetGeometry(scene, ray.hit.geomID);
@@ -578,7 +607,8 @@ glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
             if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
                 const auto skybox = this->skybox.get();
                 auto uv = toRadialCoords(rayDir);
-                totalColor += bilinear(uv, skybox, skyboxWidth, skyboxHeight);
+                totalColor +=
+                    bilinear(uv, skybox, skyboxWidth, skyboxHeight, false);
                 continue;
             }
 
