@@ -8,12 +8,9 @@
 #include "image_buffer.hpp"
 #include "ray_tracer.hpp"
 
-enum CameraMode {
-  ORBIT,
-  FPS
-};
+enum CameraMode { ORBIT, FPS };
 
-static const char * const CameraModeNames[] = {"Orbit", "FPS"};
+static const char *const CameraModeNames[] = {"Orbit", "FPS"};
 
 class DebugGUI {
   public:

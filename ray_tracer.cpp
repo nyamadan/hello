@@ -129,8 +129,11 @@ void RayTracer::intersectionFilter(
         auto width = normalTexture->getWidth();
         auto height = normalTexture->getHeight();
         // TODO: TEXTURE_WRAP
-        auto mapN = glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) * 2.0f - 1.0f;
-        normal = glm::normalize(glm::mat3(tangent, bitangent, normal) * mapN );
+        auto mapN =
+            glm::vec3(bilinear(glm::repeat(texcoord0), buffer, width, height)) *
+                2.0f -
+            1.0f;
+        normal = glm::normalize(glm::mat3(tangent, bitangent, normal) * mapN);
     }
     context->normal = normal;
 
@@ -163,11 +166,11 @@ void RayTracer::intersectionFilter(
     context->metalness = metalness;
     context->roughness = roughness;
 
-    // if (material->materialType == REFLECTION) {
-    //     if (glm::dot(normal, rayDir) > 0.0f) {
-    //         args->valid[0] = 0;
-    //     }
-    // }
+    if (material->materialType == REFLECTION) {
+        if (glm::dot(normal, rayDir) > 0.0f) {
+            args->valid[0] = 0;
+        }
+    }
 
     if (context->randomState != nullptr) {
         auto &randomState = *context->randomState;
@@ -670,8 +673,8 @@ glm::vec3 RayTracer::renderTangent(RTCScene scene,
 }
 
 glm::vec3 RayTracer::renderBitangent(RTCScene scene,
-                                   const RayTracerCamera &camera, float x,
-                                   float y) {
+                                     const RayTracerCamera &camera, float x,
+                                     float y) {
     const auto tnear = camera.getNear();
     const auto tfar = camera.getFar();
     const auto cameraFrom = camera.getCameraOrigin();
@@ -710,7 +713,6 @@ glm::vec3 RayTracer::renderBitangent(RTCScene scene,
 
     return context.bitangent;
 }
-
 
 glm::vec3 RayTracer::renderEmissive(RTCScene scene,
                                     const RayTracerCamera &camera, float x,

@@ -33,7 +33,7 @@ glm::vec3 RayTracerCamera::getRayDirEquirectangular(float x, float y,
     const auto m = glm::mat3(side, glm::normalize(glm::cross(side, dir)), dir);
 
     return m * glm::vec3(glm::cos(phi) * glm::cos(theta), glm::sin(phi),
-                      glm::cos(phi) * glm::sin(theta));
+                         glm::cos(phi) * glm::sin(theta));
 }
 
 glm::vec3 RayTracerCamera::getRayDir(float x, float y) const {
@@ -43,9 +43,8 @@ glm::vec3 RayTracerCamera::getRayDir(float x, float y) const {
     return glm::normalize(scale * x * side + scale * y * up + this->dir);
 }
 
-void RayTracerCamera::lookAt(const glm::vec3 &eye,
-                                   const glm::vec3 &target,
-                                   const glm::vec3 &up) {
+void RayTracerCamera::lookAt(const glm::vec3 &eye, const glm::vec3 &target,
+                             const glm::vec3 &up) {
     this->dir = glm::normalize(target - eye);
     this->origin = eye;
     this->up = up;

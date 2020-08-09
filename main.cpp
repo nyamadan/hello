@@ -103,14 +103,14 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
             80, 60, glm::translate(glm::vec3(0.0f, 1.0f, +3.0f))));
     }
 
-    if(false) {
+    if (false) {
         std::random_device rng;
         xorshift128plus_state seed;
 
         seed.a = rng();
         seed.b = ~seed.a;
 
-        for(auto i = 0; i < 100; i++) {
+        for (auto i = 0; i < 100; i++) {
             auto radius = 5.0f * xorshift128plus01f(seed) + 1.0f;
             auto r = xorshift128plus01f(seed);
             auto g = xorshift128plus01f(seed);
@@ -120,13 +120,16 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
             auto x = 100.0f * (xorshift128plus01f(seed) - 0.5f);
             auto y = 100.0f * xorshift128plus01f(seed) + radius;
             auto z = 100.0f * (xorshift128plus01f(seed) - 0.5f);
-            auto material = xorshift128plus01f(seed) > 0.5f ? REFLECTION : REFRACTION;
+            auto material =
+                xorshift128plus01f(seed) > 0.5f ? REFLECTION : REFRACTION;
             meshs.push_back(addSphere(
                 device, scene,
                 PMaterial(new Material(material, glm::vec4(r, g, b, 1.0f),
-                                    nullptr, nullptr, roughness, metalness, nullptr,
-                                    glm::vec3(0.0f), nullptr)),
-                80, 60, glm::translate(glm::vec3(x, y, z)) * glm::scale(glm::vec3(radius))));
+                                       nullptr, nullptr, roughness, metalness,
+                                       nullptr, glm::vec3(0.0f), nullptr)),
+                80, 60,
+                glm::translate(glm::vec3(x, y, z)) *
+                    glm::scale(glm::vec3(radius))));
         }
     }
     return meshs;
@@ -319,8 +322,9 @@ int main(void) {
         {
             int32_t w, h;
             glfwGetWindowSize(window, &w, &h);
-            if(w != 0 && h != 0) {
-                needResize = (w != windowSize.x || h != windowSize.y) || needResize;
+            if (w != 0 && h != 0) {
+                needResize =
+                    (w != windowSize.x || h != windowSize.y) || needResize;
                 windowSize = glm::i32vec2(w, h);
             }
         }
@@ -333,7 +337,8 @@ int main(void) {
                 break;
             case FPS:
                 needUpdate =
-                    controllCameraFPS(window, camera, static_cast<float>(dt), mouseDelta) ||
+                    controllCameraFPS(window, camera, static_cast<float>(dt),
+                                      mouseDelta) ||
                     needUpdate;
                 break;
         }
@@ -345,11 +350,11 @@ int main(void) {
         if (needResize) {
             camera.setIsEquirectangula(debugGui.getIsEquirectangular());
 
-            if(camera.getIsEquirectangula()) {
+            if (camera.getIsEquirectangula()) {
                 camera.setCameraUp(glm::vec3(0.0f, 1.0f, 0.0f));
                 camera.setCameraDir(glm::vec3(0.0f, 0.0f, 1.0f));
 
-                if(windowSize.x > 2 * windowSize.y) {
+                if (windowSize.x > 2 * windowSize.y) {
                     windowSize.y = windowSize.x / 2;
                 } else {
                     windowSize.x = windowSize.y * 2;
@@ -357,7 +362,8 @@ int main(void) {
 
                 glfwSetWindowSize(window, windowSize.x, windowSize.y);
             } else {
-                camera.lookAt(camera.getCameraOrigin(), glm::vec3(0.0f), glm::vec3(0.0f, 1.0f, 0.0f));
+                camera.lookAt(camera.getCameraOrigin(), glm::vec3(0.0f),
+                              glm::vec3(0.0f, 1.0f, 0.0f));
             }
 
             raytracer.resize(windowSize / debugGui.getBufferScale());

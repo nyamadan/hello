@@ -45,7 +45,8 @@ class Mesh {
     }
 
     void setGeometryId(uint32_t geomId) { this->geomId = geomId; }
-    void setWorldInverseTransposeMatrix(const glm::mat4 &worldInverseTranspose) {
+    void setWorldInverseTransposeMatrix(
+        const glm::mat4 &worldInverseTranspose) {
         this->worldInverseTransposeMatrix = worldInverseTranspose;
     }
     void setWorldMatrix(const glm::mat4 &worldMatrix) {
@@ -66,8 +67,8 @@ using ConstantPMesh = std::shared_ptr<const Mesh>;
 using ConstantPMeshList = std::list<ConstantPMesh>;
 
 ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
-                        ConstantPMaterial material,
-                        uint32_t widthSegments = 8, uint32_t heightSegments = 6,
+                        ConstantPMaterial material, uint32_t widthSegments = 8,
+                        uint32_t heightSegments = 6,
                         const glm::mat4 transform = glm::mat4(1.0f));
 
 /* adds a cube to the scene */

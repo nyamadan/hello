@@ -9,24 +9,24 @@
 
 template <typename T = void>
 struct AlignedDeleter {
-  constexpr AlignedDeleter() noexcept = default;
+    constexpr AlignedDeleter() noexcept = default;
 
-  template <typename U,
-            typename std::enable_if<std::is_convertible<U *, T *>::value,
-                                    std::nullptr_t>::type = nullptr>
-  AlignedDeleter(const AlignedDeleter<U> &) noexcept {}
+    template <typename U,
+              typename std::enable_if<std::is_convertible<U *, T *>::value,
+                                      std::nullptr_t>::type = nullptr>
+    AlignedDeleter(const AlignedDeleter<U> &) noexcept {}
 
-  void operator()(T *ptr) const { aligned_free(ptr); }
+    void operator()(T *ptr) const { aligned_free(ptr); }
 };
 
 template <typename T>
 struct AlignedDeleter<T[]> {
-  constexpr AlignedDeleter() noexcept = default;
+    constexpr AlignedDeleter() noexcept = default;
 
-  template <typename U, typename std::enable_if<
-                            std::is_convertible<U (*)[], T (*)[]>::value,
-                            std::nullptr_t>::type = nullptr>
-  AlignedDeleter(const AlignedDeleter<U[]> &) noexcept {}
+    template <typename U, typename std::enable_if<
+                              std::is_convertible<U (*)[], T (*)[]>::value,
+                              std::nullptr_t>::type = nullptr>
+    AlignedDeleter(const AlignedDeleter<U[]> &) noexcept {}
 
-  void operator()(T *ptr) const { aligned_free(ptr); }
+    void operator()(T *ptr) const { aligned_free(ptr); }
 };

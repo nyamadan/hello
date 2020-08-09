@@ -13,9 +13,6 @@ inline glm::vec3 toneMapping(const glm::vec3 &x) noexcept {
 }
 
 inline glm::vec3 linearToGamma(const glm::vec3 &src) noexcept {
-    return glm::vec3(
-        glm::pow(src.x, 0.5f),
-        glm::pow(src.y, 0.5f),
-        glm::pow(src.z, 0.5f)
-    );
+    return glm::vec3(glm::pow(src.x, 0.5f), glm::pow(src.y, 0.5f),
+                     glm::pow(src.z, 0.5f));
 }

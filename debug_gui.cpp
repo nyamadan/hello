@@ -84,7 +84,9 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open", "Ctrl+O")) {
-                openFileDialog(glbPath, "GLB File (*.glb)\0*.glb\0OBJ File (*.obj)\0*.obj\0All Files (*.*)\0*.*\0\0");
+                openFileDialog(glbPath,
+                               "GLB File (*.glb)\0*.glb\0OBJ File "
+                               "(*.obj)\0*.obj\0All Files (*.*)\0*.*\0\0");
                 if (!glbPath.empty()) {
                     needRestart = true;
                 }
@@ -132,9 +134,12 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
             const auto h = raytracer.getImage().getHeight();
             double xpos, ypos;
             glfwGetCursorPos(glfwGetCurrentContext(), &xpos, &ypos);
-            const auto x = static_cast<int32_t>(glm::clamp(xpos / bufferScale, 0.0, w - 1.0));
-            const auto y = static_cast<int32_t>(glm::clamp(h - (ypos / bufferScale), 0.0, h - 1.0));
-            const auto &color = raytracer.getImage().GetReadonlyBuffer()[y * w + x];
+            const auto x = static_cast<int32_t>(
+                glm::clamp(xpos / bufferScale, 0.0, w - 1.0));
+            const auto y = static_cast<int32_t>(
+                glm::clamp(h - (ypos / bufferScale), 0.0, h - 1.0));
+            const auto &color =
+                raytracer.getImage().GetReadonlyBuffer()[y * w + x];
 
             ImGui::LabelText("pick", "%f, %f, %f", color.r, color.g, color.b);
         }

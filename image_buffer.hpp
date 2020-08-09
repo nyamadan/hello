@@ -23,7 +23,9 @@ class ImageBuffer {
     auto getChannels() const { return 3; }
     auto getWidth() const { return this->size.x; }
     auto getHeight() const { return this->size.y; }
-    auto getAspect() const { return static_cast<float>(getWidth()) / getHeight(); }
+    auto getAspect() const {
+        return static_cast<float>(getWidth()) / getHeight();
+    }
     auto getBuffer() { return this->buffer; }
     auto getNormal() { return this->normal; }
     auto getAlbedo() { return this->albedo; }

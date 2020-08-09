@@ -3,13 +3,9 @@
 
 #include <tbb/parallel_for.h>
 
-ImageBuffer::ImageBuffer() {
-    this->resize(glm::i32vec2(0));
-}
+ImageBuffer::ImageBuffer() { this->resize(glm::i32vec2(0)); }
 
-ImageBuffer::ImageBuffer(const glm::i32vec2 &size) {
-    this->resize(size);
-}
+ImageBuffer::ImageBuffer(const glm::i32vec2 &size) { this->resize(size); }
 
 void ImageBuffer::resize(const glm::i32vec2 &size) {
     auto arrayLength = (uint64_t)size.x * size.y;
@@ -17,7 +13,8 @@ void ImageBuffer::resize(const glm::i32vec2 &size) {
     this->normal = std::shared_ptr<glm::vec3[]>(new glm::vec3[arrayLength]);
     this->albedo = std::shared_ptr<glm::vec3[]>(new glm::vec3[arrayLength]);
     this->buffer = std::shared_ptr<glm::vec3[]>(new glm::vec3[arrayLength]);
-    this->textureBuffer = std::shared_ptr<glm::u8vec3[]>(new glm::u8vec3[arrayLength]);
+    this->textureBuffer =
+        std::shared_ptr<glm::u8vec3[]>(new glm::u8vec3[arrayLength]);
 
     this->reset();
 }

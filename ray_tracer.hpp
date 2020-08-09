@@ -17,12 +17,7 @@ enum RenderingMode {
 };
 
 const char *const RenderingModeName[] = {
-    "Albedo",
-    "Emissive",
-    "Normal",
-    "Tangent",
-    "Bitangent",
-    "Path Tracing",
+    "Albedo", "Emissive", "Normal", "Tangent", "Bitangent", "Path Tracing",
 };
 
 struct IntersectContext;
@@ -49,9 +44,9 @@ class RayTracer {
     glm::vec3 renderNormal(RTCScene scene, const RayTracerCamera &camera,
                            float x, float y);
     glm::vec3 renderTangent(RTCScene scene, const RayTracerCamera &camera,
-                           float x, float y);
+                            float x, float y);
     glm::vec3 renderBitangent(RTCScene scene, const RayTracerCamera &camera,
-                           float x, float y);
+                              float x, float y);
     glm::vec3 renderEmissive(RTCScene scene, const RayTracerCamera &camera,
                              float x, float y);
     glm::vec3 renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
@@ -61,31 +56,31 @@ class RayTracer {
                               float y);
 
     glm::vec3 computeDiffuse(RTCScene scene, const RayTracerCamera &camera,
-                              xorshift128plus_state &randomState,
-                              IntersectContext context,
-                              int32_t depth, const glm::vec4 &baseColor,
-                              const glm::vec3 &p,
-                              const glm::vec3 &N);
+                             xorshift128plus_state &randomState,
+                             IntersectContext context, int32_t depth,
+                             const glm::vec4 &baseColor, const glm::vec3 &p,
+                             const glm::vec3 &N);
 
     glm::vec3 computeSpecular(RTCScene scene, const RayTracerCamera &camera,
                               xorshift128plus_state &randomState,
-                              IntersectContext context,
-                              int32_t depth, const glm::vec4 &baseColor,
-                              float roughness, const glm::vec3 &p,
-                              const glm::vec3 &N, const glm::vec3 &V);
-    glm::vec3 computeReflection(
-        RTCScene scene, const RayTracerCamera &camera,
-        xorshift128plus_state &randomState, IntersectContext context,
-        int32_t depth, const glm::vec4 &baseColor, float roughness,
-        float metalness, const glm::vec3 &p, const glm::vec3 &N,
-        const glm::vec3 &V);
-glm::vec3 computeRefraction(RTCScene scene,
-                                     const RayTracerCamera &camera,
-                                     xorshift128plus_state &randomState,
-                                     IntersectContext context,
-                                     int32_t depth, const glm::vec4 &baseColor,
-                                     float roughness, float metalness, const glm::vec3 &p,
-                                     const glm::vec3 &normal, const glm::vec3 &orientingNormal, const glm::vec3 &rayDir);
+                              IntersectContext context, int32_t depth,
+                              const glm::vec4 &baseColor, float roughness,
+                              const glm::vec3 &p, const glm::vec3 &N,
+                              const glm::vec3 &V);
+    glm::vec3 computeReflection(RTCScene scene, const RayTracerCamera &camera,
+                                xorshift128plus_state &randomState,
+                                IntersectContext context, int32_t depth,
+                                const glm::vec4 &baseColor, float roughness,
+                                float metalness, const glm::vec3 &p,
+                                const glm::vec3 &N, const glm::vec3 &V);
+    glm::vec3 computeRefraction(RTCScene scene, const RayTracerCamera &camera,
+                                xorshift128plus_state &randomState,
+                                IntersectContext context, int32_t depth,
+                                const glm::vec4 &baseColor, float roughness,
+                                float metalness, const glm::vec3 &p,
+                                const glm::vec3 &normal,
+                                const glm::vec3 &orientingNormal,
+                                const glm::vec3 &rayDir);
     glm::vec3 importanceSampleGGX(const glm::vec2 &Xi, const glm::vec3 &N,
                                   float roughness);
     glm::vec3 radiance(RTCScene scene, const RayTracerCamera &camera,
@@ -94,7 +89,8 @@ glm::vec3 computeRefraction(RTCScene scene,
     void renderTile(RTCScene scene, const RayTracerCamera &camera,
                     xorshift128plus_state &randomState, int tileIndex,
                     const int numTilesX, const int numTilesY);
-    void initIntersectContext(IntersectContext *context, RTCScene scene, xorshift128plus_state *randomState);
+    void initIntersectContext(IntersectContext *context, RTCScene scene,
+                              xorshift128plus_state *randomState);
     glm::vec2 toRadialCoords(glm::vec3 coords);
 
   public:

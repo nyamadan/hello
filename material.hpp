@@ -7,10 +7,7 @@
 
 #include "alloc.hpp"
 
-enum MaterialType {
-  REFLECTION,
-  REFRACTION
-};
+enum MaterialType { REFLECTION, REFRACTION };
 
 class Material {
   public:
