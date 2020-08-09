@@ -1,9 +1,6 @@
 #include <GL/gl3w.h>
-
 #include <glm/glm.hpp>
-
 #include <glm/ext.hpp>
-
 #include <OpenImageDenoise/oidn.hpp>
 
 #include <chrono>
@@ -80,7 +77,7 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
                                               RTCScene scene) {
     ConstantPMeshList meshs;
 
-    if (true) {
+    if (false) {
         meshs.push_back(addCube(
             device, scene,
             PMaterial(new Material(REFLECTION, glm::vec4(0.0, 0.0f, 1.0f, 1.0f),
@@ -103,7 +100,7 @@ const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
             80, 60, glm::translate(glm::vec3(0.0f, 1.0f, +3.0f))));
     }
 
-    if (false) {
+    if (true) {
         std::random_device rng;
         xorshift128plus_state seed;
 

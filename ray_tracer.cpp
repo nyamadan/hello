@@ -117,10 +117,48 @@ void RayTracer::intersectionFilter(
 
     auto geom = rtcGetGeometry(scene, geomId);
 
+    glm::vec3 normal(0.0f);
+    rtcInterpolate0(geom, primId, u, v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                    SLOT_NORMAL, glm::value_ptr(normal), 3);
+    normal = glm::normalize(normal);
+
+    if (material->materialType == REFLECTION) {
+        if (glm::dot(normal, rayDir) > 0.0f) {
+            args->valid[0] = 0;
+            return;
+        }
+    }
+
     glm::vec2 texcoord0(0.0f);
     rtcInterpolate0(geom, primId, u, v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
                     SLOT_TEXCOORD_0, glm::value_ptr(texcoord0), 2);
     context->texcoord0 = texcoord0;
+
+    glm::vec4 baseColor = material->baseColorFactor;
+    auto baseColorTexture = material->baseColorTexture.get();
+    if (baseColorTexture != nullptr) {
+        auto buffer = baseColorTexture->getBuffer();
+        auto width = baseColorTexture->getWidth();
+        auto height = baseColorTexture->getHeight();
+        // TODO: TEXTURE_WRAP
+        const auto color =
+            bilinear(glm::repeat(texcoord0), buffer, width, height, true);
+        baseColor = baseColor * color;
+    }
+    context->baseColor = baseColor;
+
+    if (context->randomState != nullptr) {
+        auto &randomState = *context->randomState;
+        if (baseColor.a < xorshift128plus01f(randomState)) {
+            args->valid[0] = 0;
+            return;
+        }
+    } else {
+        if (baseColor.a < 0.5f) {
+            args->valid[0] = 0;
+            return;
+        }
+    }
 
     glm::vec3 emissive = material->emissiveFactor;
     auto emissiveTexture = material->emissiveTexture.get();
@@ -134,11 +172,6 @@ void RayTracer::intersectionFilter(
         emissive = emissive * color;
     }
     context->emissive = emissive;
-
-    glm::vec3 normal(0.0f);
-    rtcInterpolate0(geom, primId, u, v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                    SLOT_NORMAL, glm::value_ptr(normal), 3);
-    normal = glm::normalize(normal);
 
     glm::vec3 tangent(0.0f);
     rtcInterpolate0(geom, primId, u, v, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
@@ -164,20 +197,12 @@ void RayTracer::intersectionFilter(
                     1.0f;
         normal = glm::normalize(glm::mat3(tangent, bitangent, normal) * mapN);
     }
-    context->normal = normal;
 
-    glm::vec4 baseColor = material->baseColorFactor;
-    auto baseColorTexture = material->baseColorTexture.get();
-    if (baseColorTexture != nullptr) {
-        auto buffer = baseColorTexture->getBuffer();
-        auto width = baseColorTexture->getWidth();
-        auto height = baseColorTexture->getHeight();
-        // TODO: TEXTURE_WRAP
-        const auto color =
-            bilinear(glm::repeat(texcoord0), buffer, width, height, true);
-        baseColor = baseColor * color;
+    if(glm::isnan(normal.x) || glm::isnan(normal.y) || glm::isnan(normal.z)) {
+        normal = glm::normalize(Ng);
     }
-    context->baseColor = baseColor;
+
+    context->normal = normal;
 
     auto metalness = material->metalnessFactor;
     auto roughness = material->roughnessFactor;
@@ -194,23 +219,6 @@ void RayTracer::intersectionFilter(
     }
     context->metalness = metalness;
     context->roughness = roughness;
-
-    if (material->materialType == REFLECTION) {
-        if (glm::dot(normal, rayDir) > 0.0f) {
-            args->valid[0] = 0;
-        }
-    }
-
-    if (context->randomState != nullptr) {
-        auto &randomState = *context->randomState;
-        if (baseColor.a < xorshift128plus01f(randomState)) {
-            args->valid[0] = 0;
-        }
-    } else {
-        if (baseColor.a < 0.5f) {
-            args->valid[0] = 0;
-        }
-    }
 }
 
 void RayTracer::setRenderingMode(RenderingMode mode) {
@@ -220,6 +228,8 @@ void RayTracer::setRenderingMode(RenderingMode mode) {
 
 void RayTracer::loadSkybox(const std::string &path) {
     int channels;
+    stbi_ldr_to_hdr_gamma(1.0f);
+    stbi_ldr_to_hdr_scale(1.0f);
     auto image =
         stbi_loadf(path.c_str(), &skyboxWidth, &skyboxHeight, &channels, 3);
     const auto length = skyboxWidth * skyboxHeight;
@@ -227,10 +237,10 @@ void RayTracer::loadSkybox(const std::string &path) {
     memcpy(this->skybox.get(), image, sizeof(glm::vec3) * length);
     stbi_image_free(image);
 
-    for (auto i = 0; i < length; i++) {
-        auto &x = this->skybox.get()[i];
-        x = toneMapping(x);
-    }
+    // for (auto i = 0; i < length; i++) {
+    //     auto &x = this->skybox.get()[i];
+    //     x = toneMapping(x);
+    // }
 }
 
 void RayTracer::setEnableSuperSampling(bool enableSuperSampling) {
