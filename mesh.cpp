@@ -1002,6 +1002,8 @@ ConstantPMeshList addObjModel(const RTCDevice device, const RTCScene scene,
 
                 const std::string &texFileName = mp->diffuse_texname;
 
+                stbi_ldr_to_hdr_gamma(1.0f);
+                stbi_ldr_to_hdr_scale(1.0f);
                 auto ret = stbi_loadf(texFileName.c_str(), &width, &height,
                                       &components, 4);
                 if (ret) {
@@ -1292,6 +1294,8 @@ ConstantPMeshList addGlbModel(const RTCDevice device, const RTCScene scene,
         const size_t components = 4;
 
         int32_t width, height, channels;
+        stbi_ldr_to_hdr_gamma(1.0f);
+        stbi_ldr_to_hdr_scale(1.0f);
         auto ret =
             stbi_loadf_from_memory(p + bufferView.byteOffset,
                                    static_cast<int32_t>(bufferView.byteLength),
