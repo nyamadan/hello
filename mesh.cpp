@@ -1275,7 +1275,7 @@ ConstantPMeshList addObjModel(const RTCDevice device, const RTCScene scene,
     return meshs;
 }
 
-ConstantPMeshList addGlbModel(const RTCDevice device, const RTCScene scene,
+ConstantPMeshList addGltfModel(const RTCDevice device, const RTCScene scene,
                               const tinygltf::Model &model) {
     ConstantPMeshList meshs;
     const auto sceneToDisplay =

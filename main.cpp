@@ -110,7 +110,10 @@ const ConstantPMeshList addMeshsToScene(RTCDevice device, RTCScene scene,
     std::string err;
     std::string warn;
     if (loader.LoadBinaryFromFile(&model, &err, &warn, path)) {
-        const auto x = addGlbModel(device, scene, model);
+        const auto x = addGltfModel(device, scene, model);
+        meshs.insert(meshs.cend(), x.cbegin(), x.cend());
+    } else if (loader.LoadASCIIFromFile(&model, &err, &warn, path)) {
+        const auto x = addGltfModel(device, scene, model);
         meshs.insert(meshs.cend(), x.cbegin(), x.cend());
     } else {
         std::string warn;

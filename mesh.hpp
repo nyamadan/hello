@@ -93,7 +93,7 @@ void addNode(const RTCDevice device, const RTCScene scene,
              const tinygltf::Node &node, const glm::mat4 world,
              std::list<PMesh> &meshs);
 
-ConstantPMeshList addGlbModel(const RTCDevice device, const RTCScene scene,
+ConstantPMeshList addGltfModel(const RTCDevice device, const RTCScene scene,
                               const tinygltf::Model &model);
 
 ConstantPMeshList addObjModel(const RTCDevice device, const RTCScene scene,

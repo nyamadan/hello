@@ -113,6 +113,20 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
         ImGui::EndMainMenuBar();
     }
 
+    if (!ImGui::GetIO().WantCaptureMouse) {
+        const auto w = raytracer.getImage().getWidth();
+        const auto h = raytracer.getImage().getHeight();
+        double xpos, ypos;
+        glfwGetCursorPos(glfwGetCurrentContext(), &xpos, &ypos);
+        const auto x =
+            static_cast<int32_t>(glm::clamp(xpos / bufferScale, 0.0, w - 1.0));
+        const auto y = static_cast<int32_t>(
+            glm::clamp(h - (ypos / bufferScale), 0.0, h - 1.0));
+        const auto &color = raytracer.getImage().GetReadonlyBuffer()[y * w + x];
+
+        ImGui::SetTooltip("%.2f, %.2f, %.2f", color.r, color.g, color.b);
+    }
+
     ImGui::Begin(
         "Hello Embree", nullptr,
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize);
@@ -127,21 +141,6 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
         {
             ImGui::LabelText("samples", "%d / %d", raytracer.getSamples(),
                              raytracer.getMaxSamples());
-        }
-
-        {
-            const auto w = raytracer.getImage().getWidth();
-            const auto h = raytracer.getImage().getHeight();
-            double xpos, ypos;
-            glfwGetCursorPos(glfwGetCurrentContext(), &xpos, &ypos);
-            const auto x = static_cast<int32_t>(
-                glm::clamp(xpos / bufferScale, 0.0, w - 1.0));
-            const auto y = static_cast<int32_t>(
-                glm::clamp(h - (ypos / bufferScale), 0.0, h - 1.0));
-            const auto &color =
-                raytracer.getImage().GetReadonlyBuffer()[y * w + x];
-
-            ImGui::LabelText("pick", "%f, %f, %f", color.r, color.g, color.b);
         }
 
         auto average =
