@@ -1,3 +1,5 @@
+#pragma once
+
 #include <stdint.h>
 
 struct xorshift128plus_state {

@@ -801,9 +801,6 @@ glm::vec3 RayTracer::renderPathTrace(RTCScene scene,
                                      xorshift128plus_state &randomState,
                                      float x, float y) {
     auto totalRadiance = glm::vec3(0.0f);
-    const auto tnear = camera.getNear();
-    const auto tfar = camera.getFar();
-    const auto cameraFrom = camera.getCameraOrigin();
     const auto width = image.getWidth();
     const auto height = image.getHeight();
 
@@ -814,14 +811,14 @@ glm::vec3 RayTracer::renderPathTrace(RTCScene scene,
             const auto r1 = (sx * rate + rate / 2.0f);
             const auto r2 = (sy * rate + rate / 2.0f);
 
-            const auto width = image.getWidth();
-            const auto height = image.getHeight();
+            glm::vec3 rayFrom, rayDir;
 
-            const auto uv = glm::vec2(x, y);
-            const auto rayDir =
-                camera.getIsEquirectangula()
-                    ? camera.getRayDirEquirectangular(uv.x, uv.y, width, height)
-                    : camera.getRayDir(uv.x, uv.y);
+            if (camera.getIsEquirectangula()) {
+                camera.getRayInfoEquirectangular(rayDir, rayFrom, x, y,
+                                                 randomState, width, height);
+            } else {
+                camera.getRayInfo(rayDir, rayFrom, x, y, randomState);
+            }
 
             IntersectContext context;
             initIntersectContext(&context, scene, &randomState);
@@ -830,11 +827,11 @@ glm::vec3 RayTracer::renderPathTrace(RTCScene scene,
             ray.ray.dir_x = rayDir.x;
             ray.ray.dir_y = rayDir.y;
             ray.ray.dir_z = rayDir.z;
-            ray.ray.org_x = cameraFrom.x;
-            ray.ray.org_y = cameraFrom.y;
-            ray.ray.org_z = cameraFrom.z;
-            ray.ray.tnear = tnear;
-            ray.ray.tfar = tfar;
+            ray.ray.org_x = rayFrom.x;
+            ray.ray.org_y = rayFrom.y;
+            ray.ray.org_z = rayFrom.z;
+            ray.ray.tnear = camera.getNear();
+            ray.ray.tfar = camera.getFar();
             ray.ray.time = 0.0f;
             ray.hit.geomID = RTC_INVALID_GEOMETRY_ID;
             totalRadiance +=

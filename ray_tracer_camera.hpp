@@ -3,11 +3,16 @@
 #include <stdint.h>
 #include <glm/glm.hpp>
 
+#include "xorshift128plus.hpp"
+
 class RayTracerCamera {
   private:
     float fov;
     float tnear;
     float tfar;
+
+    float lensRadius;
+    float focusDistance;
 
     glm::vec3 up;
     glm::vec3 origin;
@@ -16,7 +21,7 @@ class RayTracerCamera {
     bool isEquirectangula = false;
 
   public:
-    RayTracerCamera(float fov = 120.0f, float tnear = 1e-6, float tfar = 1e+3);
+    RayTracerCamera();
 
     float getFov() const { return fov; }
     float getNear() const { return tnear; }
@@ -27,6 +32,12 @@ class RayTracerCamera {
     glm::vec3 getRayDir(float x, float y) const;
     glm::vec3 getRayDirEquirectangular(float x, float y, int32_t width,
                                        int32_t height) const;
+    void getRayInfo(glm::vec3 &rayDir, glm::vec3 &rayOrigin, float x, float y,
+                    xorshift128plus_state &randomState) const;
+    void getRayInfoEquirectangular(glm::vec3 &rayDir, glm::vec3 &rayOrigin,
+                                   float x, float y,
+                                   xorshift128plus_state &randomState,
+                                   int32_t width, int32_t height) const;
     bool getIsEquirectangula() const { return isEquirectangula; }
 
     const glm::vec3 &getCameraOrigin() const { return origin; }
