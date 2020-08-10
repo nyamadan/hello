@@ -55,6 +55,11 @@ class RayTracerCamera {
     void setCameraDir(const glm::vec3 &dir) { this->dir = dir; }
     void setCameraUp(const glm::vec3 &up) { this->up = up; }
 
+    void setFocusDistance(float focusDistance) {
+        this->focusDistance = focusDistance;
+    }
+    void setLensRadius(float lensRadius) { this->lensRadius = lensRadius; }
+
     void lookAt(const glm::vec3 &eye, const glm::vec3 &target,
                 const glm::vec3 &up);
 };

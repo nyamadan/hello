@@ -179,12 +179,22 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
             needUpdate = true;
         }
 
-        if (ImGui::Checkbox("SuperSampling", &enableSuperSampling)) {
+        if (ImGui::InputFloat("LensRadius", &lensRadius, 0.1f, 1.0f)) {
+            lensRadius = std::max<float>(lensRadius, 0.0f);
+            needUpdate = true;
+        }
+
+        if (ImGui::InputFloat("FocusDistance", &focusDistance, 1.0f, 10.0f)) {
+            focusDistance = std::max<float>(focusDistance, 0.0f);
             needUpdate = true;
         }
 
         if (ImGui::Checkbox("isEquirectangular", &isEquirectangular)) {
             needResize = true;
+        }
+
+        if (ImGui::Checkbox("SuperSampling", &enableSuperSampling)) {
+            needUpdate = true;
         }
 
         if (ImGui::Checkbox("isRendering", &isRendering)) {
@@ -212,3 +222,7 @@ int32_t DebugGUI::getSamples() const { return samples; }
 bool DebugGUI::getIsRendering() const { return isRendering; }
 
 bool DebugGUI::getIsEquirectangular() const { return isEquirectangular; }
+
+float DebugGUI::getFocusDistance() const { return focusDistance; }
+
+float DebugGUI::getLensRadius() const { return lensRadius; }

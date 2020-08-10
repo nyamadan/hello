@@ -29,6 +29,8 @@ class DebugGUI {
     int32_t getSamples() const;
     bool getIsRendering() const;
     bool getIsEquirectangular() const;
+    float getFocusDistance() const;
+    float getLensRadius() const;
 
   private:
     static const int32_t DeltaTimesBufferSize = 90;
@@ -46,6 +48,8 @@ class DebugGUI {
     int32_t bufferScale = 4;
     int32_t samples = 200;
     bool isRendering = true;
+    float lensRadius = 0.0f;
+    float focusDistance = 0.0f;
 
     std::string glbPath = "";
 };

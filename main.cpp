@@ -216,6 +216,9 @@ int main(void) {
         rtcCommitScene(scene);
     }
 
+    camera.setLensRadius(debugGui.getLensRadius());
+    camera.setFocusDistance(debugGui.getFocusDistance());
+
     if (!glfwInit()) return -1;
 
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -332,6 +335,9 @@ int main(void) {
         }
 
         if (needUpdate) {
+            camera.setLensRadius(debugGui.getLensRadius());
+            camera.setFocusDistance(debugGui.getFocusDistance());
+
             raytracer.setEnableSuperSampling(debugGui.getEnableSuperSampling());
             raytracer.setMaxSamples(debugGui.getSamples());
             raytracer.setRenderingMode(debugGui.getRenderingMode());
