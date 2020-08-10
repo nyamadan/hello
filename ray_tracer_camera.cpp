@@ -92,7 +92,7 @@ void RayTracerCamera::getRayInfoEquirectangular(
 
     {
         const auto side = glm::normalize(glm::cross(dir, getCameraUp()));
-        const auto up = glm::normalize(glm::cross(side, getCameraDir()));
+        const auto up = glm::normalize(glm::cross(side, dir));
 
         const auto theta = 2.0f * M_PI * xorshift128plus01f(randomState);
         const auto radius = lensRadius * xorshift128plus01f(randomState);
