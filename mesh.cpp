@@ -224,7 +224,7 @@ class TangentGenerator {
 };
 }  // namespace
 
-ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
+ConstantPNode addSphere(const RTCDevice device, const RTCScene scene,
                         ConstantPMaterial material, uint32_t widthSegments,
                         uint32_t heightSegments, const glm::mat4 transform) {
     const auto radius = 1.0f;
@@ -343,22 +343,29 @@ ConstantPMesh addSphere(const RTCDevice device, const RTCScene scene,
                                        srcTangents[i].w);
     }
 
-    auto mesh = PMesh(new Mesh());
-    rtcSetGeometryUserData(geom, (void *)mesh.get());
+    auto primitive = PPrimitive(new Primitive());
+    rtcSetGeometryUserData(geom, (void *)material.get());
     rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
     rtcCommitGeometry(geom);
     auto geomId = rtcAttachGeometry(scene, geom);
     rtcReleaseGeometry(geom);
 
-    mesh->setGeometryId(geomId);
-    mesh->setMaterial(material);
-    mesh->setWorldMatrix(transform);
-    mesh->setWorldInverseTransposeMatrix(inverseTranspose);
-    return mesh;
+    primitive->setGeometryId(geomId);
+    primitive->setMaterial(material);
+
+    auto mesh = PMesh(new Mesh());
+    mesh->addPrimitive(primitive);
+
+    auto node = PNode(new Node());
+    node->setWorldMatrix(transform);
+    node->setWorldInverseTransposeMatrix(inverseTranspose);
+    node->setMesh(mesh);
+
+    return node;
 }
 
 /* adds a cube to the scene */
-ConstantPMesh addCube(RTCDevice device, RTCScene scene,
+ConstantPNode addCube(RTCDevice device, RTCScene scene,
                       ConstantPMaterial material, glm::mat4 transform) {
     /* create a triangulated cube with 12 triangles and 8 vertices */
     auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
@@ -497,22 +504,29 @@ ConstantPMesh addCube(RTCDevice device, RTCScene scene,
                                        srcTangents[i].w);
     }
 
-    auto mesh = PMesh(new Mesh());
-    rtcSetGeometryUserData(geom, (void *)mesh.get());
+    auto primitive = PPrimitive(new Primitive());
+    rtcSetGeometryUserData(geom, (void *)material.get());
     rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
     rtcCommitGeometry(geom);
     auto geomId = rtcAttachGeometry(scene, geom);
     rtcReleaseGeometry(geom);
 
-    mesh->setGeometryId(geomId);
-    mesh->setMaterial(material);
-    mesh->setWorldMatrix(transform);
-    mesh->setWorldInverseTransposeMatrix(inverseTranspose);
-    return mesh;
+    primitive->setGeometryId(geomId);
+    primitive->setMaterial(material);
+
+    auto mesh = PMesh(new Mesh());
+    mesh->addPrimitive(primitive);
+
+    auto node = PNode(new Node());
+    node->setWorldMatrix(transform);
+    node->setWorldInverseTransposeMatrix(inverseTranspose);
+    node->setMesh(mesh);
+
+    return node;
 }
 
 /* adds a ground plane to the scene */
-ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
+ConstantPNode addGroundPlane(RTCDevice device, RTCScene scene,
                              ConstantPMaterial material,
                              const glm::mat4 transform) {
     /* create a triangulated plane with 2 triangles and 4 vertices */
@@ -582,31 +596,38 @@ ConstantPMesh addGroundPlane(RTCDevice device, RTCScene scene,
                                        srcTangents[i].w);
     }
 
-    auto mesh = PMesh(new Mesh());
-    rtcSetGeometryUserData(geom, (void *)mesh.get());
+    auto primitive = PPrimitive(new Primitive());
+    rtcSetGeometryUserData(geom, (void *)material.get());
     rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
     rtcCommitGeometry(geom);
     auto geomId = rtcAttachGeometry(scene, geom);
     rtcReleaseGeometry(geom);
 
-    mesh->setGeometryId(geomId);
-    mesh->setMaterial(material);
-    mesh->setWorldMatrix(transform);
-    mesh->setWorldInverseTransposeMatrix(inverseTranspose);
+    primitive->setGeometryId(geomId);
+    primitive->setMaterial(material);
 
-    return mesh;
+    auto mesh = PMesh(new Mesh());
+    mesh->addPrimitive(primitive);
+
+    auto node = PNode(new Node());
+    node->setWorldMatrix(transform);
+    node->setWorldInverseTransposeMatrix(inverseTranspose);
+    node->setMesh(mesh);
+
+    return node;
 }
 
-void addMesh(const RTCDevice device, const RTCScene scene,
-             const tinygltf::Model &model,
-             const std::vector<std::shared_ptr<const Texture>> &images,
-             const tinygltf::Mesh &gltfMesh, const glm::mat4 &transform,
-             ConstantPMeshList &meshs) {
+ConstantPMesh addMesh(const RTCDevice device, const RTCScene scene,
+                      const tinygltf::Model &model,
+                      const std::vector<std::shared_ptr<const Texture>> &images,
+                      const tinygltf::Mesh &gltfMesh,
+                      const glm::mat4 &transform) {
+    auto mesh = PMesh(new Mesh());
+
     auto inverseTranspose = glm::transpose(glm::inverse(transform));
     for (size_t i = 0; i < gltfMesh.primitives.size(); i++) {
         const auto &primitive = gltfMesh.primitives[i];
-
-        if (primitive.indices < 0) return;
+        assert(primitive.indices >= 0);
 
         auto gltfMaterial = model.materials[primitive.material];
 
@@ -895,71 +916,80 @@ void addMesh(const RTCDevice device, const RTCScene scene,
                 emissiveTextureIndex >= 0 ? images[emissiveTextureIndex]
                                           : nullptr));
 
-            auto mesh = PMesh(new Mesh());
-            rtcSetGeometryUserData(geom, (void *)mesh.get());
+            auto primitive = PPrimitive(new Primitive());
+            rtcSetGeometryUserData(geom, (void *)material.get());
             rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
             rtcCommitGeometry(geom);
             auto geomId = rtcAttachGeometry(scene, geom);
             rtcReleaseGeometry(geom);
 
-            mesh->setGeometryId(geomId);
-            mesh->setWorldMatrix(transform);
-            mesh->setWorldInverseTransposeMatrix(inverseTranspose);
-            mesh->setMaterial(material);
+            primitive->setGeometryId(geomId);
+            primitive->setMaterial(material);
 
-            meshs.push_back(mesh);
+            mesh->addPrimitive(primitive);
         }
     }
+
+    return mesh;
 }
 
-void addNode(const RTCDevice device, const RTCScene scene,
-             const tinygltf::Model &model,
-             const std::vector<std::shared_ptr<const Texture>> &images,
-             const tinygltf::Node &node, const glm::mat4 world,
-             ConstantPMeshList &meshs) {
+ConstantPNode addNode(const RTCDevice device, const RTCScene scene,
+                      const tinygltf::Model &model,
+                      const std::vector<std::shared_ptr<const Texture>> &images,
+                      const tinygltf::Node &gltfNode, const glm::mat4 &parent) {
+    auto node = PNode(new Node());
+
     glm::mat4 matrix(1.0f);
-    if (node.matrix.size() == 16) {
+    if (gltfNode.matrix.size() == 16) {
         // Use `matrix' attribute
-        matrix = glm::make_mat4(node.matrix.data());
+        matrix = glm::make_mat4(gltfNode.matrix.data());
     } else {
         // Assume Trans x Rotate x Scale order
-        if (node.scale.size() == 3) {
-            const auto &s = node.scale;
+        if (gltfNode.scale.size() == 3) {
+            const auto &s = gltfNode.scale;
             matrix =
                 glm::scale(glm::vec3((float)s[0], (float)s[1], (float)s[2])) *
                 matrix;
         }
 
-        if (node.rotation.size() == 4) {
-            const auto &r = node.rotation;
+        if (gltfNode.rotation.size() == 4) {
+            const auto &r = gltfNode.rotation;
             matrix = static_cast<glm::mat4>(glm::quat(
                          (float)r[3], (float)r[0], (float)r[1], (float)r[2])) *
                      matrix;
         }
 
-        if (node.translation.size() == 3) {
-            const auto &t = node.translation;
+        if (gltfNode.translation.size() == 3) {
+            const auto &t = gltfNode.translation;
             matrix = glm::translate(
                          glm::vec3((float)t[0], (float)t[1], (float)t[2])) *
                      matrix;
         }
     }
 
-    if (node.mesh > -1) {
-        addMesh(device, scene, model, images, model.meshes[node.mesh],
-                world * matrix, meshs);
+    auto world = parent * matrix;
+    node->setWorldMatrix(world);
+    node->setWorldInverseTransposeMatrix(glm::inverseTranspose(world));
+
+    if (gltfNode.mesh > -1) {
+        auto x = addMesh(device, scene, model, images,
+                         model.meshes[gltfNode.mesh], world);
+        node->setMesh(x);
     }
 
     // Draw child nodes.
-    for (auto i = 0; i < node.children.size(); i++) {
-        addNode(device, scene, model, images, model.nodes[node.children[i]],
-                world * matrix, meshs);
+    for (auto i = 0; i < gltfNode.children.size(); i++) {
+        auto x = addNode(device, scene, model, images,
+                         model.nodes[gltfNode.children[i]], world);
+        node->addNode(x);
     }
+
+    return node;
 }
 
-ConstantPMeshList addObjModel(const RTCDevice device, const RTCScene scene,
+ConstantPNodeList addObjModel(const RTCDevice device, const RTCScene scene,
                               const std::string &filename) {
-    ConstantPMeshList meshs;
+    ConstantPNodeList nodes;
 
     auto transform = glm::mat4(1.0f);
     auto inverseTranspose = glm::inverseTranspose(transform);
@@ -982,7 +1012,7 @@ ConstantPMeshList addObjModel(const RTCDevice device, const RTCScene scene,
     auto ret = tinyobj::LoadObj(&srcAttrib, &srcShapes, &srcMaterials, &warn,
                                 &err, filename.c_str(), baseDir.c_str());
     if (!ret) {
-        return meshs;
+        return nodes;
     }
 
     std::vector<ConstantPMaterial> materials;
@@ -1258,26 +1288,32 @@ ConstantPMeshList addObjModel(const RTCDevice device, const RTCScene scene,
                                            srcTangents[i].w);
         }
 
-        auto mesh = PMesh(new Mesh());
-        rtcSetGeometryUserData(geom, (void *)mesh.get());
+        auto primitive = PPrimitive(new Primitive());
+        rtcSetGeometryUserData(geom, (void *)material.get());
         rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
         rtcCommitGeometry(geom);
         auto geomId = rtcAttachGeometry(scene, geom);
         rtcReleaseGeometry(geom);
 
-        mesh->setGeometryId(geomId);
-        mesh->setMaterial(material);
-        mesh->setWorldMatrix(transform);
-        mesh->setWorldInverseTransposeMatrix(inverseTranspose);
-        meshs.push_back(mesh);
+        primitive->setGeometryId(geomId);
+        primitive->setMaterial(material);
+
+        auto mesh = PMesh(new Mesh());
+        mesh->addPrimitive(primitive);
+
+        auto node = PNode(new Node());
+
+        node->setWorldMatrix(transform);
+        node->setWorldInverseTransposeMatrix(inverseTranspose);
+        nodes.push_back(node);
     }
 
-    return meshs;
+    return nodes;
 }
 
-ConstantPMeshList addGltfModel(const RTCDevice device, const RTCScene scene,
-                              const tinygltf::Model &model) {
-    ConstantPMeshList meshs;
+ConstantPNodeList addGltfModel(const RTCDevice device, const RTCScene scene,
+                               const tinygltf::Model &model) {
+    ConstantPNodeList nodes;
     const auto sceneToDisplay =
         model.defaultScene > -1 ? model.defaultScene : 0;
     const tinygltf::Scene &gltfScene = model.scenes[sceneToDisplay];
@@ -1318,8 +1354,9 @@ ConstantPMeshList addGltfModel(const RTCDevice device, const RTCScene scene,
     for (size_t i = 0; i < gltfScene.nodes.size(); i++) {
         auto matrix = glm::mat4(1.0f);
         const auto &node = model.nodes[gltfScene.nodes[i]];
-        addNode(device, scene, model, textures, node, matrix, meshs);
+        auto x = addNode(device, scene, model, textures, node, matrix);
+        nodes.push_back(x);
     }
 
-    return meshs;
+    return nodes;
 }

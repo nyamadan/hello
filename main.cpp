@@ -73,36 +73,35 @@ glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
     return glm::dvec2(aspect * (x / size.x - 0.5f), 1.0f - y / size.y);
 }
 
-const ConstantPMeshList addDefaultMeshToScene(RTCDevice device,
-                                              RTCScene scene) {
-    ConstantPMeshList meshs;
+ConstantPNodeList addDefaultMeshToScene(RTCDevice device, RTCScene scene) {
+    ConstantPNodeList nodes;
 
-    meshs.push_back(addCube(
+    nodes.push_back(addCube(
         device, scene,
         PMaterial(new Material(REFLECTION, glm::vec4(0.0, 0.0f, 1.0f, 1.0f),
                                nullptr, nullptr, 0.25f, 0.75f, nullptr,
                                glm::vec3(0.0f), nullptr)),
         glm::translate(glm::vec3(-3.0f, 1.0f, -3.0f))));
 
-    meshs.push_back(addSphere(
+    nodes.push_back(addSphere(
         device, scene,
         PMaterial(new Material(REFLECTION, glm::vec4(1.0, 0.0f, 0.0f, 1.0f),
                                nullptr, nullptr, 0.25f, 1.0, nullptr,
                                glm::vec3(0.0f), nullptr)),
         80, 60, glm::translate(glm::vec3(+3.0f, 1.0f, -3.0f))));
 
-    meshs.push_back(addSphere(
+    nodes.push_back(addSphere(
         device, scene,
         PMaterial(new Material(REFRACTION, glm::vec4(0.0, 1.0f, 0.0f, 1.0f),
                                nullptr, nullptr, 0.0f, 1.0f, nullptr,
                                glm::vec3(0.0f), nullptr)),
         80, 60, glm::translate(glm::vec3(0.0f, 1.0f, +3.0f))));
-    return meshs;
+    return nodes;
 }
 
-const ConstantPMeshList addMeshsToScene(RTCDevice device, RTCScene scene,
+const ConstantPNodeList addMeshsToScene(RTCDevice device, RTCScene scene,
                                         const char *const path) {
-    auto meshs = ConstantPMeshList();
+    auto nodes = ConstantPNodeList();
 
     // add model
     tinygltf::Model model;
@@ -111,41 +110,50 @@ const ConstantPMeshList addMeshsToScene(RTCDevice device, RTCScene scene,
     std::string warn;
     if (loader.LoadBinaryFromFile(&model, &err, &warn, path)) {
         const auto x = addGltfModel(device, scene, model);
-        meshs.insert(meshs.cend(), x.cbegin(), x.cend());
+        nodes.insert(nodes.end(), x.begin(), x.end());
     } else if (loader.LoadASCIIFromFile(&model, &err, &warn, path)) {
         const auto x = addGltfModel(device, scene, model);
-        meshs.insert(meshs.cend(), x.cbegin(), x.cend());
+        nodes.insert(nodes.end(), x.begin(), x.end());
     } else {
         std::string warn;
         std::string err;
 
         const auto x = addObjModel(device, scene, path);
-        meshs.insert(meshs.cend(), x.cbegin(), x.cend());
+        nodes.insert(nodes.end(), x.begin(), x.end());
     }
 
-    return meshs;
+    return nodes;
 }
 
-void detachMeshs(RTCScene scene, ConstantPMeshList &meshs) {
-    for (auto it = meshs.cbegin(); it != meshs.cend(); it++) {
-        const auto pMesh = *it;
-        auto geomId = pMesh->getGeometryId();
-        rtcDetachGeometry(scene, geomId);
-    }
+void detachMeshs(RTCScene scene, const ConstantPNodeList &nodes) {
+    for (auto it = nodes.begin(); it != nodes.end(); it++) {
+        detachMeshs(scene, (*it)->getChildren());
 
-    meshs.clear();
+        const auto &mesh = (*it)->getMesh();
+        if (mesh.get() == nullptr) {
+            continue;
+        }
+
+        const auto &primitives = mesh->getPrimitives();
+
+        for (auto it = primitives.begin(); it != primitives.end(); it++) {
+            auto geomId = (*it)->getGeometryId();
+            rtcDetachGeometry(scene, geomId);
+        }
+    }
 }
 
 void loadGlbModel(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
                   RayTracer &raytracer, RayTracerCamera &camera,
-                  ConstantPMeshList &meshs) {
+                  ConstantPNodeList &nodes) {
     auto path = debugGui.getGlbPath();
     if (path.empty()) {
         return;
     }
-    detachMeshs(scene, meshs);
+    detachMeshs(scene, nodes);
+    nodes.clear();
 
-    meshs = addMeshsToScene(device, scene, path.c_str());
+    nodes = addMeshsToScene(device, scene, path.c_str());
 
     rtcCommitScene(scene);
 

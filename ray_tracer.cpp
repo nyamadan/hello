@@ -96,8 +96,7 @@ void RayTracer::intersectionFilter(
     assert(args->N == 1);
 
     auto context = (IntersectContext *)args->context;
-    auto mesh = (Mesh *)args->geometryUserPtr;
-    auto material = mesh->getMaterial().get();
+    auto material = (Material *)args->geometryUserPtr;
     auto depth = context->depth;
     auto scene = context->scene;
 
@@ -528,8 +527,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
     }
 
     auto geom = rtcGetGeometry(scene, ray.hit.geomID);
-    auto mesh = (const Mesh *)rtcGetGeometryUserData(geom);
-    auto material = mesh->getMaterial().get();
+    auto material = (const Material *)rtcGetGeometryUserData(geom);
 
     auto baseColor = context.baseColor;
     auto emissive = context.emissive;
