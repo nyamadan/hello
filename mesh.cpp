@@ -224,7 +224,7 @@ class TangentGenerator {
 };
 }  // namespace
 
-ConstantPNode addSphere(const RTCDevice device, const RTCScene scene,
+ConstantPModel addSphere(const RTCDevice device, const RTCScene scene,
                         ConstantPMaterial material, uint32_t widthSegments,
                         uint32_t heightSegments, const glm::mat4 transform) {
     const auto radius = 1.0f;
@@ -361,11 +361,17 @@ ConstantPNode addSphere(const RTCDevice device, const RTCScene scene,
     node->setWorldInverseTransposeMatrix(inverseTranspose);
     node->setMesh(mesh);
 
-    return node;
+    auto model = std::make_shared<Model>();
+
+    model->addMaterial(material);
+    model->addMesh(mesh);
+    model->addNode(node);
+
+    return model;
 }
 
 /* adds a cube to the scene */
-ConstantPNode addCube(RTCDevice device, RTCScene scene,
+ConstantPModel addCube(RTCDevice device, RTCScene scene,
                       ConstantPMaterial material, glm::mat4 transform) {
     /* create a triangulated cube with 12 triangles and 8 vertices */
     auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
@@ -522,11 +528,16 @@ ConstantPNode addCube(RTCDevice device, RTCScene scene,
     node->setWorldInverseTransposeMatrix(inverseTranspose);
     node->setMesh(mesh);
 
-    return node;
+    auto model = std::make_shared<Model>();
+    model->addMaterial(material);
+    model->addMesh(mesh);
+    model->addNode(node);
+
+    return model;
 }
 
 /* adds a ground plane to the scene */
-ConstantPNode addGroundPlane(RTCDevice device, RTCScene scene,
+ConstantPModel addGroundPlane(RTCDevice device, RTCScene scene,
                              ConstantPMaterial material,
                              const glm::mat4 transform) {
     /* create a triangulated plane with 2 triangles and 4 vertices */
@@ -614,12 +625,17 @@ ConstantPNode addGroundPlane(RTCDevice device, RTCScene scene,
     node->setWorldInverseTransposeMatrix(inverseTranspose);
     node->setMesh(mesh);
 
-    return node;
+    auto model = std::make_shared<Model>();
+    model->addMaterial(material);
+    model->addMesh(mesh);
+    model->addNode(node);
+
+    return model;
 }
 
 ConstantPMesh addMesh(const RTCDevice device, const RTCScene scene,
                       const tinygltf::Model &model,
-                      const std::vector<std::shared_ptr<const Texture>> &images,
+                      const std::vector<std::shared_ptr<const Material>> &materials,
                       const tinygltf::Mesh &gltfMesh,
                       const glm::mat4 &transform) {
     auto mesh = PMesh(new Mesh());
@@ -628,40 +644,6 @@ ConstantPMesh addMesh(const RTCDevice device, const RTCScene scene,
     for (size_t i = 0; i < gltfMesh.primitives.size(); i++) {
         const auto &primitive = gltfMesh.primitives[i];
         assert(primitive.indices >= 0);
-
-        auto gltfMaterial = model.materials[primitive.material];
-
-        auto baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
-        auto baseColorTextureIndex = -1;
-        auto roughnessFactor = 0.5f;
-        auto metalnessFactor = 0.5f;
-        auto emissiveFactor = glm::vec3(0.0f, 0.0f, 0.0f);
-        auto emissiveTextureIndex = -1;
-        auto normalTextureIndex = -1;
-        auto metallicRoughnessTextureIndex = -1;
-
-        const auto &pbr = gltfMaterial.pbrMetallicRoughness;
-        switch (pbr.baseColorFactor.size()) {
-            case 4:
-                baseColorFactor.a = (float)pbr.baseColorFactor[3];
-            case 3:
-                baseColorFactor.b = (float)pbr.baseColorFactor[2];
-                baseColorFactor.g = (float)pbr.baseColorFactor[1];
-                baseColorFactor.r = (float)pbr.baseColorFactor[0];
-                break;
-        }
-        baseColorTextureIndex = pbr.baseColorTexture.index;
-        roughnessFactor = (float)pbr.roughnessFactor;
-        metalnessFactor = (float)pbr.metallicFactor;
-
-        if (gltfMaterial.emissiveFactor.size() == 3) {
-            emissiveFactor = glm::vec3(gltfMaterial.emissiveFactor[0],
-                                       gltfMaterial.emissiveFactor[1],
-                                       gltfMaterial.emissiveFactor[2]);
-        }
-        emissiveTextureIndex = gltfMaterial.emissiveTexture.index;
-        normalTextureIndex = gltfMaterial.normalTexture.index;
-        metallicRoughnessTextureIndex = pbr.metallicRoughnessTexture.index;
 
         int mode = primitive.mode;
         assert(mode == TINYGLTF_MODE_TRIANGLES);
@@ -903,18 +885,7 @@ ConstantPMesh addMesh(const RTCDevice device, const RTCScene scene,
         }
 
         {
-            auto material = ConstantPMaterial(new Material(
-                REFLECTION, baseColorFactor,
-                baseColorTextureIndex >= 0 ? images[baseColorTextureIndex]
-                                           : nullptr,
-                normalTextureIndex >= 0 ? images[normalTextureIndex] : nullptr,
-                roughnessFactor, metalnessFactor,
-                metallicRoughnessTextureIndex >= 0
-                    ? images[metallicRoughnessTextureIndex]
-                    : nullptr,
-                emissiveFactor,
-                emissiveTextureIndex >= 0 ? images[emissiveTextureIndex]
-                                          : nullptr));
+            auto material = materials[primitive.material];
 
             auto primitive = PPrimitive(new Primitive());
             rtcSetGeometryUserData(geom, (void *)material.get());
@@ -935,7 +906,7 @@ ConstantPMesh addMesh(const RTCDevice device, const RTCScene scene,
 
 ConstantPNode addNode(const RTCDevice device, const RTCScene scene,
                       const tinygltf::Model &model,
-                      const std::vector<std::shared_ptr<const Texture>> &images,
+                      const std::vector<std::shared_ptr<const Material>> &materials,
                       const tinygltf::Node &gltfNode, const glm::mat4 &parent) {
     auto node = PNode(new Node());
 
@@ -972,14 +943,14 @@ ConstantPNode addNode(const RTCDevice device, const RTCScene scene,
     node->setWorldInverseTransposeMatrix(glm::inverseTranspose(world));
 
     if (gltfNode.mesh > -1) {
-        auto x = addMesh(device, scene, model, images,
+        auto x = addMesh(device, scene, model, materials,
                          model.meshes[gltfNode.mesh], world);
         node->setMesh(x);
     }
 
     // Draw child nodes.
     for (auto i = 0; i < gltfNode.children.size(); i++) {
-        auto x = addNode(device, scene, model, images,
+        auto x = addNode(device, scene, model, materials,
                          model.nodes[gltfNode.children[i]], world);
         node->addNode(x);
     }
@@ -987,9 +958,9 @@ ConstantPNode addNode(const RTCDevice device, const RTCScene scene,
     return node;
 }
 
-ConstantPNodeList addObjModel(const RTCDevice device, const RTCScene scene,
+ConstantPModel addObjModel(const RTCDevice device, const RTCScene scene,
                               const std::string &filename) {
-    ConstantPNodeList nodes;
+    auto model = std::make_shared<Model>();
 
     auto transform = glm::mat4(1.0f);
     auto inverseTranspose = glm::inverseTranspose(transform);
@@ -1012,10 +983,9 @@ ConstantPNodeList addObjModel(const RTCDevice device, const RTCScene scene,
     auto ret = tinyobj::LoadObj(&srcAttrib, &srcShapes, &srcMaterials, &warn,
                                 &err, filename.c_str(), baseDir.c_str());
     if (!ret) {
-        return nodes;
+        return model;
     }
 
-    std::vector<ConstantPMaterial> materials;
     std::map<std::string, std::shared_ptr<const Texture>> textures;
 
     // Load diffuse textures
@@ -1043,10 +1013,10 @@ ConstantPNodeList addObjModel(const RTCDevice device, const RTCScene scene,
                     int32_t wrapS = 0;
                     int32_t wrapT = 0;
 
-                    textures.insert(std::make_pair(
-                        mp->diffuse_texname,
-                        std::shared_ptr<const Texture>(
-                            new Texture(image, width, height, wrapS, wrapT))));
+                    auto texture = std::shared_ptr<const Texture>(
+                            new Texture(image, width, height, wrapS, wrapT));
+                    textures.insert(std::make_pair(mp->diffuse_texname, texture));
+                    model->addTexture(texture);
                 }
             }
         }
@@ -1065,11 +1035,11 @@ ConstantPNodeList addObjModel(const RTCDevice device, const RTCScene scene,
             textures.find(mp->emissive_texname) == textures.end()
                 ? textures[mp->emissive_texname]
                 : nullptr));
-        materials.push_back(material);
+        model->addMaterial(material);
     }
 
     // Append `default` material
-    materials.push_back(ConstantPMaterial(new Material()));
+    model->addMaterial(ConstantPMaterial(new Material()));
 
     for (size_t s = 0; s < srcShapes.size(); s++) {
         std::vector<glm::vec3> srcPositions;
@@ -1213,8 +1183,8 @@ ConstantPNodeList addObjModel(const RTCDevice device, const RTCScene scene,
 
         auto materialId = srcShapes[s].mesh.material_ids[0];
 
-        if (materialId < 0 || materialId >= materials.size()) {
-            materialId = static_cast<int32_t>(materials.size()) - 1;
+        if (materialId < 0 || materialId >= model->getMaterials().size()) {
+            materialId = static_cast<int32_t>(model->getMaterials().size()) - 1;
         }
 
         auto numTriangles = srcPositions.size() / 3;
@@ -1224,7 +1194,7 @@ ConstantPNodeList addObjModel(const RTCDevice device, const RTCScene scene,
             srcIndices.push_back(glm::uvec3(i * 3 + 0, i * 3 + 1, i * 3 + 2));
         }
 
-        const auto material = materials[materialId];
+        const auto material = model->getMaterials()[materialId];
 
         const auto numVertices = srcPositions.size();
         const auto numFaces = srcIndices.size();
@@ -1305,24 +1275,26 @@ ConstantPNodeList addObjModel(const RTCDevice device, const RTCScene scene,
 
         node->setWorldMatrix(transform);
         node->setWorldInverseTransposeMatrix(inverseTranspose);
-        nodes.push_back(node);
+
+        model->addMesh(mesh);
+        model->addNode(node);
     }
 
-    return nodes;
+    return model;
 }
 
-ConstantPNodeList addGltfModel(const RTCDevice device, const RTCScene scene,
-                               const tinygltf::Model &model) {
-    ConstantPNodeList nodes;
-    const auto sceneToDisplay =
-        model.defaultScene > -1 ? model.defaultScene : 0;
-    const tinygltf::Scene &gltfScene = model.scenes[sceneToDisplay];
+ConstantPModel addGltfModel(const RTCDevice device, const RTCScene scene,
+                               const tinygltf::Model &gltfModel) {
+    auto model = std::make_shared<Model>();
 
-    std::vector<std::shared_ptr<const Texture>> textures;
-    for (auto it = model.textures.begin(); it != model.textures.end(); it++) {
+    const auto sceneToDisplay =
+        gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0;
+    const tinygltf::Scene &gltfScene = gltfModel.scenes[sceneToDisplay];
+
+    for (auto it = gltfModel.textures.begin(); it != gltfModel.textures.end(); it++) {
         const auto &bufferView =
-            model.bufferViews[model.images[it->source].bufferView];
-        const auto &buffer = model.buffers[bufferView.buffer];
+            gltfModel.bufferViews[gltfModel.images[it->source].bufferView];
+        const auto &buffer = gltfModel.buffers[bufferView.buffer];
         assert(bufferView.byteStride == 0);
         const auto p = &buffer.data[0];
         const size_t components = 4;
@@ -1342,21 +1314,71 @@ ConstantPNodeList addGltfModel(const RTCDevice device, const RTCScene scene,
         int32_t wrapS = 0;
         int32_t wrapT = 0;
         if (it->sampler >= 0) {
-            const auto &sampler = model.samplers[it->sampler];
+            const auto &sampler = gltfModel.samplers[it->sampler];
             wrapS = sampler.wrapS;
             wrapT = sampler.wrapT;
         }
 
-        textures.push_back(
-            std::make_shared<Texture>(image, width, height, wrapS, wrapT));
+        model->addTexture(std::make_shared<Texture>(image, width, height, wrapS, wrapT));
+    }
+
+    for (auto it = gltfModel.materials.cbegin(); it != gltfModel.materials.cend(); it++) {
+        const auto &gltfMaterial = *it;
+        const auto &images = model->getTextures();
+
+        auto baseColorFactor = glm::vec4(1.0f, 1.0f, 1.0f, 1.0f);
+        auto baseColorTextureIndex = -1;
+        auto roughnessFactor = 0.5f;
+        auto metalnessFactor = 0.5f;
+        auto emissiveFactor = glm::vec3(0.0f, 0.0f, 0.0f);
+        auto emissiveTextureIndex = -1;
+        auto normalTextureIndex = -1;
+        auto metallicRoughnessTextureIndex = -1;
+
+        const auto &pbr = gltfMaterial.pbrMetallicRoughness;
+        switch (pbr.baseColorFactor.size()) {
+            case 4:
+                baseColorFactor.a = (float)pbr.baseColorFactor[3];
+            case 3:
+                baseColorFactor.b = (float)pbr.baseColorFactor[2];
+                baseColorFactor.g = (float)pbr.baseColorFactor[1];
+                baseColorFactor.r = (float)pbr.baseColorFactor[0];
+                break;
+        }
+        baseColorTextureIndex = pbr.baseColorTexture.index;
+        roughnessFactor = (float)pbr.roughnessFactor;
+        metalnessFactor = (float)pbr.metallicFactor;
+
+        if (gltfMaterial.emissiveFactor.size() == 3) {
+            emissiveFactor = glm::vec3(gltfMaterial.emissiveFactor[0],
+                                       gltfMaterial.emissiveFactor[1],
+                                       gltfMaterial.emissiveFactor[2]);
+        }
+        emissiveTextureIndex = gltfMaterial.emissiveTexture.index;
+        normalTextureIndex = gltfMaterial.normalTexture.index;
+        metallicRoughnessTextureIndex = pbr.metallicRoughnessTexture.index;
+
+        auto material = ConstantPMaterial(new Material(
+            REFLECTION, baseColorFactor,
+            baseColorTextureIndex >= 0 ? images[baseColorTextureIndex]
+                                       : nullptr,
+            normalTextureIndex >= 0 ? images[normalTextureIndex] : nullptr,
+            roughnessFactor, metalnessFactor,
+            metallicRoughnessTextureIndex >= 0
+                ? images[metallicRoughnessTextureIndex]
+                : nullptr,
+            emissiveFactor,
+            emissiveTextureIndex >= 0 ? images[emissiveTextureIndex]
+                                      : nullptr));
+        model->addMaterial(material);
     }
 
     for (size_t i = 0; i < gltfScene.nodes.size(); i++) {
         auto matrix = glm::mat4(1.0f);
-        const auto &node = model.nodes[gltfScene.nodes[i]];
-        auto x = addNode(device, scene, model, textures, node, matrix);
-        nodes.push_back(x);
+        const auto &node = gltfModel.nodes[gltfScene.nodes[i]];
+        auto x = addNode(device, scene, gltfModel, model->getMaterials(), node, matrix);
+        model->addNode(x);
     }
 
-    return nodes;
+    return model;
 }
