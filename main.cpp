@@ -100,7 +100,7 @@ ConstantPModelList addDefaultMeshToScene(RTCDevice device, RTCScene scene) {
 }
 
 const ConstantPModelList addMeshsToScene(RTCDevice device, RTCScene scene,
-                                        const char *const path) {
+                                         const char *const path) {
     auto models = ConstantPModelList();
 
     // add model
@@ -127,19 +127,8 @@ const ConstantPModelList addMeshsToScene(RTCDevice device, RTCScene scene,
 
 void detachNodes(RTCScene scene, const ConstantPNodeList &nodes) {
     for (auto it = nodes.cbegin(); it != nodes.cend(); it++) {
-        detachNodes(scene, (*it)->getChildren());
-
-        const auto &mesh = (*it)->getMesh();
-        if (mesh.get() == nullptr) {
-            continue;
-        }
-
-        const auto &primitives = mesh->getPrimitives();
-
-        for (auto it = primitives.cbegin(); it != primitives.cend(); it++) {
-            auto geomId = (*it)->getGeometryId();
-            rtcDetachGeometry(scene, geomId);
-        }
+        auto geomId = (*it)->getGeometryId();
+        rtcDetachGeometry(scene, geomId);
     }
 }
 
@@ -151,7 +140,7 @@ void loadGlbModel(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
         return;
     }
 
-    for(auto it = models.cbegin(); it != models.cend(); it++) {
+    for (auto it = models.cbegin(); it != models.cend(); it++) {
         detachNodes(scene, (*it)->getNodes());
     }
     models.clear();
@@ -386,7 +375,7 @@ int main(void) {
         t0 = t;
     }
 
-    for(auto it = models.cbegin(); it != models.cend(); it++) {
+    for (auto it = models.cbegin(); it != models.cend(); it++) {
         detachNodes(scene, (*it)->getNodes());
     }
 
