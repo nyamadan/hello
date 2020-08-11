@@ -110,23 +110,23 @@ const ConstantPNodeList addMeshsToScene(RTCDevice device, RTCScene scene,
     std::string warn;
     if (loader.LoadBinaryFromFile(&model, &err, &warn, path)) {
         const auto x = addGltfModel(device, scene, model);
-        nodes.insert(nodes.end(), x.begin(), x.end());
+        nodes.insert(nodes.cend(), x.cbegin(), x.cend());
     } else if (loader.LoadASCIIFromFile(&model, &err, &warn, path)) {
         const auto x = addGltfModel(device, scene, model);
-        nodes.insert(nodes.end(), x.begin(), x.end());
+        nodes.insert(nodes.cend(), x.cbegin(), x.cend());
     } else {
         std::string warn;
         std::string err;
 
         const auto x = addObjModel(device, scene, path);
-        nodes.insert(nodes.end(), x.begin(), x.end());
+        nodes.insert(nodes.cend(), x.cbegin(), x.cend());
     }
 
     return nodes;
 }
 
 void detachMeshs(RTCScene scene, const ConstantPNodeList &nodes) {
-    for (auto it = nodes.begin(); it != nodes.end(); it++) {
+    for (auto it = nodes.cbegin(); it != nodes.cend(); it++) {
         detachMeshs(scene, (*it)->getChildren());
 
         const auto &mesh = (*it)->getMesh();
@@ -136,7 +136,7 @@ void detachMeshs(RTCScene scene, const ConstantPNodeList &nodes) {
 
         const auto &primitives = mesh->getPrimitives();
 
-        for (auto it = primitives.begin(); it != primitives.end(); it++) {
+        for (auto it = primitives.cbegin(); it != primitives.cend(); it++) {
             auto geomId = (*it)->getGeometryId();
             rtcDetachGeometry(scene, geomId);
         }
