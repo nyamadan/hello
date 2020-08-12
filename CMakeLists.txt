@@ -23,6 +23,8 @@ set(OIDN_DIR ${EXTERNAL_DIR}/src/oidn)
 set(OIDN_LIBRARY_DIR ${OIDN_DIR}/lib)
 set(OIDN_BINARY_DIR ${OIDN_DIR}/bin)
 set(OIDN_INCLUDE_DIR ${OIDN_DIR}/include)
+set(LUA_DIR ${EXTERNAL_DIR}/src/lua)
+set(LUA_INCLUDE_DIR ${LUA_DIR}/src)
 
 ExternalProject_Add(embree
     PREFIX              ${EXTERNAL_DIR}
@@ -54,6 +56,16 @@ ExternalProject_Add(oidn
     INSTALL_COMMAND     COMMAND ${CMAKE_COMMAND} -E copy "${OIDN_BINARY_DIR}/OpenImageDenoise.dll" "${PROJECT_SOURCE_DIR}/"
 )
 
+ExternalProject_Add(lua
+    PREFIX              ${EXTERNAL_DIR}
+    URL                 http://www.lua.org/ftp/lua-5.4.0.tar.gz
+    BUILD_IN_SOURCE     True
+    UPDATE_COMMAND      ""
+    CONFIGURE_COMMAND   ""
+    BUILD_COMMAND       ""
+    INSTALL_COMMAND     ""
+)
+
 execute_process(
   COMMAND "python" "gl3w_gen.py"
   WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/gl3w"
@@ -61,10 +73,17 @@ execute_process(
 
 add_subdirectory("${PROJECT_SOURCE_DIR}/glfw")
 
+file( GLOB_RECURSE LUA_SOURCES ${LUA_DIR}/src/*.c )
+list( REMOVE_ITEM LUA_SOURCES
+  ${LUA_DIR}/src/lua.c
+  ${LUA_DIR}/src/luac.c
+)
+
 include_directories(
     "${EMBREE_INCLUDE_DIR}"
     "${TBB_INCLUDE_DIR}"
     "${OIDN_INCLUDE_DIR}"
+    "${LUA_INCLUDE_DIR}"
     "${PROJECT_SOURCE_DIR}/glm"
     "${PROJECT_SOURCE_DIR}/stb"
     "${PROJECT_SOURCE_DIR}/gl3w/include"
@@ -104,8 +123,9 @@ add_executable(
     "${PROJECT_SOURCE_DIR}/imgui/examples/imgui_impl_glfw.cpp"
     "${PROJECT_SOURCE_DIR}/imgui/examples/imgui_impl_opengl3.cpp"
     "${PROJECT_SOURCE_DIR}/mikktspace/mikktspace.c"
+    "${LUA_SOURCES}"
 )
 
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
-add_dependencies(hello_embree glfw embree tbb oidn)
+add_dependencies(hello_embree glfw embree tbb oidn lua)
 target_link_libraries(hello_embree glfw embree3 OpenImageDenoise)
