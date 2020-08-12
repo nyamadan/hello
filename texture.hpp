@@ -30,3 +30,6 @@ class Texture {
         this->wrapT = wrapT;
     }
 };
+
+using PTexture = std::shared_ptr<Texture>;
+using ConstantPTexture = std::shared_ptr<const Texture>;

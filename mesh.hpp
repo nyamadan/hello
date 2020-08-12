@@ -3,6 +3,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
+#include <utility>
 
 #include <glm/glm.hpp>
 
@@ -36,40 +37,48 @@ class Primitive {
   public:
     Primitive() { this->material = nullptr; }
 
-    void setTriangles(std::vector<glm::u32vec3> &triangles) {
-        this->triangles = triangles;
+    template <class T>
+    void setTriangles(T &&triangles) {
+        this->triangles = std::forward<T>(triangles);
     }
     const std::vector<glm::u32vec3> &getTriangles() const {
         return this->triangles;
     }
 
-    void setPositions(std::vector<glm::vec3> &positions) {
-        this->positions = positions;
+    template <class T>
+    void setPositions(T &&positions) {
+        this->positions = std::forward<T>(positions);
     }
     const std::vector<glm::vec3> &getPositions() const {
         return this->positions;
     }
 
-    void setNormals(std::vector<glm::vec3> &normals) {
-        this->normals = normals;
+    template <class T>
+    void setNormals(T &&normals) {
+        this->normals = std::forward<T>(normals);
     }
     const std::vector<glm::vec3> &getNormals() const { return this->normals; }
 
-    void setTexCoords0(std::vector<glm::vec2> &texCoords0) {
-        this->texCoords0 = texCoords0;
+    template <class T>
+    void setTexCoords0(T &&texCoords0) {
+        this->texCoords0 = std::forward<T>(texCoords0);
     }
     const std::vector<glm::vec2> &getTexCoords0() const {
         return this->texCoords0;
     }
 
-    void setTangents(std::vector<glm::vec4> &tangents) {
-        this->tangents = tangents;
+    template <class T>
+    void setTangents(T &&tangents) {
+        this->tangents = std::forward<T>(tangents);
     }
     const std::vector<glm::vec4> &getTangents() const { return this->tangents; }
 
     void setMaterial(ConstantPMaterial material) { this->material = material; }
     ConstantPMaterial getMaterial() const { return this->material; }
 };
+
+using PPrimitive = std::shared_ptr<Primitive>;
+using ConstantPPrimitive = std::shared_ptr<const Primitive>;
 
 class Mesh {
   private:
@@ -85,23 +94,19 @@ class Mesh {
     }
 };
 
+using PMesh = std::shared_ptr<Mesh>;
+using ConstantPMesh = std::shared_ptr<const Mesh>;
+
 class Node {
   private:
     glm::mat4 matrix;
-    glm::mat4 worldMatrix;
-    glm::mat4 worldInverseTransposeMatrix;
 
     std::vector<std::shared_ptr<const Node>> children;
-
-    uint32_t geomId;
 
     std::shared_ptr<const Mesh> mesh;
 
   public:
-    Node() {
-        this->worldMatrix = glm::mat4(1.0f);
-        this->worldInverseTransposeMatrix = glm::mat4(1.0f);
-    }
+    Node() { this->matrix = glm::mat4(1.0f); }
 
     void addChild(std::shared_ptr<const Node> node) {
         this->children.push_back(node);
@@ -110,106 +115,110 @@ class Node {
     void setMesh(std::shared_ptr<const Mesh> mesh) { this->mesh = mesh; }
     std::shared_ptr<const Mesh> const getMesh() const { return this->mesh; }
 
-    void setWorldInverseTransposeMatrix(
-        const glm::mat4 &worldInverseTranspose) {
-        this->worldInverseTransposeMatrix = worldInverseTranspose;
-    }
-
-    void setWorldMatrix(const glm::mat4 &worldMatrix) {
-        this->worldMatrix = worldMatrix;
-    }
-
     void setMatrix(const glm::mat4 &matrix) { this->matrix = matrix; }
 
-    const glm::mat4 &getWorldInverseTransposeMatrix() const {
-        return this->worldInverseTransposeMatrix;
-    }
-    const glm::mat4 &getWorldMatrix() const { return this->worldMatrix; }
     const glm::mat4 &getMatrix() const { return this->matrix; }
 
     const std::vector<std::shared_ptr<const Node>> &getChildren() const {
         return this->children;
     }
-
-    void setGeometryId(uint32_t geomId) { this->geomId = geomId; }
-    uint32_t getGeometryId() const { return this->geomId; }
 };
+
+using PNode = std::shared_ptr<Node>;
+using ConstantPNode = std::shared_ptr<const Node>;
+using ConstantPNodeList = std::vector<ConstantPNode>;
+
+class Scene {
+  private:
+    std::vector<ConstantPNode> nodes;
+
+  public:
+    void addNode(ConstantPNode node) { this->nodes.push_back(node); }
+    const std::vector<ConstantPNode> &getNodes() const { return this->nodes; }
+};
+
+using PScene = std::shared_ptr<Scene>;
+using ConstantPScene = std::shared_ptr<const Scene>;
 
 class Model {
   private:
-    std::vector<std::shared_ptr<const Material>> materials;
-    std::vector<std::shared_ptr<const Mesh>> meshs;
-    std::vector<std::shared_ptr<const Node>> nodes;
-    std::vector<std::shared_ptr<const Texture>> textures;
+    ConstantPScene scene = nullptr;
+    std::vector<ConstantPMaterial> materials;
+    std::vector<ConstantPMesh> meshs;
+    std::vector<ConstantPNode> nodes;
+    std::vector<ConstantPScene> scenes;
+    std::vector<ConstantPTexture> textures;
 
   public:
-    void addMaterial(std::shared_ptr<const Material> material) {
+    void setScene(ConstantPScene scene) { this->scene = scene; }
+    ConstantPScene getScene() const { return this->scene; }
+
+    void addScene(ConstantPScene scene) { this->scenes.push_back(scene); }
+    const std::vector<ConstantPScene> &getScenes() const {
+        return this->scenes;
+    }
+
+    void addMaterial(ConstantPMaterial material) {
         this->materials.push_back(material);
     }
-    const std::vector<std::shared_ptr<const Material>> &getMaterials() const {
+    const std::vector<ConstantPMaterial> &getMaterials() const {
         return this->materials;
     }
 
-    void addMesh(std::shared_ptr<const Mesh> mesh) {
-        this->meshs.push_back(mesh);
-    }
-    const std::vector<std::shared_ptr<const Mesh>> &getMeshs() const {
-        return this->meshs;
-    }
+    void addMesh(ConstantPMesh mesh) { this->meshs.push_back(mesh); }
+    const std::vector<ConstantPMesh> &getMeshs() const { return this->meshs; }
 
-    void addNode(std::shared_ptr<const Node> node) {
-        this->nodes.push_back(node);
-    }
-    const std::vector<std::shared_ptr<const Node>> &getNodes() const {
-        return this->nodes;
-    }
+    void addNode(ConstantPNode node) { this->nodes.push_back(node); }
+    const std::vector<ConstantPNode> &getNodes() const { return this->nodes; }
 
-    void addTexture(std::shared_ptr<const Texture> texture) {
+    void addTexture(ConstantPTexture texture) {
         this->textures.push_back(texture);
     }
-    const std::vector<std::shared_ptr<const Texture>> &getTextures() const {
+    const std::vector<ConstantPTexture> &getTextures() const {
         return this->textures;
     }
 };
 
-using PMesh = std::shared_ptr<Mesh>;
-using ConstantPMesh = std::shared_ptr<const Mesh>;
-using PPrimitive = std::shared_ptr<Primitive>;
-using ConstantPPrimitive = std::shared_ptr<const Primitive>;
-using PNode = std::shared_ptr<Node>;
-using ConstantPNode = std::shared_ptr<const Node>;
-using ConstantPNodeList = std::vector<ConstantPNode>;
 using PModel = std::shared_ptr<Model>;
 using ConstantPModel = std::shared_ptr<const Model>;
 using ConstantPModelList = std::vector<std::shared_ptr<const Model>>;
 
-ConstantPModel addSphere(const RTCDevice device, const RTCScene scene,
-                         ConstantPMaterial material, uint32_t widthSegments = 8,
-                         uint32_t heightSegments = 6,
-                         const glm::mat4 transform = glm::mat4(1.0f));
+class Geometry {
+  private:
+    uint32_t geomID;
+    ConstantPNode node;
+    ConstantPPrimitive primitive;
+
+    Geometry(uint32_t geomID_, ConstantPNode node_,
+             ConstantPPrimitive primitive_);
+
+  public:
+    static std::list<std::shared_ptr<const Geometry>> commitNode(
+        RTCDevice device, RTCScene scene, ConstantPNode node);
+    static std::list<std::shared_ptr<const Geometry>> commitNode(
+        RTCDevice device, RTCScene scene, ConstantPNode node,
+        const glm::mat4 &parent);
+
+    void detach(RTCScene scene) const;
+};
+
+using PGeometry = std::shared_ptr<Geometry>;
+using ConstantPGeometry = std::shared_ptr<const Geometry>;
+using ConstantPGeometryList = std::list<std::shared_ptr<const Geometry>>;
+
+ConstantPModel loadSphere(ConstantPMaterial material,
+                          uint32_t widthSegments = 8,
+                          uint32_t heightSegments = 6,
+                          const glm::mat4 transform = glm::mat4(1.0f));
 
 /* adds a cube to the scene */
-ConstantPModel addCube(RTCDevice device, RTCScene scene,
-                       ConstantPMaterial material,
-                       glm::mat4 transform = glm::mat4(1.0f));
+ConstantPModel loadCube(ConstantPMaterial material,
+                        glm::mat4 transform = glm::mat4(1.0f));
 
 /* adds a ground plane to the scene */
-ConstantPModel addGroundPlane(RTCDevice device, RTCScene scene,
-                              ConstantPMaterial material,
-                              const glm::mat4 transform = glm::mat4(1.0f));
+ConstantPModel loadGroundPlane(ConstantPMaterial material,
+                               const glm::mat4 transform = glm::mat4(1.0f));
 
-ConstantPMesh addMesh(
-    const RTCDevice device, const RTCScene scene, const tinygltf::Model &model,
-    const std::vector<std::shared_ptr<const Material>> &materials,
-    const tinygltf::Mesh &gltfMesh, const glm::mat4 &world);
+ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel);
 
-ConstantPNode addNode(
-    const RTCDevice device, const RTCScene scene, const tinygltf::Model &model,
-    const std::vector<std::shared_ptr<const Material>> &materials,
-    const tinygltf::Node &node, const glm::mat4 &world);
-
-ConstantPModel addGltfModel(const RTCDevice device, const RTCScene scene,
-                            const tinygltf::Model &gltfModel);
-
-ConstantPModel addObjModel(const RTCDevice device, const RTCScene scene,
-                           const std::string &filename);
+ConstantPModel loadObjModel(const std::string &filename);

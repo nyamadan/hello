@@ -208,7 +208,7 @@ class TangentGenerator {
 
         genTangSpaceDefault(&context);
 
-        return tangents;
+        return std::move(tangents);
     }
 
   public:
@@ -224,9 +224,111 @@ class TangentGenerator {
 };
 }  // namespace
 
-ConstantPModel addSphere(const RTCDevice device, const RTCScene scene,
-                         ConstantPMaterial material, uint32_t widthSegments,
-                         uint32_t heightSegments, const glm::mat4 transform) {
+Geometry::Geometry(uint32_t geomID_, ConstantPNode node_,
+                   ConstantPPrimitive primitive_)
+    : geomID(geomID_), node(node_), primitive(primitive_) {}
+
+std::list<std::shared_ptr<const Geometry>> Geometry::commitNode(
+    RTCDevice device, RTCScene scene, ConstantPNode node) {
+    return Geometry::commitNode(device, scene, node, glm::mat4(1.0f));
+}
+
+std::list<std::shared_ptr<const Geometry>> Geometry::commitNode(
+    RTCDevice device, RTCScene scene, ConstantPNode node,
+    const glm::mat4 &parent) {
+    std::list<std::shared_ptr<const Geometry>> geometries;
+
+    const auto &matrix = node->getMatrix();
+    const auto transform = parent * matrix;
+    const auto inverseTranspose = glm::inverseTranspose(transform);
+    for (auto child : node->getChildren()) {
+        geometries.splice(
+            geometries.cend(),
+            Geometry::commitNode(device, scene, child, transform));
+    }
+
+    auto mesh = node->getMesh();
+    if (mesh.get() == nullptr) {
+        return geometries;
+    }
+
+    for (auto primitive : mesh->getPrimitives()) {
+        const auto &srcTriangles = primitive->getTriangles();
+        const auto &srcPositions = primitive->getPositions();
+        const auto &srcNormals = primitive->getNormals();
+        const auto &srcTexcoords0 = primitive->getTexCoords0();
+        const auto &srcTangents = primitive->getTangents();
+        const auto material = primitive->getMaterial();
+        const auto numVertices = srcPositions.size();
+        const auto numFaces = srcTriangles.size();
+
+        auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+
+        rtcSetGeometryVertexAttributeCount(
+            geom, (uint32_t)VertexAttributeSlot::NUM_VERTEX_ATTRIBUTE_SLOTS);
+
+        auto *positionsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
+            geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3,
+            sizeof(glm::vec3), numVertices);
+        auto *trianglesBuffer = (glm::u32vec3 *)rtcSetNewGeometryBuffer(
+            geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
+            sizeof(glm::u32vec3), numFaces);
+        auto *normalsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
+            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+            (uint32_t)VertexAttributeSlot::SLOT_NORMAL, RTC_FORMAT_FLOAT3,
+            sizeof(glm::vec3), numVertices);
+        auto *texCoords0Buffer = (glm::vec2 *)rtcSetNewGeometryBuffer(
+            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+            (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0, RTC_FORMAT_FLOAT3,
+            sizeof(glm::vec2), numVertices);
+        auto *tangentsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
+            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+            (uint32_t)VertexAttributeSlot::SLOT_TANGENT, RTC_FORMAT_FLOAT3,
+            sizeof(glm::vec3), numVertices);
+        auto *bitangentsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
+            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+            (uint32_t)VertexAttributeSlot::SLOT_BITANGENT, RTC_FORMAT_FLOAT3,
+            sizeof(glm::vec3), numVertices);
+
+        for (auto i = 0; i < numFaces; i++) {
+            trianglesBuffer[i] = srcTriangles[i];
+        }
+
+        for (auto i = 0; i < numVertices; i++) {
+            positionsBuffer[i] =
+                glm::vec3(transform * glm::vec4(srcPositions[i], 1.0f));
+            normalsBuffer[i] = glm::normalize(
+                glm::vec3(inverseTranspose * glm::vec4(srcNormals[i], 0.0f)));
+            texCoords0Buffer[i] = srcTexcoords0[i];
+            tangentsBuffer[i] = glm::normalize(glm::vec3(
+                transform * glm::vec4(glm::vec3(srcTangents[i]), 0.0f)));
+            bitangentsBuffer[i] = glm::normalize(glm::vec3(
+                inverseTranspose *
+                glm::vec4(
+                    (glm::cross(srcNormals[i], glm::vec3(srcTangents[i])) *
+                     srcTangents[i].w),
+                    0.0f)));
+        }
+
+        rtcSetGeometryUserData(geom, (void *)material.get());
+        rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
+        rtcCommitGeometry(geom);
+        auto geomId = rtcAttachGeometry(scene, geom);
+        rtcReleaseGeometry(geom);
+
+        geometries.push_back(std::shared_ptr<const Geometry>(
+            new Geometry(geomId, node, primitive)));
+    }
+
+    return geometries;
+}
+
+void Geometry::detach(RTCScene scene) const {
+    rtcDetachGeometry(scene, geomID);
+}
+
+ConstantPModel loadSphere(ConstantPMaterial material, uint32_t widthSegments,
+                          uint32_t heightSegments, const glm::mat4 transform) {
     const auto radius = 1.0f;
     auto index = 0;
     auto grid = std::vector<std::vector<uint32_t>>();
@@ -239,7 +341,7 @@ ConstantPModel addSphere(const RTCDevice device, const RTCScene scene,
     auto srcNormals = std::vector<glm::vec3>();
     auto srcTexcoords0 = std::vector<glm::vec2>();
 
-    const auto inverseTranspose = glm::transpose(glm::inverse(transform));
+    const auto inverseTranspose = glm::inverseTranspose(transform);
 
     for (auto iy = 0; iy <= (int32_t)heightSegments; iy++) {
         auto verticesRow = std::vector<uint32_t>();
@@ -284,77 +386,25 @@ ConstantPModel addSphere(const RTCDevice device, const RTCScene scene,
     const auto numVertices = srcPositions.size();
     const auto numFaces = srcTriangles.size();
 
-    auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-
-    rtcSetGeometryVertexAttributeCount(
-        geom, (uint32_t)VertexAttributeSlot::NUM_VERTEX_ATTRIBUTE_SLOTS);
-
-    auto *positionsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
-        numVertices);
-    auto *trianglesBuffer = (glm::u32vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::u32vec3),
-        numFaces);
-    auto *normalsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        (uint32_t)VertexAttributeSlot::SLOT_NORMAL, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), numVertices);
-    auto *texCoords0Buffer = (glm::vec2 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0, RTC_FORMAT_FLOAT2,
-        sizeof(glm::vec2), numVertices);
-    auto *tangentsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        (uint32_t)VertexAttributeSlot::SLOT_TANGENT, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), numVertices);
-    auto *bitangentsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        (uint32_t)VertexAttributeSlot::SLOT_BITANGENT, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), numVertices);
-
-    for (auto i = 0; i < srcTriangles.size(); i++) {
-        trianglesBuffer[i] = srcTriangles[i];
-    }
-
     auto srcTangents = TangentGenerator::generate(
         static_cast<int32_t>(numFaces), static_cast<int32_t>(numVertices),
         srcTriangles.data(), srcPositions.data(), srcNormals.data(),
         srcTexcoords0.data());
 
-    for (auto i = 0; i < numVertices; i++) {
-        positionsBuffer[i] =
-            glm::vec3(transform * glm::vec4(srcPositions[i], 1.0f));
-        normalsBuffer[i] = glm::normalize(
-            glm::vec3(inverseTranspose * glm::vec4(srcNormals[i], 0.0f)));
-        tangentsBuffer[i] = glm::normalize(
-            glm::vec3(transform * glm::vec4(glm::vec3(srcTangents[i]), 0.0f)));
-        bitangentsBuffer[i] = glm::normalize(glm::vec3(
-            inverseTranspose *
-            glm::vec4((glm::cross(srcNormals[i], glm::vec3(srcTangents[i])) *
-                       srcTangents[i].w),
-                      0.0f)));
-    }
-
     auto primitive = PPrimitive(new Primitive());
-    rtcSetGeometryUserData(geom, (void *)material.get());
-    rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
-    rtcCommitGeometry(geom);
-    auto geomId = rtcAttachGeometry(scene, geom);
-    rtcReleaseGeometry(geom);
 
     primitive->setMaterial(material);
-    primitive->setPositions(srcPositions);
-    primitive->setNormals(srcNormals);
-    primitive->setTexCoords0(srcTexcoords0);
-    primitive->setTriangles(srcTriangles);
+    primitive->setPositions(std::move(srcPositions));
+    primitive->setNormals(std::move(srcNormals));
+    primitive->setTexCoords0(std::move(srcTexcoords0));
+    primitive->setTangents(std::move(srcTangents));
+    primitive->setTriangles(std::move(srcTriangles));
 
     auto mesh = PMesh(new Mesh());
     mesh->addPrimitive(primitive);
 
     auto node = PNode(new Node());
-    node->setGeometryId(geomId);
-    node->setWorldMatrix(transform);
-    node->setWorldInverseTransposeMatrix(inverseTranspose);
+    node->setMatrix(transform);
     node->setMesh(mesh);
 
     auto model = std::make_shared<Model>();
@@ -362,263 +412,196 @@ ConstantPModel addSphere(const RTCDevice device, const RTCScene scene,
     model->addMaterial(material);
     model->addMesh(mesh);
     model->addNode(node);
+
+    auto scene = PScene(new Scene());
+    scene->addNode(node);
+    model->addScene(scene);
+    model->setScene(scene);
 
     return model;
 }
 
 /* adds a cube to the scene */
-ConstantPModel addCube(RTCDevice device, RTCScene scene,
-                       ConstantPMaterial material, glm::mat4 transform) {
+ConstantPModel loadCube(ConstantPMaterial material, glm::mat4 transform) {
     /* create a triangulated cube with 12 triangles and 8 vertices */
-    auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-
-    rtcSetGeometryVertexAttributeCount(
-        geom, (uint32_t)VertexAttributeSlot::NUM_VERTEX_ATTRIBUTE_SLOTS);
-
     const auto numFaces = 12;
     const auto numVertices = 24;
 
     /* set vertices and vertex colors */
-    auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
-        numVertices);
-    positions[0] = glm::vec3(1, 1, -1);
-    positions[1] = glm::vec3(1, 1, 1);
-    positions[2] = glm::vec3(1, -1, 1);
-    positions[3] = glm::vec3(1, -1, -1);
-    positions[4] = glm::vec3(-1, 1, 1);
-    positions[5] = glm::vec3(-1, 1, -1);
-    positions[6] = glm::vec3(-1, -1, -1);
-    positions[7] = glm::vec3(-1, -1, 1);
-    positions[8] = glm::vec3(-1, 1, 1);
-    positions[9] = glm::vec3(1, 1, 1);
-    positions[10] = glm::vec3(1, 1, -1);
-    positions[11] = glm::vec3(-1, 1, -1);
-    positions[12] = glm::vec3(-1, -1, -1);
-    positions[13] = glm::vec3(1, -1, -1);
-    positions[14] = glm::vec3(1, -1, 1);
-    positions[15] = glm::vec3(-1, -1, 1);
-    positions[16] = glm::vec3(1, 1, 1);
-    positions[17] = glm::vec3(-1, 1, 1);
-    positions[18] = glm::vec3(-1, -1, 1);
-    positions[19] = glm::vec3(1, -1, 1);
-    positions[20] = glm::vec3(-1, 1, -1);
-    positions[21] = glm::vec3(1, 1, -1);
-    positions[22] = glm::vec3(1, -1, -1);
-    positions[23] = glm::vec3(-1, -1, -1);
+    std::vector<glm::vec3> srcPositions(numVertices);
+    srcPositions[0] = glm::vec3(1, 1, -1);
+    srcPositions[1] = glm::vec3(1, 1, 1);
+    srcPositions[2] = glm::vec3(1, -1, 1);
+    srcPositions[3] = glm::vec3(1, -1, -1);
+    srcPositions[4] = glm::vec3(-1, 1, 1);
+    srcPositions[5] = glm::vec3(-1, 1, -1);
+    srcPositions[6] = glm::vec3(-1, -1, -1);
+    srcPositions[7] = glm::vec3(-1, -1, 1);
+    srcPositions[8] = glm::vec3(-1, 1, 1);
+    srcPositions[9] = glm::vec3(1, 1, 1);
+    srcPositions[10] = glm::vec3(1, 1, -1);
+    srcPositions[11] = glm::vec3(-1, 1, -1);
+    srcPositions[12] = glm::vec3(-1, -1, -1);
+    srcPositions[13] = glm::vec3(1, -1, -1);
+    srcPositions[14] = glm::vec3(1, -1, 1);
+    srcPositions[15] = glm::vec3(-1, -1, 1);
+    srcPositions[16] = glm::vec3(1, 1, 1);
+    srcPositions[17] = glm::vec3(-1, 1, 1);
+    srcPositions[18] = glm::vec3(-1, -1, 1);
+    srcPositions[19] = glm::vec3(1, -1, 1);
+    srcPositions[20] = glm::vec3(-1, 1, -1);
+    srcPositions[21] = glm::vec3(1, 1, -1);
+    srcPositions[22] = glm::vec3(1, -1, -1);
+    srcPositions[23] = glm::vec3(-1, -1, -1);
 
     /* set triangles and face colors */
-    glm::uvec3 *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
-        numFaces);
-    indices[0] = glm::uvec3(0, 1, 2);
-    indices[1] = glm::uvec3(0, 2, 3);
-    indices[2] = glm::uvec3(4, 5, 6);
-    indices[3] = glm::uvec3(4, 6, 7);
-    indices[4] = glm::uvec3(8, 9, 10);
-    indices[5] = glm::uvec3(8, 10, 11);
-    indices[6] = glm::uvec3(12, 13, 14);
-    indices[7] = glm::uvec3(12, 14, 15);
-    indices[8] = glm::uvec3(16, 17, 18);
-    indices[9] = glm::uvec3(16, 18, 19);
-    indices[10] = glm::uvec3(20, 21, 22);
-    indices[11] = glm::uvec3(20, 22, 23);
+    std::vector<glm::u32vec3> srcTriangles(numFaces);
+    srcTriangles[0] = glm::u32vec3(0, 1, 2);
+    srcTriangles[1] = glm::u32vec3(0, 2, 3);
+    srcTriangles[2] = glm::u32vec3(4, 5, 6);
+    srcTriangles[3] = glm::u32vec3(4, 6, 7);
+    srcTriangles[4] = glm::u32vec3(8, 9, 10);
+    srcTriangles[5] = glm::u32vec3(8, 10, 11);
+    srcTriangles[6] = glm::u32vec3(12, 13, 14);
+    srcTriangles[7] = glm::u32vec3(12, 14, 15);
+    srcTriangles[8] = glm::u32vec3(16, 17, 18);
+    srcTriangles[9] = glm::u32vec3(16, 18, 19);
+    srcTriangles[10] = glm::u32vec3(20, 21, 22);
+    srcTriangles[11] = glm::u32vec3(20, 22, 23);
 
-    glm::vec3 *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        (uint32_t)VertexAttributeSlot::SLOT_NORMAL, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), numVertices);
-    const auto inverseTranspose = glm::transpose(glm::inverse(transform));
-    normals[0] = glm::vec3(1, 0, 0);
-    normals[1] = glm::vec3(1, 0, 0);
-    normals[2] = glm::vec3(1, 0, 0);
-    normals[3] = glm::vec3(1, 0, 0);
-    normals[4] = glm::vec3(-1, 0, 0);
-    normals[5] = glm::vec3(-1, 0, 0);
-    normals[6] = glm::vec3(-1, 0, 0);
-    normals[7] = glm::vec3(-1, 0, 0);
-    normals[8] = glm::vec3(0, 1, 0);
-    normals[9] = glm::vec3(0, 1, 0);
-    normals[10] = glm::vec3(0, 1, 0);
-    normals[11] = glm::vec3(0, 1, 0);
-    normals[12] = glm::vec3(0, -1, 0);
-    normals[13] = glm::vec3(0, -1, 0);
-    normals[14] = glm::vec3(0, -1, 0);
-    normals[15] = glm::vec3(0, -1, 0);
-    normals[16] = glm::vec3(0, 0, 1);
-    normals[17] = glm::vec3(0, 0, 1);
-    normals[18] = glm::vec3(0, 0, 1);
-    normals[19] = glm::vec3(0, 0, 1);
-    normals[20] = glm::vec3(0, 0, -1);
-    normals[21] = glm::vec3(0, 0, -1);
-    normals[22] = glm::vec3(0, 0, -1);
-    normals[23] = glm::vec3(0, 0, -1);
+    std::vector<glm::vec3> srcNormals(numVertices);
+    srcNormals[0] = glm::vec3(1, 0, 0);
+    srcNormals[1] = glm::vec3(1, 0, 0);
+    srcNormals[2] = glm::vec3(1, 0, 0);
+    srcNormals[3] = glm::vec3(1, 0, 0);
+    srcNormals[4] = glm::vec3(-1, 0, 0);
+    srcNormals[5] = glm::vec3(-1, 0, 0);
+    srcNormals[6] = glm::vec3(-1, 0, 0);
+    srcNormals[7] = glm::vec3(-1, 0, 0);
+    srcNormals[8] = glm::vec3(0, 1, 0);
+    srcNormals[9] = glm::vec3(0, 1, 0);
+    srcNormals[10] = glm::vec3(0, 1, 0);
+    srcNormals[11] = glm::vec3(0, 1, 0);
+    srcNormals[12] = glm::vec3(0, -1, 0);
+    srcNormals[13] = glm::vec3(0, -1, 0);
+    srcNormals[14] = glm::vec3(0, -1, 0);
+    srcNormals[15] = glm::vec3(0, -1, 0);
+    srcNormals[16] = glm::vec3(0, 0, 1);
+    srcNormals[17] = glm::vec3(0, 0, 1);
+    srcNormals[18] = glm::vec3(0, 0, 1);
+    srcNormals[19] = glm::vec3(0, 0, 1);
+    srcNormals[20] = glm::vec3(0, 0, -1);
+    srcNormals[21] = glm::vec3(0, 0, -1);
+    srcNormals[22] = glm::vec3(0, 0, -1);
+    srcNormals[23] = glm::vec3(0, 0, -1);
 
-    glm::vec2 *texCoords0 = (glm::vec2 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec2), numVertices);
-    texCoords0[0] = glm::vec2(1, 0);
-    texCoords0[1] = glm::vec2(0, 0);
-    texCoords0[2] = glm::vec2(0, 1);
-    texCoords0[3] = glm::vec2(1, 1);
-    texCoords0[4] = glm::vec2(1, 0);
-    texCoords0[5] = glm::vec2(0, 0);
-    texCoords0[6] = glm::vec2(0, 1);
-    texCoords0[7] = glm::vec2(1, 1);
-    texCoords0[8] = glm::vec2(1, 0);
-    texCoords0[9] = glm::vec2(0, 0);
-    texCoords0[10] = glm::vec2(0, 1);
-    texCoords0[11] = glm::vec2(1, 1);
-    texCoords0[12] = glm::vec2(1, 0);
-    texCoords0[13] = glm::vec2(0, 0);
-    texCoords0[14] = glm::vec2(0, 1);
-    texCoords0[15] = glm::vec2(1, 1);
-    texCoords0[16] = glm::vec2(1, 0);
-    texCoords0[17] = glm::vec2(0, 0);
-    texCoords0[18] = glm::vec2(0, 1);
-    texCoords0[19] = glm::vec2(1, 1);
-    texCoords0[20] = glm::vec2(1, 0);
-    texCoords0[21] = glm::vec2(0, 0);
-    texCoords0[22] = glm::vec2(0, 1);
-    texCoords0[23] = glm::vec2(1, 1);
+    std::vector<glm::vec2> srcTexcoords0(numVertices);
+    srcTexcoords0[0] = glm::vec2(1, 0);
+    srcTexcoords0[1] = glm::vec2(0, 0);
+    srcTexcoords0[2] = glm::vec2(0, 1);
+    srcTexcoords0[3] = glm::vec2(1, 1);
+    srcTexcoords0[4] = glm::vec2(1, 0);
+    srcTexcoords0[5] = glm::vec2(0, 0);
+    srcTexcoords0[6] = glm::vec2(0, 1);
+    srcTexcoords0[7] = glm::vec2(1, 1);
+    srcTexcoords0[8] = glm::vec2(1, 0);
+    srcTexcoords0[9] = glm::vec2(0, 0);
+    srcTexcoords0[10] = glm::vec2(0, 1);
+    srcTexcoords0[11] = glm::vec2(1, 1);
+    srcTexcoords0[12] = glm::vec2(1, 0);
+    srcTexcoords0[13] = glm::vec2(0, 0);
+    srcTexcoords0[14] = glm::vec2(0, 1);
+    srcTexcoords0[15] = glm::vec2(1, 1);
+    srcTexcoords0[16] = glm::vec2(1, 0);
+    srcTexcoords0[17] = glm::vec2(0, 0);
+    srcTexcoords0[18] = glm::vec2(0, 1);
+    srcTexcoords0[19] = glm::vec2(1, 1);
+    srcTexcoords0[20] = glm::vec2(1, 0);
+    srcTexcoords0[21] = glm::vec2(0, 0);
+    srcTexcoords0[22] = glm::vec2(0, 1);
+    srcTexcoords0[23] = glm::vec2(1, 1);
 
     auto srcTangents = TangentGenerator::generate(
-        numFaces, numVertices, indices, positions, normals, texCoords0);
-
-    auto *tangents = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        (uint32_t)VertexAttributeSlot::SLOT_TANGENT, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), numVertices);
-
-    auto *bitangents = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        (uint32_t)VertexAttributeSlot::SLOT_BITANGENT, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), numVertices);
-
-    for (auto i = 0; i < numVertices; i++) {
-        positions[i] = glm::vec3(transform * glm::vec4(positions[i], 1.0f));
-        normals[i] = glm::normalize(
-            glm::vec3(inverseTranspose * glm::vec4(normals[i], 0.0f)));
-        tangents[i] = glm::normalize(
-            glm::vec3(transform * glm::vec4(glm::vec3(srcTangents[i]), 0.0f)));
-        bitangents[i] = glm::normalize(glm::cross(normals[i], tangents[i]) *
-                                       srcTangents[i].w);
-    }
+        numFaces, numVertices, srcTriangles.data(), srcPositions.data(),
+        srcNormals.data(), srcTexcoords0.data());
 
     auto primitive = PPrimitive(new Primitive());
-    rtcSetGeometryUserData(geom, (void *)material.get());
-    rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
-    rtcCommitGeometry(geom);
-    auto geomId = rtcAttachGeometry(scene, geom);
-    rtcReleaseGeometry(geom);
 
     primitive->setMaterial(material);
+    primitive->setPositions(std::move(srcPositions));
+    primitive->setNormals(std::move(srcNormals));
+    primitive->setTexCoords0(std::move(srcTexcoords0));
+    primitive->setTangents(std::move(srcTangents));
+    primitive->setTriangles(std::move(srcTriangles));
 
     auto mesh = PMesh(new Mesh());
     mesh->addPrimitive(primitive);
 
     auto node = PNode(new Node());
-    node->setGeometryId(geomId);
-    node->setWorldMatrix(transform);
-    node->setWorldInverseTransposeMatrix(inverseTranspose);
+    node->setMatrix(transform);
     node->setMesh(mesh);
 
     auto model = std::make_shared<Model>();
     model->addMaterial(material);
     model->addMesh(mesh);
     model->addNode(node);
+
+    auto scene = PScene(new Scene());
+    scene->addNode(node);
+    model->addScene(scene);
+    model->setScene(scene);
 
     return model;
 }
 
 /* adds a ground plane to the scene */
-ConstantPModel addGroundPlane(RTCDevice device, RTCScene scene,
-                              ConstantPMaterial material,
-                              const glm::mat4 transform) {
-    /* create a triangulated plane with 2 triangles and 4 vertices */
-    auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-
+ConstantPModel loadGroundPlane(ConstantPMaterial material,
+                               const glm::mat4 transform) {
     const auto numFaces = 2;
     const auto numVertices = 4;
 
-    rtcSetGeometryVertexAttributeCount(
-        geom, (uint32_t)VertexAttributeSlot::NUM_VERTEX_ATTRIBUTE_SLOTS);
-
     /* set vertices */
-    auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3, sizeof(glm::vec3),
-        numVertices);
-    positions[0] = glm::vec3(-1, 0, -1);
-    positions[1] = glm::vec3(-1, 0, +1);
-    positions[2] = glm::vec3(+1, 0, -1);
-    positions[3] = glm::vec3(+1, 0, +1);
+    std::vector<glm::vec3> srcPositions(numVertices);
+    srcPositions[0] = glm::vec3(-1, 0, -1);
+    srcPositions[1] = glm::vec3(-1, 0, +1);
+    srcPositions[2] = glm::vec3(+1, 0, -1);
+    srcPositions[3] = glm::vec3(+1, 0, +1);
 
     /* set triangles */
-    auto *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3, sizeof(glm::uvec3),
-        numFaces);
-    indices[0] = glm::uvec3(0, 1, 2);
-    indices[1] = glm::uvec3(1, 3, 2);
+    std::vector<glm::u32vec3> srcTriangles(numFaces);
+    srcTriangles[0] = glm::u32vec3(0, 1, 2);
+    srcTriangles[1] = glm::u32vec3(1, 3, 2);
 
     const auto inverseTranspose = glm::transpose(glm::inverse(transform));
-    auto *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        (uint32_t)VertexAttributeSlot::SLOT_NORMAL, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), numVertices);
-    normals[0] = glm::vec3(0.0f, 1.0f, 0.0f);
-    normals[1] = glm::vec3(0.0f, 1.0f, 0.0f);
-    normals[2] = glm::vec3(0.0f, 1.0f, 0.0f);
-    normals[3] = glm::vec3(0.0f, 1.0f, 0.0f);
+    std::vector<glm::vec3> srcNormals(numVertices);
+    srcNormals[0] = glm::vec3(0.0f, 1.0f, 0.0f);
+    srcNormals[1] = glm::vec3(0.0f, 1.0f, 0.0f);
+    srcNormals[2] = glm::vec3(0.0f, 1.0f, 0.0f);
+    srcNormals[3] = glm::vec3(0.0f, 1.0f, 0.0f);
 
-    auto *texCoords0 = (glm::vec2 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0, RTC_FORMAT_FLOAT2,
-        sizeof(glm::vec2), 4);
-    texCoords0[0] = glm::vec2(0.0f, 0.0f);
-    texCoords0[1] = glm::vec2(0.0f, 1.0f);
-    texCoords0[2] = glm::vec2(1.0f, 0.0f);
-    texCoords0[3] = glm::vec2(1.0f, 1.0f);
+    std::vector<glm::vec2> srcTexcoords0(numVertices);
+    srcTexcoords0[0] = glm::vec2(0.0f, 0.0f);
+    srcTexcoords0[1] = glm::vec2(0.0f, 1.0f);
+    srcTexcoords0[2] = glm::vec2(1.0f, 0.0f);
+    srcTexcoords0[3] = glm::vec2(1.0f, 1.0f);
 
     auto srcTangents = TangentGenerator::generate(
-        numFaces, numVertices, indices, positions, normals, texCoords0);
-
-    auto *tangents = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        (uint32_t)VertexAttributeSlot::SLOT_TANGENT, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), numVertices);
-
-    auto *bitangents = (glm::vec3 *)rtcSetNewGeometryBuffer(
-        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-        (uint32_t)VertexAttributeSlot::SLOT_BITANGENT, RTC_FORMAT_FLOAT3,
-        sizeof(glm::vec3), numVertices);
-
-    for (auto i = 0; i < numVertices; i++) {
-        positions[i] = glm::vec3(transform * glm::vec4(positions[i], 1.0f));
-        normals[i] = glm::normalize(
-            glm::vec3(inverseTranspose * glm::vec4(normals[i], 0.0f)));
-        tangents[i] = glm::normalize(
-            glm::vec3(transform * glm::vec4(glm::vec3(srcTangents[i]), 0.0f)));
-        bitangents[i] = glm::normalize(glm::cross(normals[i], tangents[i]) *
-                                       srcTangents[i].w);
-    }
+        numFaces, numVertices, srcTriangles.data(), srcPositions.data(),
+        srcNormals.data(), srcTexcoords0.data());
 
     auto primitive = PPrimitive(new Primitive());
-    rtcSetGeometryUserData(geom, (void *)material.get());
-    rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
-    rtcCommitGeometry(geom);
-    auto geomId = rtcAttachGeometry(scene, geom);
-    rtcReleaseGeometry(geom);
-
     primitive->setMaterial(material);
+    primitive->setPositions(std::move(srcPositions));
+    primitive->setNormals(std::move(srcNormals));
+    primitive->setTexCoords0(std::move(srcTexcoords0));
+    primitive->setTangents(std::move(srcTangents));
+    primitive->setTriangles(std::move(srcTriangles));
 
     auto mesh = PMesh(new Mesh());
     mesh->addPrimitive(primitive);
 
     auto node = PNode(new Node());
-    node->setGeometryId(geomId);
-    node->setWorldMatrix(transform);
-    node->setWorldInverseTransposeMatrix(inverseTranspose);
+    node->setMatrix(transform);
     node->setMesh(mesh);
 
     auto model = std::make_shared<Model>();
@@ -626,11 +609,15 @@ ConstantPModel addGroundPlane(RTCDevice device, RTCScene scene,
     model->addMesh(mesh);
     model->addNode(node);
 
+    auto scene = PScene(new Scene());
+    scene->addNode(node);
+    model->addScene(scene);
+    model->setScene(scene);
+
     return model;
 }
 
-ConstantPModel addObjModel(const RTCDevice device, const RTCScene scene,
-                           const std::string &filename) {
+ConstantPModel loadObjModel(const std::string &filename) {
     auto model = std::make_shared<Model>();
 
     auto transform = glm::mat4(1.0f);
@@ -714,9 +701,10 @@ ConstantPModel addObjModel(const RTCDevice device, const RTCScene scene,
     model->addMaterial(ConstantPMaterial(new Material()));
 
     for (size_t s = 0; s < srcShapes.size(); s++) {
+        std::vector<glm::u32vec3> srcTriangles;
         std::vector<glm::vec3> srcPositions;
         std::vector<glm::vec3> srcNormals;
-        std::vector<glm::vec2> srcTexcoords0;
+        std::vector<glm::vec2> srcTexCoords0;
 
         // Check for smoothing group and compute smoothing normals
         std::map<int, glm::vec3> smoothVertexNormals;
@@ -849,7 +837,7 @@ ConstantPModel addObjModel(const RTCDevice device, const RTCScene scene,
             for (int k = 0; k < 3; k++) {
                 srcPositions.push_back(glm::vec3(v[k][0], v[k][1], v[k][2]));
                 srcNormals.push_back(glm::vec3(n[k][0], n[k][1], n[k][2]));
-                srcTexcoords0.push_back(glm::vec2(tc[k][0], tc[k][1]));
+                srcTexCoords0.push_back(glm::vec2(tc[k][0], tc[k][1]));
             }
         }
 
@@ -859,103 +847,51 @@ ConstantPModel addObjModel(const RTCDevice device, const RTCScene scene,
             materialId = static_cast<int32_t>(model->getMaterials().size()) - 1;
         }
 
-        auto numTriangles = srcPositions.size() / 3;
+        auto numFaces = srcPositions.size() / 3;
 
-        std::vector<glm::uvec3> srcIndices;
-        for (auto i = 0; i < numTriangles; i++) {
-            srcIndices.push_back(glm::uvec3(i * 3 + 0, i * 3 + 1, i * 3 + 2));
+        for (auto i = 0; i < numFaces; i++) {
+            srcTriangles.push_back(
+                glm::u32vec3(i * 3 + 0, i * 3 + 1, i * 3 + 2));
         }
 
         const auto material = model->getMaterials()[materialId];
 
         const auto numVertices = srcPositions.size();
-        const auto numFaces = srcIndices.size();
-
-        auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-
-        rtcSetGeometryVertexAttributeCount(
-            geom, (uint32_t)VertexAttributeSlot::NUM_VERTEX_ATTRIBUTE_SLOTS);
-
-        auto *positions = (glm::vec3 *)rtcSetNewGeometryBuffer(
-            geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3,
-            sizeof(glm::vec3), srcPositions.size());
-        for (auto i = 0; i < srcPositions.size(); i++) {
-            positions[i] = srcPositions[i];
-        }
-
-        auto *indices = (glm::uvec3 *)rtcSetNewGeometryBuffer(
-            geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
-            sizeof(glm::uvec3), srcIndices.size());
-        for (auto i = 0; i < srcIndices.size(); i++) {
-            indices[i] = srcIndices[i];
-        }
-
-        auto *normals = (glm::vec3 *)rtcSetNewGeometryBuffer(
-            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-            (uint32_t)VertexAttributeSlot::SLOT_NORMAL, RTC_FORMAT_FLOAT3,
-            sizeof(glm::vec3), srcNormals.size());
-        for (auto i = 0; i < srcNormals.size(); i++) {
-            normals[i] = srcNormals[i];
-        }
-
-        auto *texCoords0 = (glm::vec2 *)rtcSetNewGeometryBuffer(
-            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-            (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0, RTC_FORMAT_FLOAT2,
-            sizeof(glm::vec2), srcTexcoords0.size());
-        for (auto i = 0; i < srcTexcoords0.size(); i++) {
-            texCoords0[i] = srcTexcoords0[i];
-        }
 
         auto srcTangents = TangentGenerator::generate(
             static_cast<int32_t>(numFaces), static_cast<int32_t>(numVertices),
-            indices, positions, normals, texCoords0);
-
-        auto *tangents = (glm::vec3 *)rtcSetNewGeometryBuffer(
-            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-            (uint32_t)VertexAttributeSlot::SLOT_TANGENT, RTC_FORMAT_FLOAT3,
-            sizeof(glm::vec3), numVertices);
-
-        auto *bitangents = (glm::vec3 *)rtcSetNewGeometryBuffer(
-            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-            (uint32_t)VertexAttributeSlot::SLOT_BITANGENT, RTC_FORMAT_FLOAT3,
-            sizeof(glm::vec3), numVertices);
-
-        for (auto i = 0; i < numVertices; i++) {
-            positions[i] = glm::vec3(transform * glm::vec4(positions[i], 1.0f));
-            normals[i] = glm::normalize(
-                glm::vec3(inverseTranspose * glm::vec4(normals[i], 0.0f)));
-            tangents[i] = glm::normalize(glm::vec3(
-                transform * glm::vec4(glm::vec3(srcTangents[i]), 0.0f)));
-            bitangents[i] = glm::normalize(glm::cross(normals[i], tangents[i]) *
-                                           srcTangents[i].w);
-        }
+            srcTriangles.data(), srcPositions.data(), srcNormals.data(),
+            srcTexCoords0.data());
 
         auto primitive = PPrimitive(new Primitive());
-        rtcSetGeometryUserData(geom, (void *)material.get());
-        rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
-        rtcCommitGeometry(geom);
-        auto geomId = rtcAttachGeometry(scene, geom);
-        rtcReleaseGeometry(geom);
-
         primitive->setMaterial(material);
 
         auto mesh = PMesh(new Mesh());
+        primitive->setPositions(srcPositions);
+        primitive->setNormals(srcNormals);
+        primitive->setTexCoords0(srcTexCoords0);
+        primitive->setTangents(srcTangents);
         mesh->addPrimitive(primitive);
 
         auto node = PNode(new Node());
-        node->setGeometryId(geomId);
-        node->setWorldMatrix(transform);
-        node->setWorldInverseTransposeMatrix(inverseTranspose);
+        node->setMatrix(transform);
 
         model->addMesh(mesh);
         model->addNode(node);
     }
 
+    auto scene = PScene(new Scene);
+    for (auto node : model->getNodes()) {
+        scene->addNode(node);
+    }
+
+    model->addScene(scene);
+    model->setScene(scene);
+
     return model;
 }
 
-ConstantPModel addGltfModel(const RTCDevice device, const RTCScene scene,
-                            const tinygltf::Model &gltfModel) {
+ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel) {
     auto model = std::make_shared<Model>();
 
     const auto sceneToDisplay =
@@ -1047,54 +983,6 @@ ConstantPModel addGltfModel(const RTCDevice device, const RTCScene scene,
         model->addMaterial(material);
     }
 
-    std::vector<std::shared_ptr<Node>> nodes;
-    for (auto it = gltfModel.nodes.cbegin(); it != gltfModel.nodes.cend();
-         it++) {
-        const auto &gltfNode = *it;
-        auto node = PNode(new Node());
-
-        glm::mat4 matrix(1.0f);
-        if (gltfNode.matrix.size() == 16) {
-            // Use `matrix' attribute
-            matrix = glm::make_mat4(gltfNode.matrix.data());
-        } else {
-            // Assume Trans x Rotate x Scale order
-            if (gltfNode.scale.size() == 3) {
-                const auto &s = gltfNode.scale;
-                matrix = glm::scale(
-                             glm::vec3((float)s[0], (float)s[1], (float)s[2])) *
-                         matrix;
-            }
-
-            if (gltfNode.rotation.size() == 4) {
-                const auto &r = gltfNode.rotation;
-                matrix =
-                    static_cast<glm::mat4>(glm::quat(
-                        (float)r[3], (float)r[0], (float)r[1], (float)r[2])) *
-                    matrix;
-            }
-
-            if (gltfNode.translation.size() == 3) {
-                const auto &t = gltfNode.translation;
-                matrix = glm::translate(
-                             glm::vec3((float)t[0], (float)t[1], (float)t[2])) *
-                         matrix;
-            }
-        }
-
-        node->setMatrix(matrix);
-        nodes.push_back(node);
-    }
-
-    for (auto parentIndex = gltfModel.nodes.size() - 1; parentIndex >= 0;
-         parentIndex--) {
-        const auto &children = gltfModel.nodes[parentIndex].children;
-        for (auto it = children.cbegin(); it != children.cend(); it++) {
-            const auto childIndex = *it;
-            nodes[parentIndex]->addChild(nodes[childIndex]);
-        }
-    }
-
     for (auto it1 = gltfModel.meshes.cbegin(); it1 != gltfModel.meshes.cend();
          it1++) {
         auto mesh = std::make_shared<Mesh>();
@@ -1109,10 +997,6 @@ ConstantPModel addGltfModel(const RTCDevice device, const RTCScene scene,
             int mode = primitive.mode;
             assert(mode == TINYGLTF_MODE_TRIANGLES);
 
-            auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-            rtcSetGeometryVertexAttributeCount(
-                geom,
-                (uint32_t)VertexAttributeSlot::NUM_VERTEX_ATTRIBUTE_SLOTS);
             auto allSemantics = 0;
 
             const auto &indexAccessor = gltfModel.accessors[primitive.indices];
@@ -1133,16 +1017,13 @@ ConstantPModel addGltfModel(const RTCDevice device, const RTCScene scene,
 
             int32_t numFaces = static_cast<int32_t>(indexAccessor.count / 3);
             int32_t numVertices = 0;
-            std::vector<glm::u32vec3> triangles;
-            std::vector<glm::vec3> normals;
-            std::vector<glm::vec3> positions;
-            std::vector<glm::vec2> texCoords0;
-            std::vector<glm::vec4> tangents;
+            std::vector<glm::u32vec3> srcTriangles;
+            std::vector<glm::vec3> srcNormals;
+            std::vector<glm::vec3> srcPositions;
+            std::vector<glm::vec2> srcTexCoords0;
+            std::vector<glm::vec4> srcTangents;
 
-            // triangles = (uint32_t *)rtcSetNewGeometryBuffer(
-            //     geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
-            //     sizeof(uint32_t) * 3, numFaces);
-            triangles = std::vector<glm::u32vec3>(numFaces);
+            srcTriangles = std::vector<glm::u32vec3>(numFaces);
 
             for (auto i = 0; i < indexAccessor.count; i++) {
                 const auto byteStride =
@@ -1154,14 +1035,14 @@ ConstantPModel addGltfModel(const RTCDevice device, const RTCScene scene,
 
                 switch (indexAccessor.componentType) {
                     case TINYGLTF_COMPONENT_TYPE_UNSIGNED_SHORT: {
-                        ((uint32_t *)triangles.data())[i] =
+                        ((uint32_t *)srcTriangles.data())[i] =
                             *(uint16_t *)(gltfModel
                                               .buffers[indexBufferView.buffer]
                                               .data.data() +
                                           byteOffset + byteStride * i);
                     } break;
                     case TINYGLTF_COMPONENT_TYPE_UNSIGNED_INT: {
-                        ((uint32_t *)triangles.data())[i] =
+                        ((uint32_t *)srcTriangles.data())[i] =
                             *(uint32_t *)(gltfModel
                                               .buffers[indexBufferView.buffer]
                                               .data.data() +
@@ -1224,65 +1105,29 @@ ConstantPModel addGltfModel(const RTCDevice device, const RTCScene scene,
                                 case SEM_POSITION: {
                                     assert(size == 3);
 
-                                    // dstBuffer =
-                                    //     (float *)rtcSetNewGeometryBuffer(
-                                    //         geom, RTC_BUFFER_TYPE_VERTEX, 0,
-                                    //         (RTCFormat)((int)RTC_FORMAT_FLOAT
-                                    //         +
-                                    //                     size - 1),
-                                    //         sizeof(float) * size,
-                                    //         accessor.count);
-
-                                    positions = std::vector<glm::vec3>(
-                                        accessor.count / 3);
+                                    srcPositions =
+                                        std::vector<glm::vec3>(accessor.count);
                                     numVertices =
                                         static_cast<int32_t>(accessor.count);
-                                    dstBuffer = (float *)positions.data();
+                                    dstBuffer = (float *)srcPositions.data();
                                 } break;
                                 case SEM_NORMAL: {
                                     assert(size == 3);
-                                    // dstBuffer =
-                                    //     (float *)rtcSetNewGeometryBuffer(
-                                    //         geom,
-                                    //         RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                                    //         (uint32_t)VertexAttributeSlot::
-                                    //             SLOT_NORMAL,
-                                    //         (RTCFormat)((int)RTC_FORMAT_FLOAT
-                                    //         +
-                                    //                     size - 1),
-                                    //         sizeof(float) * size,
-                                    //         accessor.count);
-                                    // normals = (glm::vec3 *)dstBuffer;
-                                    normals = std::vector<glm::vec3>(
-                                        accessor.count / 3);
-                                    dstBuffer = (float *)normals.data();
+                                    srcNormals =
+                                        std::vector<glm::vec3>(accessor.count);
+                                    dstBuffer = (float *)srcNormals.data();
                                 } break;
                                 case SEM_TEXCOORD_0: {
                                     assert(size == 2);
-                                    // dstBuffer =
-                                    //     (float *)rtcSetNewGeometryBuffer(
-                                    //         geom,
-                                    //         RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                                    //         (uint32_t)VertexAttributeSlot::
-                                    //             SLOT_TEXCOORD_0,
-                                    //         (RTCFormat)((int)RTC_FORMAT_FLOAT
-                                    //         +
-                                    //                     size - 1),
-                                    //         sizeof(float) * size,
-                                    //         accessor.count);
-                                    // texCoords0 = (glm::vec2 *)dstBuffer;
-                                    texCoords0 = std::vector<glm::vec2>(
-                                        accessor.count / 2);
-                                    dstBuffer = (float *)texCoords0.data();
+                                    srcTexCoords0 =
+                                        std::vector<glm::vec2>(accessor.count);
+                                    dstBuffer = (float *)srcTexCoords0.data();
                                 } break;
                                 case SEM_TANGENT: {
                                     assert(size == 4);
-                                    // srcTangents =
-                                    //     std::vector<glm::vec4>(accessor.count);
-                                    // dstBuffer = (float *)srcTangents.data();
-                                    tangents = std::vector<glm::vec4>(
-                                        accessor.count / 4);
-                                    dstBuffer = (float *)tangents.data();
+                                    srcTangents =
+                                        std::vector<glm::vec4>(accessor.count);
+                                    dstBuffer = (float *)srcTangents.data();
                                 } break;
                             }
 
@@ -1295,27 +1140,19 @@ ConstantPModel addGltfModel(const RTCDevice device, const RTCScene scene,
 
                                 switch (size) {
                                     case 2: {
-                                        const auto v = glm::vec2(srcBuffer[0],
-                                                                 srcBuffer[1]);
-                                        dstBuffer[size * i + 0] = v[0];
-                                        dstBuffer[size * i + 1] = v[1];
+                                        dstBuffer[size * i + 0] = srcBuffer[0];
+                                        dstBuffer[size * i + 1] = srcBuffer[1];
                                     } break;
                                     case 3: {
-                                        const auto v = glm::vec3(srcBuffer[0],
-                                                                 srcBuffer[1],
-                                                                 srcBuffer[2]);
-                                        dstBuffer[size * i + 0] = v[0];
-                                        dstBuffer[size * i + 1] = v[1];
-                                        dstBuffer[size * i + 2] = v[2];
+                                        dstBuffer[size * i + 0] = srcBuffer[0];
+                                        dstBuffer[size * i + 1] = srcBuffer[1];
+                                        dstBuffer[size * i + 2] = srcBuffer[2];
                                     } break;
                                     case 4: {
-                                        const auto v = glm::vec4(
-                                            srcBuffer[0], srcBuffer[1],
-                                            srcBuffer[2], srcBuffer[3]);
-                                        dstBuffer[size * i + 0] = v[0];
-                                        dstBuffer[size * i + 1] = v[1];
-                                        dstBuffer[size * i + 2] = v[2];
-                                        dstBuffer[size * i + 3] = v[3];
+                                        dstBuffer[size * i + 0] = srcBuffer[0];
+                                        dstBuffer[size * i + 1] = srcBuffer[1];
+                                        dstBuffer[size * i + 2] = srcBuffer[2];
+                                        dstBuffer[size * i + 3] = srcBuffer[3];
                                     } break;
                                 }
                             }
@@ -1327,81 +1164,40 @@ ConstantPModel addGltfModel(const RTCDevice device, const RTCScene scene,
             assert(numVertices > 0);
 
             if (!(allSemantics & SEM_NORMAL)) {
-                // auto geometryBuffer = (float *)rtcSetNewGeometryBuffer(
-                //     geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                //     (uint32_t)VertexAttributeSlot::SLOT_NORMAL,
-                //     (RTCFormat)(RTC_FORMAT_FLOAT3), sizeof(glm::vec3),
-                //     numVertices);
-                // normals = (glm::vec3 *)geometryBuffer;
-                normals = std::vector<glm::vec3>(numVertices);
+                srcNormals = std::vector<glm::vec3>(numVertices);
 
                 // TODO: COMPUTE NORMALs
                 for (auto i = 0; i < numVertices; i++) {
-                    normals[i] = glm::vec3(0.0f, 0.0f, 1.0f);
+                    srcNormals[i] = glm::vec3(0.0f, 0.0f, 1.0f);
                 }
             }
 
             if (!(allSemantics & SEM_TEXCOORD_0)) {
-                // auto geometryBuffer = (float *)rtcSetNewGeometryBuffer(
-                //     geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                //     (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0,
-                //     (RTCFormat)(RTC_FORMAT_FLOAT2), sizeof(glm::vec3),
-                //     numVertices);
-                // texCoords0 = (glm::vec2 *)geometryBuffer;
-                texCoords0 = std::vector<glm::vec2>(numVertices);
+                srcTexCoords0 = std::vector<glm::vec2>(numVertices);
 
                 // TODO: COMPUTE UVs
                 for (auto i = 0; i < numVertices; i++) {
-                    texCoords0[i] = glm::vec2(0.0f, 0.0f);
+                    srcTexCoords0[i] = glm::vec2(0.0f, 0.0f);
                 }
             }
 
             if (!(allSemantics & SEM_TANGENT)) {
-                tangents = TangentGenerator::generate(
+                srcTangents = TangentGenerator::generate(
                     numFaces, numVertices,
-                    (const glm::u32vec3 *)triangles.data(), positions.data(),
-                    normals.data(), texCoords0.data());
+                    (const glm::u32vec3 *)srcTriangles.data(),
+                    srcPositions.data(), srcNormals.data(),
+                    srcTexCoords0.data());
             }
-
-            // auto tangents = (glm::vec3 *)rtcSetNewGeometryBuffer(
-            //     geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_TANGENT,
-            //     RTC_FORMAT_FLOAT3, sizeof(glm::vec3), numVertices);
-
-            // auto bitangents = (glm::vec3 *)rtcSetNewGeometryBuffer(
-            //     geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE, SLOT_BITANGENT,
-            //     RTC_FORMAT_FLOAT3, sizeof(glm::vec3), numVertices);
-
-            // for (auto i = 0; i < numVertices; i++) {
-            //     positions[i] =
-            //         glm::vec3(transform * glm::vec4(positions[i], 1.0f));
-            //     normals[i] = glm::normalize(
-            //         glm::vec3(inverseTranspose * glm::vec4(normals[i],
-            //         0.0f)));
-            //     tangents[i] = glm::normalize(
-            //         glm::vec3(inverseTranspose *
-            //                   glm::vec4(glm::vec3(srcTangents[i]), 0.0f)));
-            //     bitangents[i] = glm::normalize(
-            //         glm::cross(normals[i], tangents[i]) * srcTangents[i].w);
-            // }
 
             {
                 auto material = materials[primitive.material];
-
                 auto primitive = PPrimitive(new Primitive());
-                rtcSetGeometryUserData(geom, (void *)material.get());
-                rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
-                rtcCommitGeometry(geom);
-                auto geomId = rtcAttachGeometry(scene, geom);
-                rtcReleaseGeometry(geom);
-
-                // primitive->setGeometryId(geomId);
-
-                primitive->setMaterial(material);
-                primitive->setPositions(positions);
-                primitive->setNormals(normals);
-                primitive->setTexCoords0(texCoords0);
-                primitive->setTangents(tangents);
-
+                primitive->setMaterial(std::move(material));
+                primitive->setPositions(std::move(srcPositions));
+                primitive->setNormals(std::move(srcNormals));
+                primitive->setTexCoords0(std::move(srcTexCoords0));
+                primitive->setTangents(std::move(srcTangents));
+                primitive->setTriangles(std::move(srcTriangles));
                 mesh->addPrimitive(primitive);
             }
         }
@@ -1409,14 +1205,82 @@ ConstantPModel addGltfModel(const RTCDevice device, const RTCScene scene,
         model->addMesh(mesh);
     }
 
-    // for (size_t i = 0; i < gltfScene.nodes.size(); i++) {
-    //     auto matrix = glm::mat4(1.0f);
-    //     const auto &node = gltfModel.nodes[gltfScene.nodes[i]];
-    //     auto x = addNode(device, scene, gltfModel, model->getMaterials(),
-    //     node,
-    //                      matrix);
-    //     model->addNode(x);
-    // }
+    std::vector<std::shared_ptr<Node>> nodes;
+    for (auto it = gltfModel.nodes.cbegin(); it != gltfModel.nodes.cend();
+         it++) {
+        const auto &gltfNode = *it;
+        auto node = PNode(new Node());
+
+        glm::mat4 matrix(1.0f);
+        if (gltfNode.matrix.size() == 16) {
+            // Use `matrix' attribute
+            matrix = glm::make_mat4(gltfNode.matrix.data());
+        } else {
+            // Assume Trans x Rotate x Scale order
+            if (gltfNode.scale.size() == 3) {
+                const auto &s = gltfNode.scale;
+                matrix = glm::scale(
+                             glm::vec3((float)s[0], (float)s[1], (float)s[2])) *
+                         matrix;
+            }
+
+            if (gltfNode.rotation.size() == 4) {
+                const auto &r = gltfNode.rotation;
+                matrix =
+                    static_cast<glm::mat4>(glm::quat(
+                        (float)r[3], (float)r[0], (float)r[1], (float)r[2])) *
+                    matrix;
+            }
+
+            if (gltfNode.translation.size() == 3) {
+                const auto &t = gltfNode.translation;
+                matrix = glm::translate(
+                             glm::vec3((float)t[0], (float)t[1], (float)t[2])) *
+                         matrix;
+            }
+        }
+
+        if (gltfNode.mesh >= 0) {
+            node->setMesh(model->getMeshs()[gltfNode.mesh]);
+        }
+        node->setMatrix(matrix);
+        nodes.push_back(node);
+    }
+
+    for (auto parentIndex = 0; parentIndex < nodes.size(); parentIndex++) {
+        const auto &children = gltfModel.nodes[parentIndex].children;
+        for (auto it = children.cbegin(); it != children.cend(); it++) {
+            const auto childIndex = *it;
+            nodes[parentIndex]->addChild(nodes[childIndex]);
+        }
+    }
+
+    for (auto node : nodes) {
+        model->addNode(node);
+    }
+
+    for (auto gltfScene : gltfModel.scenes) {
+        auto scene = PScene(new Scene());
+        for (auto gltfNode : gltfScene.nodes) {
+            auto node = model->getNodes()[gltfNode];
+            scene->addNode(node);
+        }
+        model->addScene(scene);
+    }
+
+    if (model->getScenes().empty()) {
+        auto scene = PScene(new Scene());
+        for (auto node : model->getNodes()) {
+            scene->addNode(node);
+        }
+        model->addScene(scene);
+    }
+
+    if (gltfModel.defaultScene >= 0) {
+        model->setScene(model->getScenes()[gltfModel.defaultScene]);
+    } else {
+        model->setScene(*model->getScenes().begin());
+    }
 
     return model;
 }

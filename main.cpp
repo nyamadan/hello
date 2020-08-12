@@ -73,34 +73,47 @@ glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
     return glm::dvec2(aspect * (x / size.x - 0.5f), 1.0f - y / size.y);
 }
 
-ConstantPModelList addDefaultMeshToScene(RTCDevice device, RTCScene scene) {
+void detachGeometries(RTCScene scene, ConstantPGeometryList &geometries) {
+    for (auto geometry : geometries) {
+        geometry->detach(scene);
+    }
+    geometries.clear();
+}
+
+ConstantPGeometryList addDefaultMeshToScene(RTCDevice device, RTCScene scene) {
     ConstantPModelList models;
 
-    models.push_back(addCube(
-        device, scene,
+    models.push_back(loadCube(
         PMaterial(new Material(REFLECTION, glm::vec4(0.0, 0.0f, 1.0f, 1.0f),
                                nullptr, nullptr, 0.25f, 0.75f, nullptr,
                                glm::vec3(0.0f), nullptr)),
         glm::translate(glm::vec3(-3.0f, 1.0f, -3.0f))));
 
-    models.push_back(addSphere(
-        device, scene,
+    models.push_back(loadSphere(
         PMaterial(new Material(REFLECTION, glm::vec4(1.0, 0.0f, 0.0f, 1.0f),
                                nullptr, nullptr, 0.25f, 1.0, nullptr,
                                glm::vec3(0.0f), nullptr)),
         80, 60, glm::translate(glm::vec3(+3.0f, 1.0f, -3.0f))));
 
-    models.push_back(addSphere(
-        device, scene,
+    models.push_back(loadSphere(
         PMaterial(new Material(REFRACTION, glm::vec4(0.0, 1.0f, 0.0f, 1.0f),
                                nullptr, nullptr, 0.0f, 1.0f, nullptr,
                                glm::vec3(0.0f), nullptr)),
         80, 60, glm::translate(glm::vec3(0.0f, 1.0f, +3.0f))));
-    return models;
+
+    ConstantPGeometryList geometries;
+    for (auto model : models) {
+        for (auto node : model->getScene()->getNodes()) {
+            geometries.splice(geometries.cend(),
+                              Geometry::commitNode(device, scene, node));
+        }
+    }
+
+    return geometries;
 }
 
-const ConstantPModelList addMeshsToScene(RTCDevice device, RTCScene scene,
-                                         const char *const path) {
+ConstantPGeometryList addModel(RTCDevice device, RTCScene scene,
+                               const char *const path) {
     auto models = ConstantPModelList();
 
     // add model
@@ -109,43 +122,34 @@ const ConstantPModelList addMeshsToScene(RTCDevice device, RTCScene scene,
     std::string err;
     std::string warn;
     if (loader.LoadBinaryFromFile(&model, &err, &warn, path)) {
-        const auto x = addGltfModel(device, scene, model);
+        const auto x = loadGltfModel(model);
         models.push_back(x);
     } else if (loader.LoadASCIIFromFile(&model, &err, &warn, path)) {
-        const auto x = addGltfModel(device, scene, model);
+        const auto x = loadGltfModel(model);
         models.push_back(x);
     } else {
         std::string warn;
         std::string err;
 
-        const auto x = addObjModel(device, scene, path);
+        const auto x = loadObjModel(path);
         models.push_back(x);
     }
 
-    return models;
+    ConstantPGeometryList geometries;
+    for (auto model : models) {
+        for (auto node : model->getScene()->getNodes()) {
+            geometries.splice(geometries.cend(),
+                              Geometry::commitNode(device, scene, node));
+        }
+    }
+
+    return geometries;
 }
 
-void detachNodes(RTCScene scene, const ConstantPNodeList &nodes) {
-    for (auto it = nodes.cbegin(); it != nodes.cend(); it++) {
-        auto geomId = (*it)->getGeometryId();
-        rtcDetachGeometry(scene, geomId);
-    }
-}
-
-void loadGlbModel(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
-                  RayTracer &raytracer, RayTracerCamera &camera,
-                  ConstantPModelList &models) {
-    auto path = debugGui.getGlbPath();
-    if (path.empty()) {
-        return;
-    }
-
-    for (auto it = models.cbegin(); it != models.cend(); it++) {
-        detachNodes(scene, (*it)->getNodes());
-    }
-    models.clear();
-
-    models = addMeshsToScene(device, scene, path.c_str());
+ConstantPGeometryList addModel(RTCDevice device, RTCScene scene,
+                               const char *const path, RayTracer &raytracer,
+                               RayTracerCamera &camera) {
+    auto geometries = addModel(device, scene, path);
 
     rtcCommitScene(scene);
 
@@ -162,7 +166,7 @@ void loadGlbModel(RTCDevice device, RTCScene scene, DebugGUI &debugGui,
     camera.setFar(tfar);
     camera.lookAt(eye, target, up);
 
-    rtcCommitScene(scene);
+    return geometries;
 }
 
 int main(void) {
@@ -179,7 +183,7 @@ int main(void) {
 #endif
     auto scene = rtcNewScene(device);
 
-    auto models = addDefaultMeshToScene(device, scene);
+    auto geometries = addDefaultMeshToScene(device, scene);
 
     auto debugGui = DebugGUI();
 
@@ -208,13 +212,17 @@ int main(void) {
         camera.lookAt(eye, target, up);
 
         // ground
-        models.push_back(addGroundPlane(
-            device, scene,
+        auto model = loadGroundPlane(
             PMaterial(new Material(
                 REFLECTION, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr, nullptr,
                 0.2f, 0.8f, nullptr, glm::vec3(0.0f), nullptr)),
             glm::translate(glm::vec3(0.0f, bb.lower_y, 0.0f)) *
-                glm::scale(glm::vec3(bbmax * 1.2f))));
+                glm::scale(glm::vec3(bbmax * 1.2f)));
+
+        for (auto node : model->getScene()->getNodes()) {
+            geometries.splice(geometries.cend(),
+                              Geometry::commitNode(device, scene, node));
+        }
 
         rtcCommitScene(scene);
     }
@@ -334,7 +342,12 @@ int main(void) {
         }
 
         if (needRestart) {
-            loadGlbModel(device, scene, debugGui, raytracer, camera, models);
+            auto path = debugGui.getGlbPath();
+            if (!path.empty()) {
+                detachGeometries(scene, geometries);
+                geometries =
+                    addModel(device, scene, path.c_str(), raytracer, camera);
+            }
         }
 
         if (needUpdate) {
@@ -375,9 +388,7 @@ int main(void) {
         t0 = t;
     }
 
-    for (auto it = models.cbegin(); it != models.cend(); it++) {
-        detachNodes(scene, (*it)->getNodes());
-    }
+    detachGeometries(scene, geometries);
 
     rtcCommitScene(scene);
 
