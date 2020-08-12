@@ -75,7 +75,7 @@ glm::dvec2 getWindowMousePos(GLFWwindow *window, const glm::u32vec2 &size) {
 
 void detachGeometries(RTCScene scene, ConstantPGeometryList &geometries) {
     for (auto geometry : geometries) {
-        geometry->detach(scene);
+        geometry->release(scene);
     }
     geometries.clear();
 }
@@ -104,8 +104,8 @@ ConstantPGeometryList addDefaultMeshToScene(RTCDevice device, RTCScene scene) {
     ConstantPGeometryList geometries;
     for (auto model : models) {
         for (auto node : model->getScene()->getNodes()) {
-            geometries.splice(geometries.cend(),
-                              Geometry::commitNode(device, scene, node));
+            geometries.splice(geometries.cend(), Geometry::generateGeometries(
+                                                     device, scene, node));
         }
     }
 
@@ -138,8 +138,8 @@ ConstantPGeometryList addModel(RTCDevice device, RTCScene scene,
     ConstantPGeometryList geometries;
     for (auto model : models) {
         for (auto node : model->getScene()->getNodes()) {
-            geometries.splice(geometries.cend(),
-                              Geometry::commitNode(device, scene, node));
+            geometries.splice(geometries.cend(), Geometry::generateGeometries(
+                                                     device, scene, node));
         }
     }
 
@@ -220,8 +220,8 @@ int main(void) {
                 glm::scale(glm::vec3(bbmax * 1.2f)));
 
         for (auto node : model->getScene()->getNodes()) {
-            geometries.splice(geometries.cend(),
-                              Geometry::commitNode(device, scene, node));
+            geometries.splice(geometries.cend(), Geometry::generateGeometries(
+                                                     device, scene, node));
         }
 
         rtcCommitScene(scene);

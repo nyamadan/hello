@@ -193,13 +193,21 @@ class Geometry {
              ConstantPPrimitive primitive_);
 
   public:
-    static std::list<std::shared_ptr<const Geometry>> commitNode(
+    static std::list<std::shared_ptr<const Geometry>> generateGeometries(
         RTCDevice device, RTCScene scene, ConstantPNode node);
-    static std::list<std::shared_ptr<const Geometry>> commitNode(
+    static std::list<std::shared_ptr<const Geometry>> generateGeometries(
         RTCDevice device, RTCScene scene, ConstantPNode node,
         const glm::mat4 &parent);
 
-    void detach(RTCScene scene) const;
+    static std::list<std::shared_ptr<const Geometry>> updateGeometries(
+        RTCDevice device, RTCScene scene,
+        std::list<std::shared_ptr<const Geometry>> node);
+    static std::list<std::shared_ptr<const Geometry>> updateGeometries(
+        RTCDevice device, RTCScene scene,
+        std::list<std::shared_ptr<const Geometry>> node,
+        const glm::mat4 &parent);
+
+    void release(RTCScene scene) const;
 };
 
 using PGeometry = std::shared_ptr<Geometry>;

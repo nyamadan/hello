@@ -228,12 +228,12 @@ Geometry::Geometry(uint32_t geomID_, ConstantPNode node_,
                    ConstantPPrimitive primitive_)
     : geomID(geomID_), node(node_), primitive(primitive_) {}
 
-std::list<std::shared_ptr<const Geometry>> Geometry::commitNode(
+std::list<std::shared_ptr<const Geometry>> Geometry::generateGeometries(
     RTCDevice device, RTCScene scene, ConstantPNode node) {
-    return Geometry::commitNode(device, scene, node, glm::mat4(1.0f));
+    return Geometry::generateGeometries(device, scene, node, glm::mat4(1.0f));
 }
 
-std::list<std::shared_ptr<const Geometry>> Geometry::commitNode(
+std::list<std::shared_ptr<const Geometry>> Geometry::generateGeometries(
     RTCDevice device, RTCScene scene, ConstantPNode node,
     const glm::mat4 &parent) {
     std::list<std::shared_ptr<const Geometry>> geometries;
@@ -244,7 +244,7 @@ std::list<std::shared_ptr<const Geometry>> Geometry::commitNode(
     for (auto child : node->getChildren()) {
         geometries.splice(
             geometries.cend(),
-            Geometry::commitNode(device, scene, child, transform));
+            Geometry::generateGeometries(device, scene, child, transform));
     }
 
     auto mesh = node->getMesh();
@@ -314,8 +314,6 @@ std::list<std::shared_ptr<const Geometry>> Geometry::commitNode(
         rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
         rtcCommitGeometry(geom);
         auto geomId = rtcAttachGeometry(scene, geom);
-        rtcReleaseGeometry(geom);
-
         geometries.push_back(std::shared_ptr<const Geometry>(
             new Geometry(geomId, node, primitive)));
     }
@@ -323,7 +321,10 @@ std::list<std::shared_ptr<const Geometry>> Geometry::commitNode(
     return geometries;
 }
 
-void Geometry::detach(RTCScene scene) const {
+void Geometry::release(RTCScene scene) const {
+    auto geom = rtcGetGeometry(scene, geomID);
+    rtcReleaseGeometry(geom);
+
     rtcDetachGeometry(scene, geomID);
 }
 
@@ -618,10 +619,7 @@ ConstantPModel loadGroundPlane(ConstantPMaterial material,
 }
 
 ConstantPModel loadObjModel(const std::string &filename) {
-    auto model = std::make_shared<Model>();
-
-    auto transform = glm::mat4(1.0f);
-    auto inverseTranspose = glm::inverseTranspose(transform);
+    auto model = PModel(new Model());
 
     auto baseDir = std::filesystem::path(filename).parent_path().string();
     if (baseDir.empty()) {
@@ -867,14 +865,16 @@ ConstantPModel loadObjModel(const std::string &filename) {
         primitive->setMaterial(material);
 
         auto mesh = PMesh(new Mesh());
-        primitive->setPositions(srcPositions);
-        primitive->setNormals(srcNormals);
-        primitive->setTexCoords0(srcTexCoords0);
-        primitive->setTangents(srcTangents);
-        mesh->addPrimitive(primitive);
+        primitive->setPositions(std::move(srcPositions));
+        primitive->setNormals(std::move(srcNormals));
+        primitive->setTexCoords0(std::move(srcTexCoords0));
+        primitive->setTangents(std::move(srcTangents));
+        primitive->setTriangles(std::move(srcTriangles));
+        mesh->addPrimitive(std::move(primitive));
 
         auto node = PNode(new Node());
-        node->setMatrix(transform);
+        node->setMatrix(glm::mat4(1.0f));
+        node->setMesh(mesh);
 
         model->addMesh(mesh);
         model->addNode(node);
