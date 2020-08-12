@@ -3,6 +3,8 @@
 
 #include <mikktspace.h>
 #include <filesystem>
+#include <stack>
+#include <numeric>
 
 #include <stb.h>
 #include <stb_image.h>
@@ -224,10 +226,6 @@ class TangentGenerator {
 };
 }  // namespace
 
-Geometry::Geometry(uint32_t geomID_, ConstantPNode node_,
-                   ConstantPPrimitive primitive_)
-    : geomID(geomID_), node(node_), primitive(primitive_) {}
-
 std::list<std::shared_ptr<const Geometry>> Geometry::generateGeometries(
     RTCDevice device, RTCScene scene, ConstantPNode node) {
     return Geometry::generateGeometries(device, scene, node, glm::mat4(1.0f));
@@ -236,63 +234,146 @@ std::list<std::shared_ptr<const Geometry>> Geometry::generateGeometries(
 std::list<std::shared_ptr<const Geometry>> Geometry::generateGeometries(
     RTCDevice device, RTCScene scene, ConstantPNode node,
     const glm::mat4 &parent) {
+    ConstantPNodeList nodes;
+    nodes.push_back(node);
+    return Geometry::generateGeometries(device, scene, nodes, parent);
+}
+
+std::list<std::shared_ptr<const Geometry>> Geometry::generateGeometries(
+    RTCDevice device, RTCScene scene, ConstantPNodeList nodes,
+    const glm::mat4 &parent) {
     std::list<std::shared_ptr<const Geometry>> geometries;
 
-    const auto &matrix = node->getMatrix();
-    const auto transform = parent * matrix;
+    auto node = nodes.back();
+
+    const auto transform = parent * node->getMatrix();
     const auto inverseTranspose = glm::inverseTranspose(transform);
-    for (auto child : node->getChildren()) {
-        geometries.splice(
-            geometries.cend(),
-            Geometry::generateGeometries(device, scene, child, transform));
-    }
 
     auto mesh = node->getMesh();
-    if (mesh.get() == nullptr) {
-        return geometries;
+    if (mesh.get() != nullptr) {
+        for (auto primitive : mesh->getPrimitives()) {
+            const auto &srcTriangles = primitive->getTriangles();
+            const auto &srcPositions = primitive->getPositions();
+            const auto &srcNormals = primitive->getNormals();
+            const auto &srcTexcoords0 = primitive->getTexCoords0();
+            const auto &srcTangents = primitive->getTangents();
+            const auto material = primitive->getMaterial();
+            const auto numVertices = srcPositions.size();
+            const auto numFaces = srcTriangles.size();
+
+            auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
+
+            rtcSetGeometryVertexAttributeCount(
+                geom,
+                (uint32_t)VertexAttributeSlot::NUM_VERTEX_ATTRIBUTE_SLOTS);
+
+            auto *positionsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
+                geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3,
+                sizeof(glm::vec3), numVertices);
+            auto *trianglesBuffer = (glm::u32vec3 *)rtcSetNewGeometryBuffer(
+                geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
+                sizeof(glm::u32vec3), numFaces);
+            auto *normalsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
+                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                (uint32_t)VertexAttributeSlot::SLOT_NORMAL, RTC_FORMAT_FLOAT3,
+                sizeof(glm::vec3), numVertices);
+            auto *texCoords0Buffer = (glm::vec2 *)rtcSetNewGeometryBuffer(
+                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0,
+                RTC_FORMAT_FLOAT3, sizeof(glm::vec2), numVertices);
+            auto *tangentsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
+                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                (uint32_t)VertexAttributeSlot::SLOT_TANGENT, RTC_FORMAT_FLOAT3,
+                sizeof(glm::vec3), numVertices);
+            auto *bitangentsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
+                geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                (uint32_t)VertexAttributeSlot::SLOT_BITANGENT,
+                RTC_FORMAT_FLOAT3, sizeof(glm::vec3), numVertices);
+
+            for (auto i = 0; i < numFaces; i++) {
+                trianglesBuffer[i] = srcTriangles[i];
+            }
+
+            for (auto i = 0; i < numVertices; i++) {
+                positionsBuffer[i] =
+                    glm::vec3(transform * glm::vec4(srcPositions[i], 1.0f));
+                normalsBuffer[i] = glm::normalize(glm::vec3(
+                    inverseTranspose * glm::vec4(srcNormals[i], 0.0f)));
+                texCoords0Buffer[i] = srcTexcoords0[i];
+                tangentsBuffer[i] = glm::normalize(glm::vec3(
+                    transform * glm::vec4(glm::vec3(srcTangents[i]), 0.0f)));
+                bitangentsBuffer[i] = glm::normalize(glm::vec3(
+                    inverseTranspose *
+                    glm::vec4(
+                        (glm::cross(srcNormals[i], glm::vec3(srcTangents[i])) *
+                         srcTangents[i].w),
+                        0.0f)));
+            }
+
+            rtcSetGeometryUserData(geom, (void *)material.get());
+            rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
+            rtcCommitGeometry(geom);
+            auto geomId = rtcAttachGeometry(scene, geom);
+            auto geometry = new Geometry();
+            geometry->geom = geom;
+            geometry->geomID = geomId;
+            geometry->nodes = nodes;
+            geometry->primitive = primitive;
+            geometries.push_back(ConstantPGeometry(geometry));
+        }
     }
 
-    for (auto primitive : mesh->getPrimitives()) {
+    for (auto child : node->getChildren()) {
+        auto childNodes = nodes;
+        childNodes.push_back(child);
+        geometries.splice(
+            geometries.cend(),
+            Geometry::generateGeometries(device, scene, childNodes, transform));
+    }
+
+    return geometries;
+}
+
+ConstantPGeometryList Geometry::updateGeometries(
+    RTCDevice device, RTCScene scene, ConstantPGeometryList geometries,
+    const glm::mat4 &parent) {
+    for (auto geometry : geometries) {
+        auto primitive = geometry->primitive;
+        auto nodes = geometry->nodes;
+
+        const auto transform =
+            std::accumulate(nodes.begin(), nodes.end(), parent,
+                            [](glm::mat4 matrix, ConstantPNode node) {
+                                return matrix * node->getMatrix();
+                            });
+
+        const auto inverseTranspose = glm::inverseTranspose(transform);
+
         const auto &srcTriangles = primitive->getTriangles();
         const auto &srcPositions = primitive->getPositions();
         const auto &srcNormals = primitive->getNormals();
         const auto &srcTexcoords0 = primitive->getTexCoords0();
         const auto &srcTangents = primitive->getTangents();
         const auto material = primitive->getMaterial();
+
         const auto numVertices = srcPositions.size();
         const auto numFaces = srcTriangles.size();
 
-        auto geom = rtcNewGeometry(device, RTC_GEOMETRY_TYPE_TRIANGLE);
-
-        rtcSetGeometryVertexAttributeCount(
-            geom, (uint32_t)VertexAttributeSlot::NUM_VERTEX_ATTRIBUTE_SLOTS);
-
-        auto *positionsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
-            geom, RTC_BUFFER_TYPE_VERTEX, 0, RTC_FORMAT_FLOAT3,
-            sizeof(glm::vec3), numVertices);
-        auto *trianglesBuffer = (glm::u32vec3 *)rtcSetNewGeometryBuffer(
-            geom, RTC_BUFFER_TYPE_INDEX, 0, RTC_FORMAT_UINT3,
-            sizeof(glm::u32vec3), numFaces);
-        auto *normalsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
+        auto geom = geometry->geom;
+        auto positionsBuffer = (glm::vec3 *)rtcGetGeometryBufferData(
+            geom, RTC_BUFFER_TYPE_VERTEX, 0);
+        auto *normalsBuffer = (glm::vec3 *)rtcGetGeometryBufferData(
             geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-            (uint32_t)VertexAttributeSlot::SLOT_NORMAL, RTC_FORMAT_FLOAT3,
-            sizeof(glm::vec3), numVertices);
-        auto *texCoords0Buffer = (glm::vec2 *)rtcSetNewGeometryBuffer(
+            (uint32_t)VertexAttributeSlot::SLOT_NORMAL);
+        auto *texCoords0Buffer = (glm::vec2 *)rtcGetGeometryBufferData(
             geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-            (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0, RTC_FORMAT_FLOAT3,
-            sizeof(glm::vec2), numVertices);
-        auto *tangentsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
+            (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0);
+        auto *tangentsBuffer = (glm::vec3 *)rtcGetGeometryBufferData(
             geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-            (uint32_t)VertexAttributeSlot::SLOT_TANGENT, RTC_FORMAT_FLOAT3,
-            sizeof(glm::vec3), numVertices);
-        auto *bitangentsBuffer = (glm::vec3 *)rtcSetNewGeometryBuffer(
+            (uint32_t)VertexAttributeSlot::SLOT_TANGENT);
+        auto *bitangentsBuffer = (glm::vec3 *)rtcGetGeometryBufferData(
             geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-            (uint32_t)VertexAttributeSlot::SLOT_BITANGENT, RTC_FORMAT_FLOAT3,
-            sizeof(glm::vec3), numVertices);
-
-        for (auto i = 0; i < numFaces; i++) {
-            trianglesBuffer[i] = srcTriangles[i];
-        }
+            (uint32_t)VertexAttributeSlot::SLOT_BITANGENT);
 
         for (auto i = 0; i < numVertices; i++) {
             positionsBuffer[i] =
@@ -310,22 +391,24 @@ std::list<std::shared_ptr<const Geometry>> Geometry::generateGeometries(
                     0.0f)));
         }
 
-        rtcSetGeometryUserData(geom, (void *)material.get());
-        rtcSetGeometryIntersectFilterFunction(geom, intersectionFilter);
-        rtcCommitGeometry(geom);
-        auto geomId = rtcAttachGeometry(scene, geom);
-        geometries.push_back(std::shared_ptr<const Geometry>(
-            new Geometry(geomId, node, primitive)));
-    }
+        rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0);
+        rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                                SLOT_NORMAL);
+        rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                                SLOT_TEXCOORD_0);
+        rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                                SLOT_TANGENT);
+        rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                                SLOT_BITANGENT);
 
+        rtcCommitGeometry(geom);
+    }
     return geometries;
-}
+};
 
 void Geometry::release(RTCScene scene) const {
-    auto geom = rtcGetGeometry(scene, geomID);
-    rtcReleaseGeometry(geom);
-
     rtcDetachGeometry(scene, geomID);
+    rtcReleaseGeometry(geom);
 }
 
 ConstantPModel loadSphere(ConstantPMaterial material, uint32_t widthSegments,

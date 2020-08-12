@@ -185,12 +185,17 @@ using ConstantPModelList = std::vector<std::shared_ptr<const Model>>;
 
 class Geometry {
   private:
+    RTCGeometry geom;
     uint32_t geomID;
-    ConstantPNode node;
+
+    ConstantPNodeList nodes;
     ConstantPPrimitive primitive;
 
-    Geometry(uint32_t geomID_, ConstantPNode node_,
-             ConstantPPrimitive primitive_);
+    Geometry() {}
+
+    static std::list<std::shared_ptr<const Geometry>> generateGeometries(
+        RTCDevice device, RTCScene scene, ConstantPNodeList nodes,
+        const glm::mat4 &parent);
 
   public:
     static std::list<std::shared_ptr<const Geometry>> generateGeometries(
@@ -201,10 +206,7 @@ class Geometry {
 
     static std::list<std::shared_ptr<const Geometry>> updateGeometries(
         RTCDevice device, RTCScene scene,
-        std::list<std::shared_ptr<const Geometry>> node);
-    static std::list<std::shared_ptr<const Geometry>> updateGeometries(
-        RTCDevice device, RTCScene scene,
-        std::list<std::shared_ptr<const Geometry>> node,
+        std::list<std::shared_ptr<const Geometry>> geometries,
         const glm::mat4 &parent);
 
     void release(RTCScene scene) const;

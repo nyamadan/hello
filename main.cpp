@@ -313,6 +313,14 @@ int main(void) {
                 break;
         }
 
+        if (false) {
+            needUpdate = true;
+            auto m =
+                glm::rotate(static_cast<float>(t), glm::vec3(0.0f, 1.0f, 0.0f));
+            Geometry::updateGeometries(device, scene, geometries, m);
+            rtcCommitScene(scene);
+        }
+
         debugGui.beginFrame(raytracer, needUpdate, needResize, needRestart);
 
         needUpdate = needUpdate || needResize || needRestart;
