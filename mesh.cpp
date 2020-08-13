@@ -974,7 +974,7 @@ ConstantPModel loadObjModel(const std::string &filename) {
     return model;
 }
 
-ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel) {
+ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel, const char * const baseDir) {
     auto model = std::make_shared<Model>();
 
     const auto sceneToDisplay =

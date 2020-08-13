@@ -3,7 +3,7 @@
 #include <glm/ext.hpp>
 #include <OpenImageDenoise/oidn.hpp>
 
-#include <chrono>
+#include <filesystem>
 #include <random>
 
 #include "debug_gui.hpp"
@@ -121,11 +121,14 @@ ConstantPGeometryList addModel(RTCDevice device, RTCScene scene,
     tinygltf::TinyGLTF loader;
     std::string err;
     std::string warn;
+
+    auto baseDir = std::filesystem::path(path).parent_path();
+
     if (loader.LoadBinaryFromFile(&model, &err, &warn, path)) {
-        const auto x = loadGltfModel(model);
+        const auto x = loadGltfModel(model, baseDir.string().c_str());
         models.push_back(x);
     } else if (loader.LoadASCIIFromFile(&model, &err, &warn, path)) {
-        const auto x = loadGltfModel(model);
+        const auto x = loadGltfModel(model, baseDir.string().c_str());
         models.push_back(x);
     } else {
         std::string warn;

@@ -547,7 +547,7 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
     if (depth > kDepth) {
         if (xorshift128plus01f(randomState) >= russianRouletteProbability) {
-            return material->emissiveFactor;
+            return emissive;
         }
     } else {
         russianRouletteProbability = 1.0f;

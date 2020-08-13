@@ -229,6 +229,6 @@ ConstantPModel loadCube(ConstantPMaterial material,
 ConstantPModel loadGroundPlane(ConstantPMaterial material,
                                const glm::mat4 transform = glm::mat4(1.0f));
 
-ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel);
+ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel, const char * const baseDir);
 
 ConstantPModel loadObjModel(const std::string &filename);
