@@ -4,6 +4,9 @@
 #include <vector>
 #include <memory>
 #include <utility>
+#include <numeric>
+#include <algorithm>
+#include <functional>
 
 #include <glm/glm.hpp>
 
@@ -99,26 +102,28 @@ using ConstantPMesh = std::shared_ptr<const Mesh>;
 
 class Node {
   private:
-    glm::mat4 matrix;
+    int32_t index = 0;
+
+    glm::mat4 matrix = glm::mat4(1.0f);
 
     std::vector<std::shared_ptr<const Node>> children;
 
-    std::shared_ptr<const Mesh> mesh;
+    std::shared_ptr<const Mesh> mesh = std::shared_ptr<const Mesh>(nullptr);
 
   public:
-    Node() { this->matrix = glm::mat4(1.0f); }
+    Node(int32_t index_) : index(index_), matrix(glm::mat4(1.0f)) {}
 
-    void addChild(std::shared_ptr<const Node> node) {
-        this->children.push_back(node);
-    }
+    int32_t getIndex() const { return this->index; }
 
     void setMesh(std::shared_ptr<const Mesh> mesh) { this->mesh = mesh; }
     std::shared_ptr<const Mesh> const getMesh() const { return this->mesh; }
 
     void setMatrix(const glm::mat4 &matrix) { this->matrix = matrix; }
-
     const glm::mat4 &getMatrix() const { return this->matrix; }
 
+    void addChild(std::shared_ptr<const Node> node) {
+        this->children.push_back(node);
+    }
     const std::vector<std::shared_ptr<const Node>> &getChildren() const {
         return this->children;
     }
@@ -140,6 +145,118 @@ class Scene {
 using PScene = std::shared_ptr<Scene>;
 using ConstantPScene = std::shared_ptr<const Scene>;
 
+class AnimationSampler {
+  public:
+    template <typename T>
+    void setTimeline(T &&x) {
+        this->timeline = std::forward<T>(x);
+    }
+    template <typename T>
+    void setValues(T &&x) {
+        this->values = std::forward<T>(x);
+    }
+
+    const std::vector<float> &getValues() const { return this->values; }
+    const std::vector<float> &getTimeline() const { return this->timeline; }
+
+  private:
+    std::vector<float> timeline;
+    std::vector<float> values;
+};
+using PAnimationSampler = std::shared_ptr<AnimationSampler>;
+using ConstantPAnimationSampler = std::shared_ptr<const AnimationSampler>;
+
+class AnimationChannel {
+  private:
+    ConstantPAnimationSampler sampler;
+    ConstantPNode targetNode;
+    std::string targetPath;
+
+  public:
+    void setSampler(ConstantPAnimationSampler sampler) {
+        this->sampler = sampler;
+    }
+
+    ConstantPAnimationSampler getSampler() const { return this->sampler; }
+
+    void setTargetNode(ConstantPNode node) { this->targetNode = node; }
+
+    ConstantPNode getTargetNode() const { return this->targetNode; }
+
+    void setTargetPath(const std::string &targetPath) {
+        this->targetPath = targetPath;
+    }
+
+    const std::string &getTargetPath() const { return this->targetPath; }
+};
+using PAnimationChannel = std::shared_ptr<AnimationChannel>;
+using ConstantPAnimationChannel = std::shared_ptr<const AnimationChannel>;
+
+class Animation {
+  private:
+    int32_t index;
+    std::string name;
+    std::vector<ConstantPAnimationSampler> samplers;
+    std::vector<ConstantPAnimationChannel> channels;
+
+  public:
+    Animation(int32_t index_) : index(index_) {}
+
+    void setName(const std::string name) { this->name = name; }
+    const std::string &getName(const std::string name) const {
+        return this->name;
+    }
+
+    void addSampler(ConstantPAnimationSampler sampler) {
+        this->samplers.push_back(sampler);
+    }
+    const std::vector<ConstantPAnimationSampler> &getSamplers() const {
+        return this->samplers;
+    }
+
+    void addChannel(ConstantPAnimationChannel channel) {
+        this->channels.push_back(channel);
+    }
+    const std::vector<ConstantPAnimationChannel> &getChannels() const {
+        return this->channels;
+    }
+
+    float getTimelineMin() const {
+        return std::reduce(
+            channels.cbegin(), channels.cend(), FLT_MAX,
+            [](float a, ConstantPAnimationChannel ch) {
+                const auto &timeline = ch->getSampler()->getTimeline();
+                auto it = std::min_element(timeline.cbegin(), timeline.cend());
+                if (it == timeline.cend() || a < *it) {
+                    return a;
+                }
+
+                return *it;
+            });
+    }
+
+    float getTimelineMax() const {
+        return std::reduce(
+            channels.cbegin(), channels.cend(), -FLT_MAX,
+            [](float a, ConstantPAnimationChannel ch) {
+                const auto &timeline = ch->getSampler()->getTimeline();
+
+                auto it = std::max_element(timeline.cbegin(), timeline.cend());
+                if (it == timeline.cend()) {
+                    return a;
+                }
+
+                if (it == timeline.cend() || a > *it) {
+                    return a;
+                }
+
+                return *it;
+            });
+    }
+};
+using PAnimation = std::shared_ptr<Animation>;
+using ConstantPAnimation = std::shared_ptr<const Animation>;
+
 class Model {
   private:
     ConstantPScene scene = nullptr;
@@ -148,6 +265,7 @@ class Model {
     std::vector<ConstantPNode> nodes;
     std::vector<ConstantPScene> scenes;
     std::vector<ConstantPTexture> textures;
+    std::vector<ConstantPAnimation> animations;
 
   public:
     void setScene(ConstantPScene scene) { this->scene = scene; }
@@ -177,6 +295,13 @@ class Model {
     const std::vector<ConstantPTexture> &getTextures() const {
         return this->textures;
     }
+
+    void addAnimation(ConstantPAnimation animation) {
+        this->animations.push_back(animation);
+    }
+    const std::vector<ConstantPAnimation> &getAnimations() const {
+        return this->animations;
+    }
 };
 
 using PModel = std::shared_ptr<Model>;
@@ -185,8 +310,8 @@ using ConstantPModelList = std::vector<std::shared_ptr<const Model>>;
 
 class Geometry {
   private:
-    RTCGeometry geom;
-    uint32_t geomID;
+    RTCGeometry geom = nullptr;
+    uint32_t geomID = 0;
 
     ConstantPNodeList nodes;
     ConstantPPrimitive primitive;
@@ -203,11 +328,10 @@ class Geometry {
     static std::list<std::shared_ptr<const Geometry>> generateGeometries(
         RTCDevice device, RTCScene scene, ConstantPNode node,
         const glm::mat4 &parent);
-
     static std::list<std::shared_ptr<const Geometry>> updateGeometries(
         RTCDevice device, RTCScene scene,
         std::list<std::shared_ptr<const Geometry>> geometries,
-        const glm::mat4 &parent);
+        ConstantPAnimation animation, float timeStep, const glm::mat4 &parent);
 
     void release(RTCScene scene) const;
 };
@@ -229,6 +353,6 @@ ConstantPModel loadCube(ConstantPMaterial material,
 ConstantPModel loadGroundPlane(ConstantPMaterial material,
                                const glm::mat4 transform = glm::mat4(1.0f));
 
-ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel, const char * const baseDir);
+ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel);
 
 ConstantPModel loadObjModel(const std::string &filename);

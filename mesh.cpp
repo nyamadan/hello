@@ -5,6 +5,7 @@
 #include <filesystem>
 #include <stack>
 #include <numeric>
+#include <limits>
 
 #include <stb.h>
 #include <stb_image.h>
@@ -334,18 +335,92 @@ std::list<std::shared_ptr<const Geometry>> Geometry::generateGeometries(
     return geometries;
 }
 
-ConstantPGeometryList Geometry::updateGeometries(
-    RTCDevice device, RTCScene scene, ConstantPGeometryList geometries,
-    const glm::mat4 &parent) {
+std::list<std::shared_ptr<const Geometry>> Geometry::updateGeometries(
+    RTCDevice device, RTCScene scene,
+    std::list<std::shared_ptr<const Geometry>> geometries,
+    ConstantPAnimation animation, float timeStep, const glm::mat4 &parent) {
+    timeStep = glm::mod(timeStep, animation->getTimelineMax());
+
     for (auto geometry : geometries) {
         auto primitive = geometry->primitive;
         auto nodes = geometry->nodes;
 
-        const auto transform =
-            std::accumulate(nodes.begin(), nodes.end(), parent,
-                            [](glm::mat4 matrix, ConstantPNode node) {
-                                return matrix * node->getMatrix();
-                            });
+        const auto transform = std::accumulate(
+            nodes.begin(), nodes.end(), parent,
+            [&](glm::mat4 matrix, ConstantPNode node) {
+                if (animation.get() == nullptr) {
+                    return matrix * node->getMatrix();
+                }
+
+                auto rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+                auto translation = glm::vec3(0.0f);
+                auto scale = glm::vec3(1.0f);
+
+                for (auto channel : animation->getChannels()) {
+                    if (channel->getTargetNode()->getIndex() !=
+                        node->getIndex()) {
+                        continue;
+                    }
+
+                    auto sampler = channel->getSampler();
+
+                    const auto &values = sampler->getValues();
+                    const auto &timeline = sampler->getTimeline();
+                    auto len = timeline.size();
+
+                    for (auto i = 1; i < len; i++) {
+                        const auto t0 = timeline[i - 1];
+                        const auto t1 = timeline[i];
+                        if (t0 > timeStep || t1 < timeStep) {
+                            continue;
+                        }
+
+                        if (channel->getTargetPath().compare("rotation") == 0) {
+                            const auto &v0 = 4 * (i - 1);
+                            const auto &v1 = 4 * i;
+
+                            auto q0 = glm::quat(values[v0 + 3], values[v0 + 0],
+                                                values[v0 + 1], values[v0 + 2]);
+                            auto q1 = glm::quat(values[v1 + 3], values[v1 + 0],
+                                                values[v1 + 1], values[v1 + 2]);
+                            rotation *=
+                                glm::slerp(q0, q1, (timeStep - t0) / (t1 - t0));
+                        }
+
+                        else if (channel->getTargetPath().compare(
+                                     "translation") == 0) {
+                            const auto &v0 = 3 * (i - 1);
+                            const auto &v1 = 3 * i;
+
+                            const auto p0 = glm::vec3(
+                                values[v0 + 0], values[v0 + 1], values[v0 + 2]);
+                            const auto p1 = glm::vec3(
+                                values[v1 + 0], values[v1 + 1], values[v1 + 2]);
+                            translation +=
+                                glm::lerp(p0, p1, (timeStep - t0) / (t1 - t0));
+                        }
+
+                        else if (channel->getTargetPath().compare("scale") ==
+                                 0) {
+                            const auto &v0 = 3 * (i - 1);
+                            const auto &v1 = 3 * i;
+
+                            const auto p0 = glm::vec3(
+                                values[v0 + 0], values[v0 + 1], values[v0 + 2]);
+                            const auto p1 = glm::vec3(
+                                values[v1 + 0], values[v1 + 1], values[v1 + 2]);
+                            scale +=
+                                glm::lerp(p0, p1, (timeStep - t0) / (t1 - t0));
+                        }
+
+                        break;
+                    }
+                }
+
+                return matrix * glm::translate(translation) *
+                       glm::toMat4(rotation) * glm::scale(scale) *
+                       node->getMatrix();
+            });
 
         const auto inverseTranspose = glm::inverseTranspose(transform);
 
@@ -487,7 +562,7 @@ ConstantPModel loadSphere(ConstantPMaterial material, uint32_t widthSegments,
     auto mesh = PMesh(new Mesh());
     mesh->addPrimitive(primitive);
 
-    auto node = PNode(new Node());
+    auto node = PNode(new Node(0));
     node->setMatrix(transform);
     node->setMesh(mesh);
 
@@ -621,7 +696,7 @@ ConstantPModel loadCube(ConstantPMaterial material, glm::mat4 transform) {
     auto mesh = PMesh(new Mesh());
     mesh->addPrimitive(primitive);
 
-    auto node = PNode(new Node());
+    auto node = PNode(new Node(0));
     node->setMatrix(transform);
     node->setMesh(mesh);
 
@@ -684,7 +759,7 @@ ConstantPModel loadGroundPlane(ConstantPMaterial material,
     auto mesh = PMesh(new Mesh());
     mesh->addPrimitive(primitive);
 
-    auto node = PNode(new Node());
+    auto node = PNode(new Node(0));
     node->setMatrix(transform);
     node->setMesh(mesh);
 
@@ -955,7 +1030,7 @@ ConstantPModel loadObjModel(const std::string &filename) {
         primitive->setTriangles(std::move(srcTriangles));
         mesh->addPrimitive(std::move(primitive));
 
-        auto node = PNode(new Node());
+        auto node = PNode(new Node(model->getNodes().size()));
         node->setMatrix(glm::mat4(1.0f));
         node->setMesh(mesh);
 
@@ -974,33 +1049,39 @@ ConstantPModel loadObjModel(const std::string &filename) {
     return model;
 }
 
-ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel, const char * const baseDir) {
+ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel) {
     auto model = std::make_shared<Model>();
-
-    const auto sceneToDisplay =
-        gltfModel.defaultScene > -1 ? gltfModel.defaultScene : 0;
-    const tinygltf::Scene &gltfScene = gltfModel.scenes[sceneToDisplay];
 
     for (auto it = gltfModel.textures.begin(); it != gltfModel.textures.end();
          it++) {
-        const auto &bufferView =
-            gltfModel.bufferViews[gltfModel.images[it->source].bufferView];
-        const auto &buffer = gltfModel.buffers[bufferView.buffer];
-        assert(bufferView.byteStride == 0);
-        const auto p = &buffer.data[0];
-        const size_t components = 4;
-
-        int32_t width, height, channels;
-        stbi_ldr_to_hdr_gamma(1.0f);
-        stbi_ldr_to_hdr_scale(1.0f);
-        auto ret =
-            stbi_loadf_from_memory(p + bufferView.byteOffset,
-                                   static_cast<int32_t>(bufferView.byteLength),
-                                   &width, &height, &channels, components);
+        const auto &gltfImage = gltfModel.images[it->source];
+        const auto width = gltfImage.width;
+        const auto height = gltfImage.height;
+        const auto channels = gltfImage.component;
+        const auto bits = gltfImage.bits;
         const size_t n = width * height;
         auto image = std::shared_ptr<glm::vec4[]>(new glm::vec4[n]);
-        memcpy(image.get(), ret, n * sizeof(glm::vec4));
-        stbi_image_free(ret);
+
+        assert(bits == 8);
+        assert(channels == 3 || channels == 4);
+
+        const auto len = gltfImage.image.size() / channels;
+        for (auto i = 0; i < len; i++) {
+            const auto offset = i * channels;
+            if (channels == 4) {
+                image[i] = glm::vec4(gltfImage.image[offset + 0] / 255.0f,
+                                     gltfImage.image[offset + 1] / 255.0f,
+                                     gltfImage.image[offset + 2] / 255.0f,
+                                     gltfImage.image[offset + 3] / 255.0f);
+            }
+
+            if (channels == 3) {
+                image[i] =
+                    glm::vec4(gltfImage.image[offset + 0] / 255.0f,
+                              gltfImage.image[offset + 1] / 255.0f,
+                              gltfImage.image[offset + 2] / 255.0f, 1.0f);
+            }
+        }
 
         int32_t wrapS = 0;
         int32_t wrapT = 0;
@@ -1071,18 +1152,20 @@ ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel, const char * cons
         auto mesh = std::make_shared<Mesh>();
         const auto &materials = model->getMaterials();
         const auto &gltfMesh = *it1;
-        const auto &primitives = gltfMesh.primitives;
+        const auto &gltfPrimitives = gltfMesh.primitives;
 
-        for (auto it2 = primitives.cbegin(); it2 != primitives.cend(); it2++) {
-            const auto &primitive = *it2;
-            assert(primitive.indices >= 0);
+        for (auto it2 = gltfPrimitives.cbegin(); it2 != gltfPrimitives.cend();
+             it2++) {
+            const auto &gltfPrimitive = *it2;
+            assert(gltfPrimitive.indices >= 0);
 
-            int mode = primitive.mode;
+            int mode = gltfPrimitive.mode;
             assert(mode == TINYGLTF_MODE_TRIANGLES);
 
             auto allSemantics = 0;
 
-            const auto &indexAccessor = gltfModel.accessors[primitive.indices];
+            const auto &indexAccessor =
+                gltfModel.accessors[gltfPrimitive.indices];
             const auto &indexBufferView =
                 gltfModel.bufferViews[indexAccessor.bufferView];
             const auto &indexBuffer = gltfModel.buffers[indexBufferView.buffer];
@@ -1134,8 +1217,8 @@ ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel, const char * cons
                 }
             }
 
-            auto it(primitive.attributes.begin());
-            const auto itEnd(primitive.attributes.end());
+            auto it(gltfPrimitive.attributes.begin());
+            const auto itEnd(gltfPrimitive.attributes.end());
             for (; it != itEnd; it++) {
                 const auto &accessor = gltfModel.accessors[it->second];
                 const auto bufferView =
@@ -1273,7 +1356,9 @@ ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel, const char * cons
             }
 
             {
-                auto material = materials[primitive.material];
+                auto material = gltfPrimitive.material < 0
+                                    ? PMaterial(new Material())
+                                    : materials[gltfPrimitive.material];
                 auto primitive = PPrimitive(new Primitive());
                 primitive->setMaterial(std::move(material));
                 primitive->setPositions(std::move(srcPositions));
@@ -1292,7 +1377,7 @@ ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel, const char * cons
     for (auto it = gltfModel.nodes.cbegin(); it != gltfModel.nodes.cend();
          it++) {
         const auto &gltfNode = *it;
-        auto node = PNode(new Node());
+        auto node = PNode(new Node(nodes.size()));
 
         glm::mat4 matrix(1.0f);
         if (gltfNode.matrix.size() == 16) {
@@ -1340,6 +1425,85 @@ ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel, const char * cons
 
     for (auto node : nodes) {
         model->addNode(node);
+    }
+
+    for (const auto &gltfAnim : gltfModel.animations) {
+        auto anim = PAnimation(new Animation(model->getAnimations().size()));
+
+        anim->setName(gltfAnim.name);
+
+        for (const auto &gltfSampler : gltfAnim.samplers) {
+            auto sampler = PAnimationSampler(new AnimationSampler());
+
+            const auto &outputAccessor =
+                gltfModel.accessors[gltfSampler.output];
+            assert(outputAccessor.componentType ==
+                   TINYGLTF_COMPONENT_TYPE_FLOAT);
+            const auto &outputBufferView =
+                gltfModel.bufferViews[outputAccessor.bufferView];
+            auto values = std::vector<float>();
+            for (auto i = 0; i < outputAccessor.count; i++) {
+                const auto p =
+                    gltfModel.buffers[outputBufferView.buffer].data.data() +
+                    outputAccessor.byteOffset + outputBufferView.byteOffset +
+                    i * outputAccessor.ByteStride(outputBufferView);
+
+                const auto *f = reinterpret_cast<const float *>(p);
+
+                assert(outputAccessor.type == TINYGLTF_TYPE_SCALAR ||
+                       outputAccessor.type == TINYGLTF_TYPE_VEC3 ||
+                       outputAccessor.type == TINYGLTF_TYPE_VEC4);
+
+                switch (outputAccessor.type) {
+                    case TINYGLTF_TYPE_VEC4:
+                        values.push_back(f[0]);
+                        values.push_back(f[1]);
+                        values.push_back(f[2]);
+                        values.push_back(f[3]);
+                        break;
+                    case TINYGLTF_TYPE_VEC3:
+                        values.push_back(f[0]);
+                        values.push_back(f[1]);
+                        values.push_back(f[2]);
+                        break;
+                    case TINYGLTF_TYPE_SCALAR:
+                        values.push_back(f[0]);
+                        break;
+                }
+            }
+            sampler->setValues(std::move(values));
+
+            const auto &inputAccessor = gltfModel.accessors[gltfSampler.input];
+            assert(inputAccessor.type == TINYGLTF_TYPE_SCALAR);
+            assert(inputAccessor.componentType ==
+                   TINYGLTF_COMPONENT_TYPE_FLOAT);
+            const auto &inputBufferView =
+                gltfModel.bufferViews[inputAccessor.bufferView];
+            auto timeline = std::vector<float>();
+            for (auto i = 0; i < inputAccessor.count; i++) {
+                const auto p =
+                    gltfModel.buffers[inputBufferView.buffer].data.data() +
+                    inputAccessor.byteOffset + inputBufferView.byteOffset +
+                    inputAccessor.ByteStride(inputBufferView) * i;
+                auto *f = reinterpret_cast<const float *>(p);
+                timeline.push_back(f[0]);
+            }
+            sampler->setTimeline(std::move(timeline));
+
+            anim->addSampler(sampler);
+        }
+
+        for (const auto &gltfChannel : gltfAnim.channels) {
+            auto channel = PAnimationChannel(new AnimationChannel());
+            auto sampler = anim->getSamplers()[gltfChannel.sampler];
+
+            channel->setSampler(sampler);
+            channel->setTargetPath(gltfChannel.target_path);
+            channel->setTargetNode(model->getNodes()[gltfChannel.target_node]);
+            anim->addChannel(channel);
+        }
+
+        model->addAnimation(anim);
     }
 
     for (auto gltfScene : gltfModel.scenes) {

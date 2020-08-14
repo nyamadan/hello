@@ -3,7 +3,6 @@
 #include <glm/ext.hpp>
 #include <OpenImageDenoise/oidn.hpp>
 
-#include <filesystem>
 #include <random>
 
 #include "debug_gui.hpp"
@@ -112,60 +111,50 @@ ConstantPGeometryList addDefaultMeshToScene(RTCDevice device, RTCScene scene) {
     return geometries;
 }
 
-ConstantPGeometryList addModel(RTCDevice device, RTCScene scene,
-                               const char *const path) {
-    auto models = ConstantPModelList();
-
+ConstantPModel loadModel(const char *const path) {
     // add model
     tinygltf::Model model;
     tinygltf::TinyGLTF loader;
     std::string err;
     std::string warn;
 
-    auto baseDir = std::filesystem::path(path).parent_path();
-
     if (loader.LoadBinaryFromFile(&model, &err, &warn, path)) {
-        const auto x = loadGltfModel(model, baseDir.string().c_str());
-        models.push_back(x);
+        return loadGltfModel(model);
     } else if (loader.LoadASCIIFromFile(&model, &err, &warn, path)) {
-        const auto x = loadGltfModel(model, baseDir.string().c_str());
-        models.push_back(x);
-    } else {
-        std::string warn;
-        std::string err;
-
-        const auto x = loadObjModel(path);
-        models.push_back(x);
+        return loadGltfModel(model);
     }
 
+    return loadObjModel(path);
+}
+
+ConstantPGeometryList addModel(RTCDevice device, RTCScene scene,
+                               ConstantPModel model) {
     ConstantPGeometryList geometries;
-    for (auto model : models) {
-        for (auto node : model->getScene()->getNodes()) {
-            geometries.splice(geometries.cend(), Geometry::generateGeometries(
-                                                     device, scene, node));
-        }
+    for (auto node : model->getScene()->getNodes()) {
+        geometries.splice(geometries.cend(),
+                          Geometry::generateGeometries(device, scene, node));
     }
 
     return geometries;
 }
 
 ConstantPGeometryList addModel(RTCDevice device, RTCScene scene,
-                               const char *const path, RayTracer &raytracer,
+                               ConstantPModel model, RayTracer &raytracer,
                                RayTracerCamera &camera) {
-    auto geometries = addModel(device, scene, path);
+    auto geometries = addModel(device, scene, model);
 
     rtcCommitScene(scene);
 
     RTCBounds bb;
     rtcGetSceneBounds(scene, &bb);
 
-    const auto eye = glm::vec3(bb.upper_x, bb.upper_y, bb.upper_z);
+    const auto eye = 1.1f * glm::vec3(bb.upper_x, bb.upper_y, bb.upper_z);
     const auto target = glm::vec3(0.0f, 0.0f, 0.0f);
     const auto up = glm::vec3(0.0f, 1.0f, 0.0f);
     const auto bbmax = std::max({glm::abs(bb.lower_x), glm::abs(bb.lower_y),
                                  glm::abs(bb.lower_z), glm::abs(bb.upper_x),
                                  glm::abs(bb.upper_y), glm::abs(bb.upper_z)});
-    const auto tfar = 4.0f * glm::length(glm::vec3(bbmax));
+    const auto tfar = 10.0f * glm::length(glm::vec3(bbmax));
     camera.setFar(tfar);
     camera.lookAt(eye, target, up);
 
@@ -185,6 +174,8 @@ int main(void) {
     auto device = rtcNewDevice("verbose=1");
 #endif
     auto scene = rtcNewScene(device);
+
+    auto model = ConstantPModel(nullptr);
 
     auto geometries = addDefaultMeshToScene(device, scene);
 
@@ -316,15 +307,21 @@ int main(void) {
                 break;
         }
 
-        if (false) {
-            needUpdate = true;
-            auto m =
-                glm::rotate(static_cast<float>(t), glm::vec3(0.0f, 1.0f, 0.0f));
-            Geometry::updateGeometries(device, scene, geometries, m);
-            rtcCommitScene(scene);
-        }
-
         debugGui.beginFrame(raytracer, needUpdate, needResize, needRestart);
+
+        if (false) {
+            if (model.get() != nullptr) {
+                auto anims = model->getAnimations();
+
+                if (anims.size() > 0) {
+                    needUpdate = true;
+                    auto anim = anims[0];
+                    Geometry::updateGeometries(device, scene, geometries, anim,
+                                               t, glm::mat4(1.0f));
+                    rtcCommitScene(scene);
+                }
+            }
+        }
 
         needUpdate = needUpdate || needResize || needRestart;
 
@@ -356,8 +353,8 @@ int main(void) {
             auto path = debugGui.getGlbPath();
             if (!path.empty()) {
                 detachGeometries(scene, geometries);
-                geometries =
-                    addModel(device, scene, path.c_str(), raytracer, camera);
+                model = loadModel(path.c_str());
+                geometries = addModel(device, scene, model, raytracer, camera);
             }
         }
 
