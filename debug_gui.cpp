@@ -165,24 +165,6 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
             needUpdate = true;
         }
 
-        if (ImGui::BeginPopupModal("Render", nullptr,
-                                   ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::LabelText("samples", "%d / %d", raytracer.getSamples(),
-                             raytracer.getMaxSamples());
-
-            ImGui::Text("Rendering...");
-            ImGui::Separator();
-            if (ImGui::Button("Cancel")) {
-                isRendering = false;
-            }
-            if (!isRendering) {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        } else if (this->getIsRendering()) {
-            ImGui::OpenPopup("Render");
-        }
-
         ImGui::Separator();
 
         if (ImGui::InputInt("BufferScale", &bufferScale)) {
@@ -249,20 +231,77 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
         ImGui::Separator();
 
         if (ImGui::Button("Render")) {
+            isMovie = false;
             needUpdate = true;
             isRendering = true;
+
+            ImGui::OpenPopup("Render");
         }
 
         if (animatedModel) {
             ImGui::SameLine();
             if (ImGui::Button("Render as Movie")) {
+                isMovie = true;
+                needUpdate = true;
+                isRendering = true;
+
+                currFrame = 0;
+                animTime = 0;
+
+                ImGui::OpenPopup("Render as Movie");
             }
+        }
+
+        if (ImGui::BeginPopupModal("Render", nullptr,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::LabelText("samples", "%d / %d", raytracer.getSamples(),
+                             raytracer.getMaxSamples());
+
+            ImGui::Text("Rendering...");
+            ImGui::Separator();
+            if (ImGui::Button("Cancel")) {
+                isRendering = false;
+                isMovie = false;
+            }
+            if (!isRendering) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        } else if (this->getIsRendering() && !this->getIsMovie()) {
+            ImGui::OpenPopup("Render");
+        }
+
+        if (ImGui::BeginPopupModal("Render as Movie", nullptr,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::LabelText("samples", "%d / %d", raytracer.getSamples(),
+                             raytracer.getMaxSamples());
+
+            ImGui::Text("Rendering...");
+            ImGui::Separator();
+            if (ImGui::Button("Cancel")) {
+                isRendering = false;
+                isMovie = false;
+            }
+            if (!isRendering) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        } else if (this->getIsRendering() && this->getIsMovie()) {
+            ImGui::OpenPopup("Render as Movie");
         }
     }
 
     ImGui::End();
 
     ImGui::Render();
+}
+
+bool DebugGUI::nextFrame(ConstantPAnimation anim) {
+    auto min = anim->getTimelineMin();
+    auto max = anim->getTimelineMax();
+
+    animTime = static_cast<float>(++currFrame * 1001.0 / 30000.0);
+    return animTime <= max;
 }
 
 void DebugGUI::renderFrame() const {
@@ -290,5 +329,7 @@ float DebugGUI::getLensRadius() const { return lensRadius; }
 int32_t DebugGUI::getAnimIndex() const { return currAnimIndex; }
 
 float DebugGUI::getAnimTime() const { return animTime; }
+
+bool DebugGUI::getIsMovie() const { return isMovie; }
 
 bool DebugGUI::isActive() const { return ImGui::GetIO().WantCaptureMouse; }

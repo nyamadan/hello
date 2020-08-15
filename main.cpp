@@ -379,18 +379,37 @@ int main(void) {
             }
         }
 
+        bool nextFrame = false;
+
         if (debugGui.getIsRendering()) {
             if (raytracer.render(scene, camera)) {
                 if (raytracer.getRenderingMode() == PATHTRACING) {
                     raytracer.denoise(denoiser);
                 }
 
-                debugGui.setIsRendering(false);
+                if (debugGui.getIsMovie()) {
+                    nextFrame = debugGui.nextFrame(
+                        model->getAnimations()[debugGui.getAnimIndex()]);
+                    if (!nextFrame) {
+                        debugGui.setIsRendering(false);
+                    }
+                } else {
+                    debugGui.setIsRendering(false);
+                }
             }
 
             raytracer.finish(raytracer.getRenderingMode() == PATHTRACING);
 
             copyPixelsToTexture(raytracer.getImage(), fbo, texture);
+
+            if (nextFrame) {
+                Geometry::updateGeometries(
+                    device, scene, geometries,
+                    model->getAnimations()[debugGui.getAnimIndex()],
+                    debugGui.getAnimTime(), glm::mat4(1.0f));
+                rtcCommitScene(scene);
+                raytracer.reset();
+            }
         }
 
         // Rendering
