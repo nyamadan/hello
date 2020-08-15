@@ -115,7 +115,7 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
         ImGui::EndMainMenuBar();
     }
 
-    if (!ImGui::GetIO().WantCaptureMouse) {
+    if (!this->isActive()) {
         const auto w = raytracer.getImage().getWidth();
         const auto h = raytracer.getImage().getHeight();
         double xpos, ypos;
@@ -133,6 +133,21 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
         "Hello Embree", nullptr,
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize);
     {
+        if (ImGui::BeginPopupModal("Render", nullptr,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::Text("Rendering...");
+            ImGui::Separator();
+            if (ImGui::Button("Cancel", ImVec2(120, 0))) {
+                isRendering = false;
+            }
+            if (!isRendering) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        } else if (this->getIsRendering()) {
+            ImGui::OpenPopup("Render");
+        }
+
         deltaTimes[deltaTimesOffset] = ImGui::GetIO().DeltaTime;
 
         {
@@ -167,6 +182,10 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
 
         if (ImGui::Combo("Mode", reinterpret_cast<int32_t *>(&renderingMode),
                          RenderingModeName, IM_ARRAYSIZE(RenderingModeName))) {
+            if (renderingMode == PATHTRACING) {
+                ImGui::OpenPopup("Render");
+            }
+
             needUpdate = true;
         }
 
@@ -198,8 +217,9 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
             needUpdate = true;
         }
 
-        if (ImGui::Checkbox("isRendering", &isRendering)) {
+        if (ImGui::Button("Render")) {
             needUpdate = true;
+            isRendering = true;
         }
     }
 
@@ -220,6 +240,8 @@ int32_t DebugGUI::getBufferScale() const { return bufferScale; }
 
 int32_t DebugGUI::getSamples() const { return samples; }
 
+void DebugGUI::setIsRendering(bool v) { isRendering = v; }
+
 bool DebugGUI::getIsRendering() const { return isRendering; }
 
 bool DebugGUI::getIsEquirectangular() const { return isEquirectangular; }
@@ -227,3 +249,5 @@ bool DebugGUI::getIsEquirectangular() const { return isEquirectangular; }
 float DebugGUI::getFocusDistance() const { return focusDistance; }
 
 float DebugGUI::getLensRadius() const { return lensRadius; }
+
+bool DebugGUI::isActive() const { return ImGui::GetIO().WantCaptureMouse; }

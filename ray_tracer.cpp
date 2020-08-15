@@ -257,7 +257,7 @@ int32_t RayTracer::getSamples() const {
 void RayTracer::setMaxSamples(int32_t samples) { this->maxSamples = samples; }
 
 int32_t RayTracer::getMaxSamples() const {
-    switch (mode) {
+    switch (this->mode) {
         case PATHTRACING:
             return this->maxSamples;
         default:
@@ -895,8 +895,7 @@ void RayTracer::renderTile(RTCScene scene, const RayTracerCamera &camera,
     }
 }
 
-bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
-                       oidn::DeviceRef denoiser) {
+bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera) {
     if (getSamples() >= getMaxSamples()) {
         return false;
     }
@@ -950,33 +949,33 @@ bool RayTracer::render(RTCScene scene, const RayTracerCamera &camera,
 
     this->samples += 1;
 
-    bool done = false;
+    return this->getSamples() >= this->getMaxSamples();
+}
 
-    if (this->getSamples() >= this->getMaxSamples() && mode == PATHTRACING) {
-        auto length = image.getWidth() * image.getHeight();
-        auto bufferSize = static_cast<uint64_t>(length) * sizeof(glm::vec3);
-        auto filter = denoiser.newFilter("RT");
+void RayTracer::denoise(oidn::DeviceRef denoiser) {
+    const auto width = this->image.getWidth();
+    const auto height = this->image.getHeight();
+    const auto length = image.getWidth() * image.getHeight();
+    const auto bufferSize = static_cast<uint64_t>(length) * sizeof(glm::vec3);
+    auto filter = denoiser.newFilter("RT");
 
-        auto temp = std::make_unique<glm::vec3[]>(bufferSize);
-        memcpy(temp.get(), image.getBuffer().get(), bufferSize);
+    auto temp = std::make_unique<glm::vec3[]>(bufferSize);
+    memcpy(temp.get(), image.getBuffer().get(), bufferSize);
 
-        filter.setImage("color", temp.get(), oidn::Format::Float3, width,
-                        height);
-        filter.setImage("albedo", image.getAlbedo().get(), oidn::Format::Float3,
-                        width, height);
-        filter.setImage("normal", image.getNormal().get(), oidn::Format::Float3,
-                        width, height);
-        filter.setImage("output", image.getBuffer().get(), oidn::Format::Float3,
-                        width, height);
-        filter.set("hdr", true);  // image is HDR
-        filter.commit();
+    filter.setImage("color", temp.get(), oidn::Format::Float3, width, height);
+    filter.setImage("albedo", image.getAlbedo().get(), oidn::Format::Float3,
+                    width, height);
+    filter.setImage("normal", image.getNormal().get(), oidn::Format::Float3,
+                    width, height);
+    filter.setImage("output", image.getBuffer().get(), oidn::Format::Float3,
+                    width, height);
+    filter.set("hdr", true);  // image is HDR
+    filter.commit();
 
-        // Filter the image
-        filter.execute();
+    // Filter the image
+    filter.execute();
+}
 
-        done = true;
-    }
-
-    this->image.updateTextureBuffer(mode == PATHTRACING);
-    return done;
+void RayTracer::finish(bool filtered) {
+    this->image.updateTextureBuffer(filtered);
 }

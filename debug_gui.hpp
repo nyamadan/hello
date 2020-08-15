@@ -27,10 +27,12 @@ class DebugGUI {
     std::string getGlbPath() const;
     int32_t getBufferScale() const;
     int32_t getSamples() const;
+    void setIsRendering(bool x);
     bool getIsRendering() const;
     bool getIsEquirectangular() const;
     float getFocusDistance() const;
     float getLensRadius() const;
+    bool isActive() const;
 
   private:
     static const int32_t DeltaTimesBufferSize = 90;

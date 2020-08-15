@@ -24,7 +24,7 @@ struct IntersectContext;
 
 class RayTracer {
   private:
-    RenderingMode mode;
+    RenderingMode mode = static_cast<RenderingMode>(0);
 
     const int32_t TILE_SIZE_X = 4;
     const int32_t TILE_SIZE_Y = 4;
@@ -32,8 +32,8 @@ class RayTracer {
     ImageBuffer image;
 
     std::shared_ptr<glm::vec3> skybox;
-    int32_t skyboxWidth;
-    int32_t skyboxHeight;
+    int32_t skyboxWidth = 0;
+    int32_t skyboxHeight = 0;
 
     bool enableSuperSamples = true;
     int32_t maxSamples = 200;
@@ -99,8 +99,9 @@ class RayTracer {
     void setRenderingMode(RenderingMode mode);
     void setEnableSuperSampling(bool enableSuperSampling);
     RenderingMode getRenderingMode() const;
-    bool render(RTCScene scene, const RayTracerCamera &camera,
-                oidn::DeviceRef denoiser);
+    bool render(RTCScene scene, const RayTracerCamera &camera);
+    void denoise(oidn::DeviceRef denoiser);
+    void finish(bool filtered);
     void reset();
     void resize(const glm::i32vec2 &size);
     const ImageBuffer &getImage() const;

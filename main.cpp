@@ -287,27 +287,35 @@ int main(void) {
             int32_t w, h;
             glfwGetWindowSize(window, &w, &h);
             if (w != 0 && h != 0) {
-                needResize =
-                    (w != windowSize.x || h != windowSize.y) || needResize;
-                windowSize = glm::i32vec2(w, h);
+                if (w != windowSize.x || h != windowSize.y) {
+                    windowSize = glm::i32vec2(w, h);
+                    glViewport(0, 0, w, h);
+                }
             }
         }
 
-        switch (debugGui.getCameraMode()) {
-            case ORBIT:
-                needUpdate = controllCameraMouse(window, camera, (float)dt,
-                                                 mouseDelta, wheelDelta) ||
-                             needUpdate;
-                break;
-            case FPS:
-                needUpdate =
-                    controllCameraFPS(window, camera, static_cast<float>(dt),
-                                      mouseDelta) ||
-                    needUpdate;
-                break;
-        }
+        needResize = (raytracer.getImage().getWidth() != windowSize.x ||
+                      raytracer.getImage().getHeight() != windowSize.y) |
+                     needResize;
 
         debugGui.beginFrame(raytracer, needUpdate, needResize, needRestart);
+
+        if (!debugGui.isActive() &&
+            debugGui.getRenderingMode() != PATHTRACING) {
+            switch (debugGui.getCameraMode()) {
+                case ORBIT:
+                    needUpdate = controllCameraMouse(window, camera, (float)dt,
+                                                     mouseDelta, wheelDelta) ||
+                                 needUpdate;
+                    break;
+                case FPS:
+                    needUpdate =
+                        controllCameraFPS(window, camera,
+                                          static_cast<float>(dt), mouseDelta) ||
+                        needUpdate;
+                    break;
+            }
+        }
 
         if (false) {
             if (model.get() != nullptr) {
@@ -345,8 +353,6 @@ int main(void) {
             }
 
             raytracer.resize(windowSize / debugGui.getBufferScale());
-
-            glViewport(0, 0, windowSize.x, windowSize.y);
         }
 
         if (needRestart) {
@@ -365,13 +371,25 @@ int main(void) {
             raytracer.setEnableSuperSampling(debugGui.getEnableSuperSampling());
             raytracer.setMaxSamples(debugGui.getSamples());
             raytracer.setRenderingMode(debugGui.getRenderingMode());
+
+            if (debugGui.getRenderingMode() != PATHTRACING) {
+                debugGui.setIsRendering(true);
+            }
         }
 
         if (debugGui.getIsRendering()) {
-            raytracer.render(scene, camera, denoiser);
-        }
+            if (raytracer.render(scene, camera)) {
+                if (raytracer.getRenderingMode() == PATHTRACING) {
+                    raytracer.denoise(denoiser);
+                }
 
-        copyPixelsToTexture(raytracer.getImage(), fbo, texture);
+                debugGui.setIsRendering(false);
+            }
+
+            raytracer.finish(raytracer.getRenderingMode() == PATHTRACING);
+
+            copyPixelsToTexture(raytracer.getImage(), fbo, texture);
+        }
 
         // Rendering
         glfwMakeContextCurrent(window);
