@@ -3,6 +3,7 @@
 #include <imgui.h>
 #include <stb_image_write.h>
 #include <numeric>
+#include <sstream>
 
 #include <examples/imgui_impl_glfw.h>
 #include <examples/imgui_impl_opengl3.h>
@@ -69,8 +70,9 @@ void DebugGUI::setup(GLFWwindow *window) {
     ImGui_ImplOpenGL3_Init("#version 330 core\n");
 }
 
-void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
-                          bool &needResize, bool &needRestart) {
+void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
+                          bool &needUpdate, bool &needResize, bool &needRestart,
+                          bool &needGeometryUpdate) {
     static bool showImGuiDemoWindow = false;
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -90,6 +92,8 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
                                "OBJ File (*.obj)\0*.obj\0"
                                "All Files (*.*)\0*.*\0\0");
                 if (!glbPath.empty()) {
+                    currAnimIndex = 0;
+                    animTime = 0.0f;
                     needRestart = true;
                 }
             }
@@ -147,11 +151,8 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
 
         ImGui::Separator();
 
-        if (ImGui::Combo("CameraControl",
-                         reinterpret_cast<int32_t *>(&cameraMode),
-                         CameraModeNames, IM_ARRAYSIZE(CameraModeNames))) {
-            // needUpdate = true;
-        }
+        ImGui::Combo("CameraControl", reinterpret_cast<int32_t *>(&cameraMode),
+                     CameraModeNames, IM_ARRAYSIZE(CameraModeNames));
 
         ImGui::Separator();
 
@@ -182,6 +183,8 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
             ImGui::OpenPopup("Render");
         }
 
+        ImGui::Separator();
+
         if (ImGui::InputInt("BufferScale", &bufferScale)) {
             bufferScale = std::clamp<int32_t>(bufferScale, 1, 8);
             needResize = true;
@@ -210,9 +213,50 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
             needUpdate = true;
         }
 
+        ImGui::Separator();
+
+        bool animatedModel =
+            model.get() != nullptr && model->getAnimations().size() > 0;
+
+        if (animatedModel) {
+            const auto &animations = model->getAnimations();
+            const auto len = animations.size();
+            auto labels = std::unique_ptr<std::string[]>(new std::string[len]);
+            auto items = std::unique_ptr<const char *[]>(new const char *[len]);
+            for (auto i = 0; i < len; i++) {
+                std::stringstream ss;
+                ss << i << " : " << animations[i]->getName();
+                labels[i] = ss.str();
+                items[i] = labels[i].c_str();
+            }
+
+            if (ImGui::Combo("Animations", &currAnimIndex, items.get(), len)) {
+                needGeometryUpdate = true;
+            }
+
+            auto anim = animations[currAnimIndex];
+
+            auto min = anim->getTimelineMin();
+            auto max = anim->getTimelineMax();
+
+            if (ImGui::SliderFloat("Time", &animTime, min, max)) {
+                needGeometryUpdate = true;
+            }
+
+            ImGui::Separator();
+        }
+
+        ImGui::Separator();
+
         if (ImGui::Button("Render")) {
             needUpdate = true;
             isRendering = true;
+        }
+
+        if (animatedModel) {
+            ImGui::SameLine();
+            if (ImGui::Button("Render as Movie")) {
+            }
         }
     }
 
@@ -242,5 +286,9 @@ bool DebugGUI::getIsEquirectangular() const { return isEquirectangular; }
 float DebugGUI::getFocusDistance() const { return focusDistance; }
 
 float DebugGUI::getLensRadius() const { return lensRadius; }
+
+int32_t DebugGUI::getAnimIndex() const { return currAnimIndex; }
+
+float DebugGUI::getAnimTime() const { return animTime; }
 
 bool DebugGUI::isActive() const { return ImGui::GetIO().WantCaptureMouse; }

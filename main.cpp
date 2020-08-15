@@ -280,6 +280,7 @@ int main(void) {
         bool needResize = false;
         bool needUpdate = false;
         bool needRestart = false;
+        bool needGeometryUpdate = false;
 
         {
             int32_t w, h;
@@ -297,7 +298,8 @@ int main(void) {
         glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
         glm::vec2 mouseDelta = mousePos - prevMousePos;
 
-        debugGui.beginFrame(raytracer, needUpdate, needResize, needRestart);
+        debugGui.beginFrame(raytracer, model, needUpdate, needResize,
+                            needRestart, needGeometryUpdate);
 
         if (!debugGui.isActive() &&
             debugGui.getRenderingMode() != PATHTRACING) {
@@ -316,21 +318,8 @@ int main(void) {
             }
         }
 
-        if (false) {
-            if (model.get() != nullptr) {
-                auto anims = model->getAnimations();
-
-                if (anims.size() > 0) {
-                    needUpdate = true;
-                    auto anim = anims[0];
-                    Geometry::updateGeometries(device, scene, geometries, anim,
-                                               t, glm::mat4(1.0f));
-                    rtcCommitScene(scene);
-                }
-            }
-        }
-
-        needUpdate = needUpdate || needResize || needRestart;
+        needUpdate =
+            needUpdate || needResize || needRestart || needGeometryUpdate;
 
         if (needResize) {
             camera.setIsEquirectangula(debugGui.getIsEquirectangular());
@@ -360,6 +349,20 @@ int main(void) {
                 detachGeometries(scene, geometries);
                 model = loadModel(path.c_str());
                 geometries = addModel(device, scene, model, raytracer, camera);
+            }
+        }
+
+        if (needGeometryUpdate) {
+            if (model.get() != nullptr) {
+                auto anims = model->getAnimations();
+
+                if (anims.size() > 0) {
+                    auto anim = anims[debugGui.getAnimIndex()];
+                    Geometry::updateGeometries(device, scene, geometries, anim,
+                                               debugGui.getAnimTime(),
+                                               glm::mat4(1.0f));
+                    rtcCommitScene(scene);
+                }
             }
         }
 

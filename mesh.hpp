@@ -203,9 +203,9 @@ class Animation {
     Animation(int32_t index_) : index(index_) {}
 
     void setName(const std::string name) { this->name = name; }
-    const std::string &getName(const std::string name) const {
-        return this->name;
-    }
+    const std::string &getName() const { return this->name; }
+
+    int32_t getAnimationIndex() const { return index; }
 
     void addSampler(ConstantPAnimationSampler sampler) {
         this->samplers.push_back(sampler);

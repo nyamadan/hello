@@ -7,6 +7,7 @@
 
 #include "image_buffer.hpp"
 #include "ray_tracer.hpp"
+#include "mesh.hpp"
 
 enum CameraMode { ORBIT, FPS };
 
@@ -17,8 +18,9 @@ class DebugGUI {
     DebugGUI();
 
     void setup(GLFWwindow *window);
-    void beginFrame(const RayTracer &raytracer, bool &needUpdate,
-                    bool &needResize, bool &needRestart);
+    void beginFrame(const RayTracer &raytracer, ConstantPModel model,
+                    bool &needUpdate, bool &needResize, bool &needRestart,
+                    bool &needGeometryUpdate);
     void renderFrame() const;
     RenderingMode getRenderingMode() const;
     bool getEnableSuperSampling() const;
@@ -32,6 +34,8 @@ class DebugGUI {
     bool getIsEquirectangular() const;
     float getFocusDistance() const;
     float getLensRadius() const;
+    int32_t getAnimIndex() const;
+    float getAnimTime() const;
     bool isActive() const;
 
   private:
@@ -52,6 +56,8 @@ class DebugGUI {
     bool isRendering = true;
     float lensRadius = 0.0f;
     float focusDistance = 0.0f;
+    int32_t currAnimIndex = 0;
+    float animTime = 0.0f;
 
     std::string glbPath = "";
 };
