@@ -133,32 +133,7 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
         "Hello Embree", nullptr,
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize);
     {
-        if (ImGui::BeginPopupModal("Render", nullptr,
-                                   ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::Text("Rendering...");
-            ImGui::Separator();
-            if (ImGui::Button("Cancel", ImVec2(120, 0))) {
-                isRendering = false;
-            }
-            if (!isRendering) {
-                ImGui::CloseCurrentPopup();
-            }
-            ImGui::EndPopup();
-        } else if (this->getIsRendering()) {
-            ImGui::OpenPopup("Render");
-        }
-
         deltaTimes[deltaTimesOffset] = ImGui::GetIO().DeltaTime;
-
-        {
-            ImGui::LabelText("mode", "%s",
-                             RenderingModeName[raytracer.getRenderingMode()]);
-        }
-
-        {
-            ImGui::LabelText("samples", "%d / %d", raytracer.getSamples(),
-                             raytracer.getMaxSamples());
-        }
 
         auto average =
             std::reduce(deltaTimes.cbegin(), deltaTimes.cend(), 0.0f) /
@@ -187,6 +162,24 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, bool &needUpdate,
             }
 
             needUpdate = true;
+        }
+
+        if (ImGui::BeginPopupModal("Render", nullptr,
+                                   ImGuiWindowFlags_AlwaysAutoResize)) {
+            ImGui::LabelText("samples", "%d / %d", raytracer.getSamples(),
+                             raytracer.getMaxSamples());
+
+            ImGui::Text("Rendering...");
+            ImGui::Separator();
+            if (ImGui::Button("Cancel")) {
+                isRendering = false;
+            }
+            if (!isRendering) {
+                ImGui::CloseCurrentPopup();
+            }
+            ImGui::EndPopup();
+        } else if (this->getIsRendering()) {
+            ImGui::OpenPopup("Render");
         }
 
         if (ImGui::InputInt("BufferScale", &bufferScale)) {

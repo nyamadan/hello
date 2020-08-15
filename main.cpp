@@ -276,8 +276,6 @@ int main(void) {
     while (!glfwWindowShouldClose(window)) {
         auto t = glfwGetTime();
         auto dt = t - t0;
-        glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
-        glm::vec2 mouseDelta = mousePos - prevMousePos;
 
         bool needResize = false;
         bool needUpdate = false;
@@ -287,16 +285,17 @@ int main(void) {
             int32_t w, h;
             glfwGetWindowSize(window, &w, &h);
             if (w != 0 && h != 0) {
-                if (w != windowSize.x || h != windowSize.y) {
-                    windowSize = glm::i32vec2(w, h);
+                needResize =
+                    w != windowSize.x || h != windowSize.y || needResize;
+                windowSize = glm::i32vec2(w, h);
+                if (needResize) {
                     glViewport(0, 0, w, h);
                 }
             }
         }
 
-        needResize = (raytracer.getImage().getWidth() != windowSize.x ||
-                      raytracer.getImage().getHeight() != windowSize.y) |
-                     needResize;
+        glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
+        glm::vec2 mouseDelta = mousePos - prevMousePos;
 
         debugGui.beginFrame(raytracer, needUpdate, needResize, needRestart);
 
