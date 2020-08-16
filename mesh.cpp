@@ -714,8 +714,8 @@ ConstantPModel loadCube(ConstantPMaterial material, glm::mat4 transform) {
 }
 
 /* adds a ground plane to the scene */
-ConstantPModel loadGroundPlane(ConstantPMaterial material,
-                               const glm::mat4 transform) {
+ConstantPModel loadPlane(ConstantPMaterial material,
+                         const glm::mat4 transform) {
     const auto numFaces = 2;
     const auto numVertices = 4;
 

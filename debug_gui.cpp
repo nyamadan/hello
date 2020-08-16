@@ -86,7 +86,7 @@ std::list<DebugGuiCommand> DebugGUI::beginFrame(const RayTracer &raytracer,
 
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
-            if (ImGui::MenuItem("Open", "Ctrl+O")) {
+            if (ImGui::MenuItem("Open Model", "Ctrl+O")) {
                 openFileDialog(glbPath,
                                "GLB File (*.glb)\0*.glb\0"
                                "GLTF File (*.gltf)\0*.gltf\0"
@@ -96,6 +96,15 @@ std::list<DebugGuiCommand> DebugGUI::beginFrame(const RayTracer &raytracer,
                     currAnimIndex = 0;
                     animTime = 0.0f;
                     commands.push_back(DebugLoadModel);
+                }
+            }
+
+            if (ImGui::MenuItem("Open Lua")) {
+                openFileDialog(luaPath,
+                               "OBJ File (*.lua)\0*.lua\0"
+                               "All Files (*.*)\0*.*\0\0");
+                if (!luaPath.empty()) {
+                    commands.push_back(DebugOpenLua);
                 }
             }
 
@@ -332,6 +341,8 @@ void DebugGUI::renderFrame() const {
 const std::string &DebugGUI::getGlbPath() const { return glbPath; }
 
 const std::string &DebugGUI::getY4mPath() const { return y4mPath; }
+
+const std::string &DebugGUI::getLuaPath() const { return luaPath; }
 
 CameraMode DebugGUI::getCameraMode() const { return cameraMode; }
 

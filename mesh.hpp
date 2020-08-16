@@ -350,8 +350,8 @@ ConstantPModel loadCube(ConstantPMaterial material,
                         glm::mat4 transform = glm::mat4(1.0f));
 
 /* adds a ground plane to the scene */
-ConstantPModel loadGroundPlane(ConstantPMaterial material,
-                               const glm::mat4 transform = glm::mat4(1.0f));
+ConstantPModel loadPlane(ConstantPMaterial material,
+                         const glm::mat4 transform = glm::mat4(1.0f));
 
 ConstantPModel loadGltfModel(const tinygltf::Model &gltfModel);
 

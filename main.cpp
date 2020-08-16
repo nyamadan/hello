@@ -1,8 +1,10 @@
-#include <GL/gl3w.h>
+﻿#include <GL/gl3w.h>
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <OpenImageDenoise/oidn.hpp>
 #include <libyuv.h>
+
+#include <lua.hpp>
 
 #include <random>
 
@@ -14,6 +16,14 @@
 #include "ray_tracer.hpp"
 
 auto wheelDelta = glm::dvec2(0.0, 0.0);
+
+static RayTracer g_rayTracer;
+static RayTracerCamera g_camera;
+static oidn::DeviceRef g_denoiser;
+
+static RTCScene g_scene;
+static RTCDevice g_device;
+static ConstantPGeometryList g_geometries;
 
 void WINAPI glfwErrorCallback(int error, const char *description) {
     fprintf(stderr, "error %d: %s\n", error, description);
@@ -197,40 +207,331 @@ void encodeYUV420(const uint8_t *rgbaBuffer, uint8_t *yuvBuffer,
                       -bufferHeight);
 }
 
+static void dumpStack(lua_State *L) {
+    int i;
+    int stackSize = lua_gettop(L);
+    for (i = stackSize; i >= 1; i--) {
+        int type = lua_type(L, i);
+        printf("Stack[%2d-%10s] : ", i, lua_typename(L, type));
+
+        switch (type) {
+            case LUA_TNUMBER:
+                printf("%f", lua_tonumber(L, i));
+                break;
+            case LUA_TBOOLEAN:
+                if (lua_toboolean(L, i)) {
+                    printf("true");
+                } else {
+                    printf("false");
+                }
+                break;
+            case LUA_TSTRING:
+                printf("%s", lua_tostring(L, i));
+                break;
+            case LUA_TNIL:
+                break;
+            default:
+                printf("%s", lua_typename(L, type));
+                break;
+        }
+        printf("\n");
+    }
+    printf("\n");
+}
+
+static int L_loadPlane(lua_State *L) {
+    ConstantPModelList models;
+
+    auto idx = 1;
+
+    auto type = static_cast<MaterialType>(lua_tointeger(L, idx++));
+
+    glm::vec4 baseColorFactor;
+    baseColorFactor.x = lua_tonumber(L, idx++);
+    baseColorFactor.y = lua_tonumber(L, idx++);
+    baseColorFactor.z = lua_tonumber(L, idx++);
+    baseColorFactor.w = lua_tonumber(L, idx++);
+
+    auto baseColorTexture = lua_tostring(L, idx++);
+    auto normalTexture = lua_tostring(L, idx++);
+    auto roughness = lua_tonumber(L, idx++);
+    auto metalness = lua_tonumber(L, idx++);
+    auto roughnessMetalnessTexture = lua_tostring(L, idx++);
+
+    glm::vec3 emissive;
+    emissive.x = lua_tonumber(L, idx++);
+    emissive.y = lua_tonumber(L, idx++);
+    emissive.z = lua_tonumber(L, idx++);
+    auto emissiveTexture = lua_tostring(L, idx++);
+
+    glm::vec3 position;
+    position.x = lua_tonumber(L, idx++);
+    position.y = lua_tonumber(L, idx++);
+    position.z = lua_tonumber(L, idx++);
+
+    glm::vec3 scale;
+    scale.x = lua_tonumber(L, idx++);
+    scale.y = lua_tonumber(L, idx++);
+    scale.z = lua_tonumber(L, idx++);
+
+    auto qx = lua_tonumber(L, idx++);
+    auto qy = lua_tonumber(L, idx++);
+    auto qz = lua_tonumber(L, idx++);
+    auto qw = lua_tonumber(L, idx++);
+    auto quat = glm::quat(qw, qx, qy, qz);
+
+    auto model = loadPlane(
+        PMaterial(new Material(type, baseColorFactor, nullptr, nullptr,
+                               roughness, metalness, nullptr, emissive,
+                               nullptr)),
+        glm::translate(position) * glm::toMat4(quat) * glm::scale(scale));
+
+    ConstantPGeometryList &geometries = g_geometries;
+
+    for (auto node : model->getScene()->getNodes()) {
+        geometries.splice(geometries.cend(), Geometry::generateGeometries(
+                                                 g_device, g_scene, node));
+    }
+
+    lua_settop(L, 0);
+
+    return 0;
+}
+
+static int L_loadCube(lua_State *L) {
+    ConstantPModelList models;
+
+    auto idx = 1;
+
+    auto type = static_cast<MaterialType>(lua_tointeger(L, idx++));
+
+    glm::vec4 baseColorFactor;
+    baseColorFactor.x = lua_tonumber(L, idx++);
+    baseColorFactor.y = lua_tonumber(L, idx++);
+    baseColorFactor.z = lua_tonumber(L, idx++);
+    baseColorFactor.w = lua_tonumber(L, idx++);
+
+    auto baseColorTexture = lua_tostring(L, idx++);
+    auto normalTexture = lua_tostring(L, idx++);
+    auto roughness = lua_tonumber(L, idx++);
+    auto metalness = lua_tonumber(L, idx++);
+    auto roughnessMetalnessTexture = lua_tostring(L, idx++);
+
+    glm::vec3 emissive;
+    emissive.x = lua_tonumber(L, idx++);
+    emissive.y = lua_tonumber(L, idx++);
+    emissive.z = lua_tonumber(L, idx++);
+    auto emissiveTexture = lua_tostring(L, idx++);
+
+    glm::vec3 position;
+    position.x = lua_tonumber(L, idx++);
+    position.y = lua_tonumber(L, idx++);
+    position.z = lua_tonumber(L, idx++);
+
+    glm::vec3 scale;
+    scale.x = lua_tonumber(L, idx++);
+    scale.y = lua_tonumber(L, idx++);
+    scale.z = lua_tonumber(L, idx++);
+
+    auto qx = lua_tonumber(L, idx++);
+    auto qy = lua_tonumber(L, idx++);
+    auto qz = lua_tonumber(L, idx++);
+    auto qw = lua_tonumber(L, idx++);
+    auto quat = glm::quat(qw, qx, qy, qz);
+
+    auto model = loadCube(
+        PMaterial(new Material(type, baseColorFactor, nullptr, nullptr,
+                               roughness, metalness, nullptr, emissive,
+                               nullptr)),
+        glm::translate(position) * glm::toMat4(quat) * glm::scale(scale));
+
+    ConstantPGeometryList &geometries = g_geometries;
+
+    for (auto node : model->getScene()->getNodes()) {
+        geometries.splice(geometries.cend(), Geometry::generateGeometries(
+                                                 g_device, g_scene, node));
+    }
+
+    lua_settop(L, 0);
+
+    return 0;
+}
+
+static int L_loadSphere(lua_State *L) {
+    ConstantPModelList models;
+
+    auto idx = 1;
+
+    auto type = static_cast<MaterialType>(lua_tointeger(L, idx++));
+
+    glm::vec4 baseColorFactor;
+    baseColorFactor.x = lua_tonumber(L, idx++);
+    baseColorFactor.y = lua_tonumber(L, idx++);
+    baseColorFactor.z = lua_tonumber(L, idx++);
+    baseColorFactor.w = lua_tonumber(L, idx++);
+
+    auto baseColorTexture = lua_tostring(L, idx++);
+    auto normalTexture = lua_tostring(L, idx++);
+    auto roughness = lua_tonumber(L, idx++);
+    auto metalness = lua_tonumber(L, idx++);
+    auto roughnessMetalnessTexture = lua_tostring(L, idx++);
+
+    glm::vec3 emissive;
+    emissive.x = lua_tonumber(L, idx++);
+    emissive.y = lua_tonumber(L, idx++);
+    emissive.z = lua_tonumber(L, idx++);
+    auto emissiveTexture = lua_tostring(L, idx++);
+
+    auto segU = lua_tointeger(L, idx++);
+    auto segV = lua_tointeger(L, idx++);
+
+    glm::vec3 position;
+    position.x = lua_tonumber(L, idx++);
+    position.y = lua_tonumber(L, idx++);
+    position.z = lua_tonumber(L, idx++);
+
+    glm::vec3 scale;
+    scale.x = lua_tonumber(L, idx++);
+    scale.y = lua_tonumber(L, idx++);
+    scale.z = lua_tonumber(L, idx++);
+
+    auto qx = lua_tonumber(L, idx++);
+    auto qy = lua_tonumber(L, idx++);
+    auto qz = lua_tonumber(L, idx++);
+    auto qw = lua_tonumber(L, idx++);
+    auto quat = glm::quat(qw, qx, qy, qz);
+
+    auto model = loadSphere(
+        PMaterial(new Material(type, baseColorFactor, nullptr, nullptr,
+                               roughness, metalness, nullptr, emissive,
+                               nullptr)),
+        segU, segV,
+        glm::translate(position) * glm::toMat4(quat) * glm::scale(scale));
+
+    ConstantPGeometryList &geometries = g_geometries;
+
+    for (auto node : model->getScene()->getNodes()) {
+        geometries.splice(geometries.cend(), Geometry::generateGeometries(
+                                                 g_device, g_scene, node));
+    }
+
+    lua_settop(L, 0);
+
+    return 0;
+}
+
+static int L_setRenderMode(lua_State *L) {
+    auto mode = static_cast<RenderingMode>(lua_tointeger(L, 1));
+    g_rayTracer.setRenderingMode(mode);
+    lua_settop(L, 0);
+    return 0;
+}
+
+static int L_setCameraDir(lua_State *L) {
+    auto dir = glm::normalize(
+        glm::vec3(lua_tonumber(L, 1), lua_tonumber(L, 2), lua_tonumber(L, 3)));
+    g_camera.setCameraOrigin(dir);
+    lua_settop(L, 0);
+    return 0;
+}
+
+static int L_setCameraOrigin(lua_State *L) {
+    auto pos =
+        glm::vec3(lua_tonumber(L, 1), lua_tonumber(L, 2), lua_tonumber(L, 3));
+    g_camera.setCameraOrigin(pos);
+    lua_settop(L, 0);
+    return 0;
+}
+
+static int L_setMaxSamples(lua_State *L) {
+    auto samples = static_cast<RenderingMode>(lua_tointeger(L, 1));
+    g_rayTracer.setMaxSamples(samples);
+    lua_settop(L, 0);
+    return 0;
+}
+
+static int L_reset(lua_State *L) {
+    g_rayTracer.reset();
+    lua_settop(L, 0);
+    return 0;
+}
+
+static int L_commitScene(lua_State *L) {
+    rtcCommitScene(g_scene);
+    lua_settop(L, 0);
+    return 0;
+}
+
+static int L_denoise(lua_State *L) {
+    g_rayTracer.denoise(g_denoiser);
+    lua_settop(L, 0);
+    return 0;
+}
+
+static int L_render(lua_State *L) {
+    lua_settop(L, 0);
+
+    lua_pushboolean(L, g_rayTracer.render(g_scene, g_camera) ? 1 : 0);
+    return 1;
+}
+
+static int L_finish(lua_State *L) {
+    auto b = false;
+    if (lua_gettop(L) >= 1) {
+        auto type = lua_type(L, 1);
+        if (type == LUA_TBOOLEAN) {
+            b = !!lua_toboolean(L, 1);
+        }
+    }
+
+    g_rayTracer.finish(b);
+
+    lua_settop(L, 0);
+
+    return 0;
+}
+
 int main(void) {
     auto windowSize = glm::i32vec2(640, 480);
 
+    RTCDevice &device = g_device;
+    RTCScene &scene = g_scene;
+    ConstantPGeometryList &geometries = g_geometries;
+    RayTracer &raytracer = g_rayTracer;
+    RayTracerCamera &camera = g_camera;
+
     // Create an Intel Open Image Denoise device
-    oidn::DeviceRef denoiser = oidn::newDevice();
+    oidn::DeviceRef &denoiser = g_denoiser;
+    denoiser = oidn::newDevice();
     denoiser.commit();
 
 #ifdef NDEBUG
-    auto device = rtcNewDevice(nullptr);
+    device = rtcNewDevice(nullptr);
 #else
-    auto device = rtcNewDevice("verbose=1");
+    device = rtcNewDevice("verbose=1");
 #endif
-    auto scene = rtcNewScene(device);
+    scene = rtcNewScene(device);
 
     auto model = ConstantPModel(nullptr);
 
-    auto geometries = addDefaultMeshToScene(device, scene);
-
     auto debugGui = DebugGUI();
 
-    auto raytracer = RayTracer(windowSize / debugGui.getBufferScale());
+    raytracer.resize(windowSize / debugGui.getBufferScale());
+    raytracer.loadSkybox("./assets/small_rural_road_2k.hdr");
 
     auto yuvBuffer = createYUV420(raytracer.getImage());
 
     FILE *fY4m = nullptr;
 
-    raytracer.loadSkybox("./assets/small_rural_road_2k.hdr");
+    lua_State *L = nullptr;
+
+    geometries = addDefaultMeshToScene(device, scene);
 
     rtcCommitScene(scene);
 
     RTCBounds bb;
     rtcGetSceneBounds(scene, &bb);
 
-    auto camera = RayTracerCamera();
     {
         RTCBounds bb;
         rtcGetSceneBounds(scene, &bb);
@@ -246,7 +547,7 @@ int main(void) {
         camera.lookAt(eye, target, up);
 
         // ground
-        auto model = loadGroundPlane(
+        auto model = loadPlane(
             PMaterial(new Material(
                 REFLECTION, glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), nullptr, nullptr,
                 0.2f, 0.8f, nullptr, glm::vec3(0.0f), nullptr)),
@@ -317,201 +618,271 @@ int main(void) {
         auto t = glfwGetTime();
         auto dt = t - t0;
 
-        bool needResize = false;
-        bool needUpdate = false;
-        bool needLoadModel = false;
-        bool needGeometryUpdate = false;
+        if (L == NULL) {
+            bool needResize = false;
+            bool needUpdate = false;
+            bool needLoadModel = false;
+            bool needGeometryUpdate = false;
 
-        {
-            int32_t w, h;
-            glfwGetWindowSize(window, &w, &h);
-            if (w != 0 && h != 0) {
-                needResize =
-                    w != windowSize.x || h != windowSize.y || needResize;
-                windowSize = glm::i32vec2(w, h);
-                if (needResize) {
-                    glViewport(0, 0, w, h);
-                }
-            }
-        }
-
-        glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
-        glm::vec2 mouseDelta = mousePos - prevMousePos;
-
-        auto debugCommands = debugGui.beginFrame(raytracer, model);
-
-        needUpdate = needUpdate ||
-                     std::find(debugCommands.cbegin(), debugCommands.cend(),
-                               DebugUpdate) != debugCommands.cend();
-        needResize = needResize ||
-                     std::find(debugCommands.cbegin(), debugCommands.cend(),
-                               DebugResize) != debugCommands.cend();
-        needLoadModel = needLoadModel ||
-                        std::find(debugCommands.cbegin(), debugCommands.cend(),
-                                  DebugLoadModel) != debugCommands.cend();
-        needGeometryUpdate =
-            needGeometryUpdate ||
-            std::find(debugCommands.cbegin(), debugCommands.cend(),
-                      DebugGeometryUpdate) != debugCommands.cend();
-
-        if (!debugGui.isActive() &&
-            debugGui.getRenderingMode() != PATHTRACING) {
-            switch (debugGui.getCameraMode()) {
-                case ORBIT:
-                    needUpdate = controllCameraMouse(window, camera, (float)dt,
-                                                     mouseDelta, wheelDelta) ||
-                                 needUpdate;
-                    break;
-                case FPS:
-                    needUpdate =
-                        controllCameraFPS(window, camera,
-                                          static_cast<float>(dt), mouseDelta) ||
-                        needUpdate;
-                    break;
-            }
-        }
-
-        needUpdate =
-            needUpdate || needResize || needLoadModel || needGeometryUpdate;
-
-        if (needResize) {
-            camera.setIsEquirectangula(debugGui.getIsEquirectangular());
-
-            if (camera.getIsEquirectangula()) {
-                camera.setCameraUp(glm::vec3(0.0f, 1.0f, 0.0f));
-                camera.setCameraDir(glm::vec3(0.0f, 0.0f, 1.0f));
-
-                if (windowSize.x > 2 * windowSize.y) {
-                    windowSize.y = windowSize.x / 2;
-                } else {
-                    windowSize.x = windowSize.y * 2;
-                }
-
-                glfwSetWindowSize(window, windowSize.x, windowSize.y);
-            } else {
-                camera.lookAt(camera.getCameraOrigin(), glm::vec3(0.0f),
-                              glm::vec3(0.0f, 1.0f, 0.0f));
-            }
-
-            raytracer.resize(windowSize / debugGui.getBufferScale());
-            yuvBuffer = createYUV420(raytracer.getImage());
-
-            if (fY4m != nullptr) {
-                fclose(fY4m);
-                fY4m = nullptr;
-            }
-        }
-
-        if (needLoadModel) {
-            auto path = debugGui.getGlbPath();
-            if (!path.empty()) {
-                detachGeometries(scene, geometries);
-                model = loadModel(path.c_str());
-                geometries = addModel(device, scene, model, raytracer, camera);
-            }
-        }
-
-        if (needGeometryUpdate) {
-            if (model.get() != nullptr) {
-                auto anims = model->getAnimations();
-
-                if (anims.size() > 0) {
-                    auto anim = anims[debugGui.getAnimIndex()];
-                    Geometry::updateGeometries(device, scene, geometries, anim,
-                                               debugGui.getAnimTime(),
-                                               glm::mat4(1.0f));
-                    rtcCommitScene(scene);
-                }
-            }
-        }
-
-        if (needUpdate) {
-            camera.setLensRadius(debugGui.getLensRadius());
-            camera.setFocusDistance(debugGui.getFocusDistance());
-
-            raytracer.setEnableSuperSampling(debugGui.getEnableSuperSampling());
-            raytracer.setMaxSamples(debugGui.getSamples());
-            raytracer.setRenderingMode(debugGui.getRenderingMode());
-
-            if (debugGui.getRenderingMode() != PATHTRACING) {
-                debugGui.setIsRendering(true);
-            }
-        }
-
-        if (std::find(debugCommands.cbegin(), debugCommands.cend(),
-                      DebugSaveMovie) != debugCommands.cend()) {
-            const auto &path = debugGui.getY4mPath();
-
-            const auto &image = raytracer.getImage();
-            const auto width = image.getWidth();
-            const auto height = image.getHeight();
-
-            fY4m = fopen(path.c_str(), "wb");
-            if (fY4m != nullptr) {
-                fprintf(
-                    fY4m,
-                    "YUV4MPEG2 W%d H%d F30000:1001 Ip A0:0 C420 XYSCSS=420\n",
-                    width, height);
-            }
-        }
-
-        if (std::find(debugCommands.cbegin(), debugCommands.cend(),
-                      DebugCancelSaveMovie) != debugCommands.cend()) {
-            if (fY4m != nullptr) {
-                fclose(fY4m);
-                fY4m = nullptr;
-            }
-        }
-
-        if (debugGui.getIsRendering()) {
-            bool finished = raytracer.render(scene, camera);
-            bool nextFrame = false;
-
-            if (finished) {
-                if (raytracer.getRenderingMode() == PATHTRACING) {
-                    raytracer.denoise(denoiser);
-                }
-
-                if (debugGui.getIsMovie()) {
-                    nextFrame = debugGui.nextFrame(
-                        model->getAnimations()[debugGui.getAnimIndex()]);
-                    if (!nextFrame) {
-                        debugGui.setIsRendering(false);
-                        if (fY4m != nullptr) {
-                            fclose(fY4m);
-                            fY4m = nullptr;
-                        }
+            {
+                int32_t w, h;
+                glfwGetWindowSize(window, &w, &h);
+                if (w != 0 && h != 0) {
+                    needResize =
+                        w != windowSize.x || h != windowSize.y || needResize;
+                    windowSize = glm::i32vec2(w, h);
+                    if (needResize) {
+                        glViewport(0, 0, w, h);
                     }
-                } else {
-                    debugGui.setIsRendering(false);
                 }
             }
 
-            raytracer.finish(raytracer.getRenderingMode() == PATHTRACING);
+            glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
+            glm::vec2 mouseDelta = mousePos - prevMousePos;
+
+            auto debugCommands = debugGui.beginFrame(raytracer, model);
+
+            needUpdate = needUpdate ||
+                         std::find(debugCommands.cbegin(), debugCommands.cend(),
+                                   DebugUpdate) != debugCommands.cend();
+            needResize = needResize ||
+                         std::find(debugCommands.cbegin(), debugCommands.cend(),
+                                   DebugResize) != debugCommands.cend();
+            needLoadModel =
+                needLoadModel ||
+                std::find(debugCommands.cbegin(), debugCommands.cend(),
+                          DebugLoadModel) != debugCommands.cend();
+            needGeometryUpdate =
+                needGeometryUpdate ||
+                std::find(debugCommands.cbegin(), debugCommands.cend(),
+                          DebugGeometryUpdate) != debugCommands.cend();
+
+            if (!debugGui.isActive() &&
+                debugGui.getRenderingMode() != PATHTRACING) {
+                switch (debugGui.getCameraMode()) {
+                    case ORBIT:
+                        needUpdate =
+                            controllCameraMouse(window, camera, (float)dt,
+                                                mouseDelta, wheelDelta) ||
+                            needUpdate;
+                        break;
+                    case FPS:
+                        needUpdate = controllCameraFPS(window, camera,
+                                                       static_cast<float>(dt),
+                                                       mouseDelta) ||
+                                     needUpdate;
+                        break;
+                }
+            }
+
+            needUpdate =
+                needUpdate || needResize || needLoadModel || needGeometryUpdate;
+
+            if (needResize) {
+                camera.setIsEquirectangula(debugGui.getIsEquirectangular());
+
+                if (camera.getIsEquirectangula()) {
+                    camera.setCameraUp(glm::vec3(0.0f, 1.0f, 0.0f));
+                    camera.setCameraDir(glm::vec3(0.0f, 0.0f, 1.0f));
+
+                    if (windowSize.x > 2 * windowSize.y) {
+                        windowSize.y = windowSize.x / 2;
+                    } else {
+                        windowSize.x = windowSize.y * 2;
+                    }
+
+                    glfwSetWindowSize(window, windowSize.x, windowSize.y);
+                } else {
+                    camera.lookAt(camera.getCameraOrigin(), glm::vec3(0.0f),
+                                  glm::vec3(0.0f, 1.0f, 0.0f));
+                }
+
+                raytracer.resize(windowSize / debugGui.getBufferScale());
+                yuvBuffer = createYUV420(raytracer.getImage());
+
+                if (fY4m != nullptr) {
+                    fclose(fY4m);
+                    fY4m = nullptr;
+                }
+            }
+
+            if (needLoadModel) {
+                auto path = debugGui.getGlbPath();
+                if (!path.empty()) {
+                    detachGeometries(scene, geometries);
+                    model = loadModel(path.c_str());
+                    geometries =
+                        addModel(device, scene, model, raytracer, camera);
+                }
+            }
+
+            if (needGeometryUpdate) {
+                if (model.get() != nullptr) {
+                    auto anims = model->getAnimations();
+
+                    if (anims.size() > 0) {
+                        auto anim = anims[debugGui.getAnimIndex()];
+                        Geometry::updateGeometries(device, scene, geometries,
+                                                   anim, debugGui.getAnimTime(),
+                                                   glm::mat4(1.0f));
+                        rtcCommitScene(scene);
+                    }
+                }
+            }
+
+            if (needUpdate) {
+                camera.setLensRadius(debugGui.getLensRadius());
+                camera.setFocusDistance(debugGui.getFocusDistance());
+
+                raytracer.setEnableSuperSampling(
+                    debugGui.getEnableSuperSampling());
+                raytracer.setMaxSamples(debugGui.getSamples());
+                raytracer.setRenderingMode(debugGui.getRenderingMode());
+                raytracer.reset();
+
+                if (debugGui.getRenderingMode() != PATHTRACING) {
+                    debugGui.setIsRendering(true);
+                }
+            }
+
+            if (std::find(debugCommands.cbegin(), debugCommands.cend(),
+                          DebugSaveMovie) != debugCommands.cend()) {
+                const auto &path = debugGui.getY4mPath();
+
+                const auto &image = raytracer.getImage();
+                const auto width = image.getWidth();
+                const auto height = image.getHeight();
+
+                fY4m = fopen(path.c_str(), "wb");
+                if (fY4m != nullptr) {
+                    fprintf(fY4m,
+                            "YUV4MPEG2 W%d H%d F30000:1001 Ip A0:0 C420 "
+                            "XYSCSS=420\n",
+                            width, height);
+                }
+            }
+
+            if (std::find(debugCommands.cbegin(), debugCommands.cend(),
+                          DebugCancelSaveMovie) != debugCommands.cend()) {
+                if (fY4m != nullptr) {
+                    fclose(fY4m);
+                    fY4m = nullptr;
+                }
+            }
+
+            if (std::find(debugCommands.cbegin(), debugCommands.cend(),
+                          DebugOpenLua) != debugCommands.cend()) {
+                if (fY4m != nullptr) {
+                    fclose(fY4m);
+                    fY4m = nullptr;
+                }
+                detachGeometries(scene, geometries);
+                debugGui.setIsRendering(false);
+                model = nullptr;
+                rtcCommitScene(scene);
+
+                raytracer.reset();
+
+                L = luaL_newstate();
+
+                luaL_openlibs(L);
+
+                lua_register(L, "_render", L_render);
+                lua_register(L, "_finish", L_finish);
+                lua_register(L, "_denoise", L_denoise);
+                lua_register(L, "_reset", L_reset);
+                lua_register(L, "_commitScene", L_commitScene);
+
+                lua_register(L, "_setCameraDir", L_setCameraDir);
+                lua_register(L, "_setCameraOrigin", L_setCameraOrigin);
+
+                lua_register(L, "_setMaxSamples", L_setMaxSamples);
+
+                lua_register(L, "_setRenderMode", L_setRenderMode);
+
+                lua_register(L, "_loadSphere", L_loadSphere);
+                lua_register(L, "_loadCube", L_loadCube);
+                lua_register(L, "_loadPlane", L_loadPlane);
+
+                luaL_loadfile(L, debugGui.getLuaPath().c_str());
+            }
+
+            if (debugGui.getIsRendering()) {
+                bool finished = raytracer.render(scene, camera);
+                bool nextFrame = false;
+
+                if (finished) {
+                    if (raytracer.getRenderingMode() == PATHTRACING) {
+                        raytracer.denoise(denoiser);
+                    }
+
+                    if (debugGui.getIsMovie()) {
+                        nextFrame = debugGui.nextFrame(
+                            model->getAnimations()[debugGui.getAnimIndex()]);
+                        if (!nextFrame) {
+                            debugGui.setIsRendering(false);
+                            if (fY4m != nullptr) {
+                                fclose(fY4m);
+                                fY4m = nullptr;
+                            }
+                        }
+                    } else {
+                        debugGui.setIsRendering(false);
+                    }
+                }
+
+                raytracer.finish(raytracer.getRenderingMode() == PATHTRACING);
+
+                copyPixelsToTexture(raytracer.getImage(), fbo, texture);
+
+                if (finished) {
+                    if (fY4m != nullptr) {
+                        const auto width = raytracer.getImage().getWidth();
+                        const auto height = raytracer.getImage().getHeight();
+                        encodeYUV420(
+                            reinterpret_cast<const uint8_t *>(
+                                raytracer.getImage().GetTextureBuffer()),
+                            yuvBuffer.get(), width, height);
+                        fputs("FRAME\n", fY4m);
+                        fwrite(yuvBuffer.get(), getYUV420Size(width, height), 1,
+                               fY4m);
+                    }
+
+                    if (nextFrame) {
+                        Geometry::updateGeometries(
+                            device, scene, geometries,
+                            model->getAnimations()[debugGui.getAnimIndex()],
+                            debugGui.getAnimTime(), glm::mat4(1.0f));
+                        rtcCommitScene(scene);
+                        raytracer.reset();
+                    }
+                }
+            }
+
+            wheelDelta = glm::dvec2(0.0, 0.0);
+            prevMousePos = mousePos;
+        } else {
+            int res;
+            int status;
+            status = lua_resume(L, nullptr, 0, &res);
+
+            switch (status) {
+                case LUA_OK: {
+                    lua_close(L);
+                    L = nullptr;
+                } break;
+
+                case LUA_YIELD: {
+                } break;
+
+                default: {
+                    fprintf(stderr, "%s\n", lua_tostring(L, -1));
+                    lua_close(L);
+                    L = nullptr;
+                } break;
+            }
 
             copyPixelsToTexture(raytracer.getImage(), fbo, texture);
-
-            if (finished) {
-                if (fY4m != nullptr) {
-                    const auto width = raytracer.getImage().getWidth();
-                    const auto height = raytracer.getImage().getHeight();
-                    encodeYUV420(reinterpret_cast<const uint8_t *>(
-                                     raytracer.getImage().GetTextureBuffer()),
-                                 yuvBuffer.get(), width, height);
-                    fputs("FRAME\n", fY4m);
-                    fwrite(yuvBuffer.get(), getYUV420Size(width, height), 1,
-                           fY4m);
-                }
-
-                if (nextFrame) {
-                    Geometry::updateGeometries(
-                        device, scene, geometries,
-                        model->getAnimations()[debugGui.getAnimIndex()],
-                        debugGui.getAnimTime(), glm::mat4(1.0f));
-                    rtcCommitScene(scene);
-                    raytracer.reset();
-                }
-            }
         }
 
         // Rendering
@@ -526,12 +897,12 @@ int main(void) {
         glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
         glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 
-        debugGui.renderFrame();
+        if (L == nullptr) {
+            debugGui.renderFrame();
+        }
 
         glfwSwapBuffers(window);
 
-        wheelDelta = glm::dvec2(0.0, 0.0);
-        prevMousePos = mousePos;
         glfwPollEvents();
 
         t0 = t;

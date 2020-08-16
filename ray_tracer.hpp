@@ -8,7 +8,7 @@
 #include "xorshift128plus.hpp"
 
 enum RenderingMode {
-    ALBEDO,
+    ALBEDO = 0,
     EMISSIVE,
     NORMAL,
     TANGENT,

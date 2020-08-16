@@ -21,6 +21,7 @@ enum DebugGuiCommand {
     DebugGeometryUpdate,
     DebugSaveMovie,
     DebugCancelSaveMovie,
+    DebugOpenLua
 };
 
 class DebugGUI {
@@ -38,6 +39,7 @@ class DebugGUI {
     CameraMode getCameraMode() const;
     const std::string &getGlbPath() const;
     const std::string &getY4mPath() const;
+    const std::string &getLuaPath() const;
     int32_t getBufferScale() const;
     int32_t getSamples() const;
     void setIsRendering(bool x);
@@ -75,4 +77,5 @@ class DebugGUI {
 
     std::string glbPath = "";
     std::string y4mPath = "";
+    std::string luaPath = "";
 };

@@ -220,10 +220,7 @@ void RayTracer::intersectionFilter(
     context->roughness = roughness;
 }
 
-void RayTracer::setRenderingMode(RenderingMode mode) {
-    this->reset();
-    this->mode = mode;
-}
+void RayTracer::setRenderingMode(RenderingMode mode) { this->mode = mode; }
 
 void RayTracer::loadSkybox(const std::string &path) {
     int channels;
