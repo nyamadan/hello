@@ -263,10 +263,10 @@ std::list<DebugGuiCommand> DebugGUI::beginFrame(const RayTracer &raytracer,
 
         if (ImGui::BeginPopupModal("Render", nullptr,
                                    ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::LabelText("samples", "%d / %d", raytracer.getSamples(),
-                             raytracer.getMaxSamples());
-
-            ImGui::Text("Rendering...");
+            ImGui::Text("Samples");
+            ImGui::ProgressBar(static_cast<float>(raytracer.getSamples()) /
+                                   raytracer.getMaxSamples(),
+                               ImVec2(240, 16));
             ImGui::Separator();
             if (ImGui::Button("Cancel")) {
                 isRendering = false;
@@ -281,10 +281,17 @@ std::list<DebugGuiCommand> DebugGUI::beginFrame(const RayTracer &raytracer,
 
         if (ImGui::BeginPopupModal("Render as Movie", nullptr,
                                    ImGuiWindowFlags_AlwaysAutoResize)) {
-            ImGui::LabelText("samples", "%d / %d", raytracer.getSamples(),
-                             raytracer.getMaxSamples());
-
-            ImGui::Text("Rendering...");
+            if (animatedModel) {
+                ImGui::Text("Animations");
+                ImGui::ProgressBar(
+                    animTime /
+                        model->getAnimations()[currAnimIndex]->getTimelineMax(),
+                    ImVec2(240, 16));
+            }
+            ImGui::Text("Samples");
+            ImGui::ProgressBar(static_cast<float>(raytracer.getSamples()) /
+                                   raytracer.getMaxSamples(),
+                               ImVec2(240, 16));
             ImGui::Separator();
             if (ImGui::Button("Cancel")) {
                 commands.push_back(DebugCancelSaveMovie);
