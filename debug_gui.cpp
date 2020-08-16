@@ -70,9 +70,10 @@ void DebugGUI::setup(GLFWwindow *window) {
     ImGui_ImplOpenGL3_Init("#version 330 core\n");
 }
 
-void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
-                          bool &needUpdate, bool &needResize, bool &needRestart,
-                          bool &needGeometryUpdate) {
+std::list<DebugGuiCommand> DebugGUI::beginFrame(const RayTracer &raytracer,
+                                                ConstantPModel model) {
+    std::list<DebugGuiCommand> commands;
+
     static bool showImGuiDemoWindow = false;
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -94,7 +95,7 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
                 if (!glbPath.empty()) {
                     currAnimIndex = 0;
                     animTime = 0.0f;
-                    needRestart = true;
+                    commands.push_back(DebugLoadModel);
                 }
             }
 
@@ -162,37 +163,38 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
                 ImGui::OpenPopup("Render");
             }
 
-            needUpdate = true;
+            commands.push_back(DebugUpdate);
         }
 
         ImGui::Separator();
 
         if (ImGui::InputInt("BufferScale", &bufferScale)) {
             bufferScale = std::clamp<int32_t>(bufferScale, 1, 8);
-            needResize = true;
+
+            commands.push_back(DebugResize);
         }
 
         if (ImGui::InputInt("Samples", &samples)) {
             samples = std::max<int32_t>(samples, 1);
-            needUpdate = true;
+            commands.push_back(DebugUpdate);
         }
 
         if (ImGui::InputFloat("LensRadius", &lensRadius, 0.1f, 1.0f)) {
             lensRadius = std::max<float>(lensRadius, 0.0f);
-            needUpdate = true;
+            commands.push_back(DebugUpdate);
         }
 
         if (ImGui::InputFloat("FocusDistance", &focusDistance, 1.0f, 10.0f)) {
             focusDistance = std::max<float>(focusDistance, 0.0f);
-            needUpdate = true;
+            commands.push_back(DebugUpdate);
         }
 
         if (ImGui::Checkbox("isEquirectangular", &isEquirectangular)) {
-            needResize = true;
+            commands.push_back(DebugResize);
         }
 
         if (ImGui::Checkbox("SuperSampling", &enableSuperSampling)) {
-            needUpdate = true;
+            commands.push_back(DebugUpdate);
         }
 
         ImGui::Separator();
@@ -213,7 +215,7 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
             }
 
             if (ImGui::Combo("Animations", &currAnimIndex, items.get(), len)) {
-                needGeometryUpdate = true;
+                commands.push_back(DebugGeometryUpdate);
             }
 
             auto anim = animations[currAnimIndex];
@@ -222,7 +224,7 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
             auto max = anim->getTimelineMax();
 
             if (ImGui::SliderFloat("Time", &animTime, min, max)) {
-                needGeometryUpdate = true;
+                commands.push_back(DebugGeometryUpdate);
             }
 
             ImGui::Separator();
@@ -232,7 +234,8 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
 
         if (ImGui::Button("Render")) {
             isMovie = false;
-            needUpdate = true;
+
+            commands.push_back(DebugUpdate);
             isRendering = true;
 
             ImGui::OpenPopup("Render");
@@ -241,14 +244,20 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
         if (animatedModel) {
             ImGui::SameLine();
             if (ImGui::Button("Render as Movie")) {
-                isMovie = true;
-                needUpdate = true;
-                isRendering = true;
+                y4mPath = "";
+                saveFileDialog(y4mPath, "y4m file (*.y4m)\0*.y4m\0\0", "y4m");
+                if (!y4mPath.empty()) {
+                    commands.push_back(DebugSaveMovie);
+                    isMovie = true;
 
-                currFrame = 0;
-                animTime = 0;
+                    commands.push_back(DebugUpdate);
+                    isRendering = true;
 
-                ImGui::OpenPopup("Render as Movie");
+                    currFrame = 0;
+                    animTime = 0;
+
+                    ImGui::OpenPopup("Render as Movie");
+                }
             }
         }
 
@@ -261,7 +270,6 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
             ImGui::Separator();
             if (ImGui::Button("Cancel")) {
                 isRendering = false;
-                isMovie = false;
             }
             if (!isRendering) {
                 ImGui::CloseCurrentPopup();
@@ -279,8 +287,10 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
             ImGui::Text("Rendering...");
             ImGui::Separator();
             if (ImGui::Button("Cancel")) {
-                isRendering = false;
+                commands.push_back(DebugCancelSaveMovie);
                 isMovie = false;
+
+                isRendering = false;
             }
             if (!isRendering) {
                 ImGui::CloseCurrentPopup();
@@ -294,6 +304,10 @@ void DebugGUI::beginFrame(const RayTracer &raytracer, ConstantPModel model,
     ImGui::End();
 
     ImGui::Render();
+
+    commands.unique();
+
+    return commands;
 }
 
 bool DebugGUI::nextFrame(ConstantPAnimation anim) {
@@ -308,7 +322,9 @@ void DebugGUI::renderFrame() const {
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-std::string DebugGUI::getGlbPath() const { return glbPath; }
+const std::string &DebugGUI::getGlbPath() const { return glbPath; }
+
+const std::string &DebugGUI::getY4mPath() const { return y4mPath; }
 
 CameraMode DebugGUI::getCameraMode() const { return cameraMode; }
 

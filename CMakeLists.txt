@@ -72,6 +72,7 @@ execute_process(
 )
 
 add_subdirectory("${PROJECT_SOURCE_DIR}/glfw")
+add_subdirectory("${PROJECT_SOURCE_DIR}/libyuv")
 
 file( GLOB_RECURSE LUA_SOURCES ${LUA_DIR}/src/*.c )
 list( REMOVE_ITEM LUA_SOURCES
@@ -92,6 +93,7 @@ include_directories(
     "${PROJECT_SOURCE_DIR}/imgui"
     "${PROJECT_SOURCE_DIR}/mikktspace"
     "${PROJECT_SOURCE_DIR}/tinyobjloader"
+    "${PROJECT_SOURCE_DIR}/libyuv/include"
 )
 
 link_directories(
@@ -128,4 +130,4 @@ add_executable(
 
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
 add_dependencies(hello_embree glfw embree tbb oidn lua)
-target_link_libraries(hello_embree glfw embree3 OpenImageDenoise)
+target_link_libraries(hello_embree glfw embree3 yuv OpenImageDenoise)

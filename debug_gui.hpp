@@ -2,6 +2,7 @@
 
 #include <array>
 #include <memory>
+#include <list>
 
 #include <GLFW/glfw3.h>
 
@@ -13,21 +14,30 @@ enum CameraMode { ORBIT = 0, FPS };
 
 static const char *const CameraModeNames[] = {"Orbit", "FPS"};
 
+enum DebugGuiCommand {
+    DebugUpdate,
+    DebugResize,
+    DebugLoadModel,
+    DebugGeometryUpdate,
+    DebugSaveMovie,
+    DebugCancelSaveMovie,
+};
+
 class DebugGUI {
   public:
     DebugGUI();
 
     void setup(GLFWwindow *window);
-    void beginFrame(const RayTracer &raytracer, ConstantPModel model,
-                    bool &needUpdate, bool &needResize, bool &needRestart,
-                    bool &needGeometryUpdate);
+    std::list<DebugGuiCommand> beginFrame(const RayTracer &raytracer,
+                                          ConstantPModel model);
     bool nextFrame(ConstantPAnimation anim);
     void renderFrame() const;
     RenderingMode getRenderingMode() const;
     bool getEnableSuperSampling() const;
 
     CameraMode getCameraMode() const;
-    std::string getGlbPath() const;
+    const std::string &getGlbPath() const;
+    const std::string &getY4mPath() const;
     int32_t getBufferScale() const;
     int32_t getSamples() const;
     void setIsRendering(bool x);
@@ -64,4 +74,5 @@ class DebugGUI {
     int32_t currFrame = 0;
 
     std::string glbPath = "";
+    std::string y4mPath = "";
 };

@@ -2,6 +2,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <OpenImageDenoise/oidn.hpp>
+#include <libyuv.h>
 
 #include <random>
 
@@ -161,6 +162,41 @@ ConstantPGeometryList addModel(RTCDevice device, RTCScene scene,
     return geometries;
 }
 
+int32_t getYUV420Size(int32_t bufferWidth, int32_t bufferHeight) {
+    const int32_t ySize = bufferWidth * bufferHeight;
+    const int32_t uSize = ySize / 4;
+    const int32_t vSize = uSize;
+    return ySize + uSize + vSize;
+}
+
+std::shared_ptr<uint8_t[]> createYUV420(const ImageBuffer &image) {
+    const auto rgbaBuffer = image.GetTextureBuffer();
+    const int32_t bufferWidth = image.getWidth();
+    const int32_t bufferHeight = image.getHeight();
+
+    return std::shared_ptr<uint8_t[]>(
+        new uint8_t[getYUV420Size(bufferWidth, bufferHeight)]);
+}
+
+void encodeYUV420(const uint8_t *rgbaBuffer, uint8_t *yuvBuffer,
+                  int32_t bufferWidth, int32_t bufferHeight) {
+    const int32_t ySize = bufferWidth * bufferHeight;
+    const int32_t uSize = ySize / 4;
+    const int32_t vSize = uSize;
+
+    const int32_t yStride = bufferWidth;
+    const int32_t uStride = bufferWidth / 2;
+    const int32_t vStride = uStride;
+
+    uint8_t *yBuffer = yuvBuffer;
+    uint8_t *uBuffer = yBuffer + ySize;
+    uint8_t *vBuffer = uBuffer + uSize;
+
+    libyuv::RAWToI420((const uint8_t *)rgbaBuffer, bufferWidth * 3, yBuffer,
+                      yStride, uBuffer, uStride, vBuffer, vStride, bufferWidth,
+                      -bufferHeight);
+}
+
 int main(void) {
     auto windowSize = glm::i32vec2(640, 480);
 
@@ -182,6 +218,10 @@ int main(void) {
     auto debugGui = DebugGUI();
 
     auto raytracer = RayTracer(windowSize / debugGui.getBufferScale());
+
+    auto yuvBuffer = createYUV420(raytracer.getImage());
+
+    FILE *fY4m = nullptr;
 
     raytracer.loadSkybox("./assets/small_rural_road_2k.hdr");
 
@@ -279,7 +319,7 @@ int main(void) {
 
         bool needResize = false;
         bool needUpdate = false;
-        bool needRestart = false;
+        bool needLoadModel = false;
         bool needGeometryUpdate = false;
 
         {
@@ -298,8 +338,21 @@ int main(void) {
         glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
         glm::vec2 mouseDelta = mousePos - prevMousePos;
 
-        debugGui.beginFrame(raytracer, model, needUpdate, needResize,
-                            needRestart, needGeometryUpdate);
+        auto debugCommands = debugGui.beginFrame(raytracer, model);
+
+        needUpdate = needUpdate ||
+                     std::find(debugCommands.cbegin(), debugCommands.cend(),
+                               DebugUpdate) != debugCommands.cend();
+        needResize = needResize ||
+                     std::find(debugCommands.cbegin(), debugCommands.cend(),
+                               DebugResize) != debugCommands.cend();
+        needLoadModel = needLoadModel ||
+                        std::find(debugCommands.cbegin(), debugCommands.cend(),
+                                  DebugLoadModel) != debugCommands.cend();
+        needGeometryUpdate =
+            needGeometryUpdate ||
+            std::find(debugCommands.cbegin(), debugCommands.cend(),
+                      DebugGeometryUpdate) != debugCommands.cend();
 
         if (!debugGui.isActive() &&
             debugGui.getRenderingMode() != PATHTRACING) {
@@ -319,7 +372,7 @@ int main(void) {
         }
 
         needUpdate =
-            needUpdate || needResize || needRestart || needGeometryUpdate;
+            needUpdate || needResize || needLoadModel || needGeometryUpdate;
 
         if (needResize) {
             camera.setIsEquirectangula(debugGui.getIsEquirectangular());
@@ -341,9 +394,15 @@ int main(void) {
             }
 
             raytracer.resize(windowSize / debugGui.getBufferScale());
+            yuvBuffer = createYUV420(raytracer.getImage());
+
+            if (fY4m != nullptr) {
+                fclose(fY4m);
+                fY4m = nullptr;
+            }
         }
 
-        if (needRestart) {
+        if (needLoadModel) {
             auto path = debugGui.getGlbPath();
             if (!path.empty()) {
                 detachGeometries(scene, geometries);
@@ -379,10 +438,36 @@ int main(void) {
             }
         }
 
-        bool nextFrame = false;
+        if (std::find(debugCommands.cbegin(), debugCommands.cend(),
+                      DebugSaveMovie) != debugCommands.cend()) {
+            const auto &path = debugGui.getY4mPath();
+
+            const auto &image = raytracer.getImage();
+            const auto width = image.getWidth();
+            const auto height = image.getHeight();
+
+            fY4m = fopen(path.c_str(), "wb");
+            if (fY4m != nullptr) {
+                fprintf(
+                    fY4m,
+                    "YUV4MPEG2 W%d H%d F30000:1001 Ip A0:0 C420 XYSCSS=420\n",
+                    width, height);
+            }
+        }
+
+        if (std::find(debugCommands.cbegin(), debugCommands.cend(),
+                      DebugCancelSaveMovie) != debugCommands.cend()) {
+            if (fY4m != nullptr) {
+                fclose(fY4m);
+                fY4m = nullptr;
+            }
+        }
 
         if (debugGui.getIsRendering()) {
-            if (raytracer.render(scene, camera)) {
+            bool finished = raytracer.render(scene, camera);
+            bool nextFrame = false;
+
+            if (finished) {
                 if (raytracer.getRenderingMode() == PATHTRACING) {
                     raytracer.denoise(denoiser);
                 }
@@ -392,6 +477,10 @@ int main(void) {
                         model->getAnimations()[debugGui.getAnimIndex()]);
                     if (!nextFrame) {
                         debugGui.setIsRendering(false);
+                        if (fY4m != nullptr) {
+                            fclose(fY4m);
+                            fY4m = nullptr;
+                        }
                     }
                 } else {
                     debugGui.setIsRendering(false);
@@ -402,13 +491,26 @@ int main(void) {
 
             copyPixelsToTexture(raytracer.getImage(), fbo, texture);
 
-            if (nextFrame) {
-                Geometry::updateGeometries(
-                    device, scene, geometries,
-                    model->getAnimations()[debugGui.getAnimIndex()],
-                    debugGui.getAnimTime(), glm::mat4(1.0f));
-                rtcCommitScene(scene);
-                raytracer.reset();
+            if (finished) {
+                if (fY4m != nullptr) {
+                    const auto width = raytracer.getImage().getWidth();
+                    const auto height = raytracer.getImage().getHeight();
+                    encodeYUV420(reinterpret_cast<const uint8_t *>(
+                                     raytracer.getImage().GetTextureBuffer()),
+                                 yuvBuffer.get(), width, height);
+                    fputs("FRAME\n", fY4m);
+                    fwrite(yuvBuffer.get(), getYUV420Size(width, height), 1,
+                           fY4m);
+                }
+
+                if (nextFrame) {
+                    Geometry::updateGeometries(
+                        device, scene, geometries,
+                        model->getAnimations()[debugGui.getAnimIndex()],
+                        debugGui.getAnimTime(), glm::mat4(1.0f));
+                    rtcCommitScene(scene);
+                    raytracer.reset();
+                }
             }
         }
 
