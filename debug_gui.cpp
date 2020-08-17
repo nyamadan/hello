@@ -87,6 +87,7 @@ std::list<DebugGuiCommand> DebugGUI::beginFrame(const RayTracer &raytracer,
     if (ImGui::BeginMainMenuBar()) {
         if (ImGui::BeginMenu("File")) {
             if (ImGui::MenuItem("Open Model", "Ctrl+O")) {
+                glbPath = "";
                 openFileDialog(glbPath,
                                "GLB File (*.glb)\0*.glb\0"
                                "GLTF File (*.gltf)\0*.gltf\0"
@@ -100,6 +101,7 @@ std::list<DebugGuiCommand> DebugGUI::beginFrame(const RayTracer &raytracer,
             }
 
             if (ImGui::MenuItem("Open Lua")) {
+                luaPath = "";
                 openFileDialog(luaPath,
                                "OBJ File (*.lua)\0*.lua\0"
                                "All Files (*.*)\0*.*\0\0");

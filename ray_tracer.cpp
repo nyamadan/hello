@@ -805,14 +805,15 @@ glm::vec3 RayTracer::renderPathTrace(RTCScene scene,
             const auto rate = 1.0f / samples;
             const auto r1 = (sx * rate + rate / 2.0f);
             const auto r2 = (sy * rate + rate / 2.0f);
+            const auto uv = glm::vec2(x + r1 / width, y + r2 / height);
 
             glm::vec3 rayFrom, rayDir;
 
             if (camera.getIsEquirectangula()) {
-                camera.getRayInfoEquirectangular(rayDir, rayFrom, x, y,
+                camera.getRayInfoEquirectangular(rayDir, rayFrom, uv.x, uv.y,
                                                  randomState, width, height);
             } else {
-                camera.getRayInfo(rayDir, rayFrom, x, y, randomState);
+                camera.getRayInfo(rayDir, rayFrom, uv.x, uv.y, randomState);
             }
 
             IntersectContext context;
