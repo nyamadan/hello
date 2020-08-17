@@ -2,6 +2,7 @@
 
 #include <iostream>
 #include <vector>
+#include <list>
 #include <memory>
 #include <utility>
 #include <numeric>
@@ -222,36 +223,31 @@ class Animation {
     }
 
     float getTimelineMin() const {
-        return std::reduce(
-            channels.cbegin(), channels.cend(), FLT_MAX,
-            [](float a, ConstantPAnimationChannel ch) {
-                const auto &timeline = ch->getSampler()->getTimeline();
-                auto it = std::min_element(timeline.cbegin(), timeline.cend());
-                if (it == timeline.cend() || a < *it) {
-                    return a;
-                }
+        auto min = FLT_MAX;
 
-                return *it;
-            });
+        for(const auto &ch: channels) {
+            const auto &timeline = ch->getSampler()->getTimeline();
+            auto it = std::min_element(timeline.cbegin(), timeline.cend());
+            if (it != timeline.cend() && min > *it) {
+                min = *it;
+            }
+        }
+
+        return min;
     }
 
     float getTimelineMax() const {
-        return std::reduce(
-            channels.cbegin(), channels.cend(), -FLT_MAX,
-            [](float a, ConstantPAnimationChannel ch) {
-                const auto &timeline = ch->getSampler()->getTimeline();
+        auto max = -FLT_MAX;
 
-                auto it = std::max_element(timeline.cbegin(), timeline.cend());
-                if (it == timeline.cend()) {
-                    return a;
-                }
+        for(const auto &ch: channels) {
+            const auto &timeline = ch->getSampler()->getTimeline();
+            auto it = std::max_element(timeline.cbegin(), timeline.cend());
+            if (it != timeline.cend() && max < *it) {
+                max = *it;
+            }
+        }
 
-                if (it == timeline.cend() || a > *it) {
-                    return a;
-                }
-
-                return *it;
-            });
+        return max;
     }
 };
 using PAnimation = std::shared_ptr<Animation>;

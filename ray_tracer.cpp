@@ -381,7 +381,7 @@ glm::vec3 RayTracer::computeSpecular(RTCScene scene,
     if (NoL > 0) {
         auto G = G_Smith(roughness, NoV, NoL);
         auto Fc = glm::pow(1 - VoH, 5);
-        auto F = (1 - Fc) * glm::vec3(baseColor) + Fc;
+        auto F = (1 - Fc) * glm::vec3(baseColor) + glm::vec3(Fc);
 
         // Incident light = SampleColor * NoL
         // Microfacet specular = D*G*F / (4*NoL*NoV)
@@ -554,17 +554,24 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
         glm::dot(normal, rayDir) < 0.0f ? normal : (-1.0f * normal);
 
     switch (material->materialType) {
-        case REFRACTION:
+        case REFRACTION: {
             auto refraction = computeRefraction(
                 scene, camera, randomState, context, depth, baseColor,
                 roughness, metalness, p, normal, orientingNormal, rayDir);
             return emissive + refraction / russianRouletteProbability;
-        default:
-        case REFLECTION:
+        }
+        case REFLECTION:{
             auto reflection = computeReflection(
                 scene, camera, randomState, context, depth, baseColor,
                 roughness, metalness, p, orientingNormal, -rayDir);
             return emissive + reflection / russianRouletteProbability;
+        }
+        default:{
+            auto reflection = computeReflection(
+                scene, camera, randomState, context, depth, baseColor,
+                roughness, metalness, p, orientingNormal, -rayDir);
+            return emissive + reflection / russianRouletteProbability;
+        }
     }
 }
 
