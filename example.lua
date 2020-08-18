@@ -81,6 +81,8 @@ local running = true
 _setRenderMode(RenderMode.PATHTRACING)
 _setMaxSamples(100)
 
+local f = io.open("test.y4m", "w")
+
 while running do
     if _render() then
         _denoise()
@@ -89,5 +91,9 @@ while running do
 
     _finish(true);
 
+    _writeFrame(f)
+
     coroutine.yield()
 end
+
+f:close()

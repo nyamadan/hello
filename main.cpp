@@ -25,6 +25,8 @@ static RTCScene g_scene;
 static RTCDevice g_device;
 static ConstantPGeometryList g_geometries;
 
+static FILE *g_fpMovie = nullptr;
+
 void WINAPI glfwErrorCallback(int error, const char *description) {
     fprintf(stderr, "error %d: %s\n", error, description);
 }
@@ -491,6 +493,33 @@ static int L_finish(lua_State *L) {
     return 0;
 }
 
+static int L_writeFrame(lua_State *L) {
+    auto p = (luaL_Stream *)luaL_checkudata(L, 1, LUA_FILEHANDLE);
+
+    FILE *f = p->f;
+
+    auto &raytracer = g_rayTracer;
+    const auto width = raytracer.getImage().getWidth();
+    const auto height = raytracer.getImage().getHeight();
+
+    auto buffer = createYUV420(raytracer.getImage());
+    encodeYUV420(reinterpret_cast<const uint8_t *>(
+                     raytracer.getImage().GetTextureBuffer()),
+                 buffer.get(), width, height);
+    fputs("FRAME\n", f);
+    fwrite(buffer.get(), getYUV420Size(width, height), 1, f);
+
+    return 0;
+}
+
+static int L_dumpStack(lua_State *L) {
+    dumpStack(L);
+
+    lua_settop(L, 0);
+
+    return 0;
+}
+
 int main(void) {
     auto windowSize = glm::i32vec2(640, 480);
 
@@ -521,7 +550,7 @@ int main(void) {
 
     auto yuvBuffer = createYUV420(raytracer.getImage());
 
-    FILE *fY4m = nullptr;
+    FILE * &fpMovie = g_fpMovie;
 
     lua_State *L = nullptr;
 
@@ -700,9 +729,9 @@ int main(void) {
                 raytracer.resize(windowSize / debugGui.getBufferScale());
                 yuvBuffer = createYUV420(raytracer.getImage());
 
-                if (fY4m != nullptr) {
-                    fclose(fY4m);
-                    fY4m = nullptr;
+                if (fpMovie != nullptr) {
+                    fclose(fpMovie);
+                    fpMovie = nullptr;
                 }
             }
 
@@ -753,9 +782,9 @@ int main(void) {
                 const auto width = image.getWidth();
                 const auto height = image.getHeight();
 
-                fY4m = fopen(path.c_str(), "wb");
-                if (fY4m != nullptr) {
-                    fprintf(fY4m,
+                fpMovie = fopen(path.c_str(), "wb");
+                if (fpMovie != nullptr) {
+                    fprintf(fpMovie,
                             "YUV4MPEG2 W%d H%d F30000:1001 Ip A0:0 C420 "
                             "XYSCSS=420\n",
                             width, height);
@@ -764,17 +793,17 @@ int main(void) {
 
             if (std::find(debugCommands.cbegin(), debugCommands.cend(),
                           DebugCancelSaveMovie) != debugCommands.cend()) {
-                if (fY4m != nullptr) {
-                    fclose(fY4m);
-                    fY4m = nullptr;
+                if (fpMovie != nullptr) {
+                    fclose(fpMovie);
+                    fpMovie = nullptr;
                 }
             }
 
             if (std::find(debugCommands.cbegin(), debugCommands.cend(),
                           DebugOpenLua) != debugCommands.cend()) {
-                if (fY4m != nullptr) {
-                    fclose(fY4m);
-                    fY4m = nullptr;
+                if (fpMovie != nullptr) {
+                    fclose(fpMovie);
+                    fpMovie = nullptr;
                 }
                 detachGeometries(scene, geometries);
                 debugGui.setIsRendering(false);
@@ -804,6 +833,10 @@ int main(void) {
                 lua_register(L, "_loadCube", L_loadCube);
                 lua_register(L, "_loadPlane", L_loadPlane);
 
+                lua_register(L, "_writeFrame", L_writeFrame);
+
+                lua_register(L, "_dumpStack", L_dumpStack);
+
                 luaL_loadfile(L, debugGui.getLuaPath().c_str());
             }
 
@@ -821,9 +854,9 @@ int main(void) {
                             model->getAnimations()[debugGui.getAnimIndex()]);
                         if (!nextFrame) {
                             debugGui.setIsRendering(false);
-                            if (fY4m != nullptr) {
-                                fclose(fY4m);
-                                fY4m = nullptr;
+                            if (fpMovie != nullptr) {
+                                fclose(fpMovie);
+                                fpMovie = nullptr;
                             }
                         }
                     } else {
@@ -836,16 +869,16 @@ int main(void) {
                 copyPixelsToTexture(raytracer.getImage(), fbo, texture);
 
                 if (finished) {
-                    if (fY4m != nullptr) {
+                    if (fpMovie != nullptr) {
                         const auto width = raytracer.getImage().getWidth();
                         const auto height = raytracer.getImage().getHeight();
                         encodeYUV420(
                             reinterpret_cast<const uint8_t *>(
                                 raytracer.getImage().GetTextureBuffer()),
                             yuvBuffer.get(), width, height);
-                        fputs("FRAME\n", fY4m);
+                        fputs("FRAME\n", fpMovie);
                         fwrite(yuvBuffer.get(), getYUV420Size(width, height), 1,
-                               fY4m);
+                               fpMovie);
                     }
 
                     if (nextFrame) {
