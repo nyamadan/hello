@@ -2,7 +2,6 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <OpenImageDenoise/oidn.hpp>
-#include <libyuv.h>
 
 #include <lua.hpp>
 
@@ -174,41 +173,6 @@ ConstantPGeometryList addModel(RTCDevice device, RTCScene scene,
     return geometries;
 }
 
-int32_t getYUV420Size(int32_t bufferWidth, int32_t bufferHeight) {
-    const int32_t ySize = bufferWidth * bufferHeight;
-    const int32_t uSize = ySize / 4;
-    const int32_t vSize = uSize;
-    return ySize + uSize + vSize;
-}
-
-std::shared_ptr<uint8_t[]> createYUV420(const ImageBuffer &image) {
-    const auto rgbaBuffer = image.GetTextureBuffer();
-    const int32_t bufferWidth = image.getWidth();
-    const int32_t bufferHeight = image.getHeight();
-
-    return std::shared_ptr<uint8_t[]>(
-        new uint8_t[getYUV420Size(bufferWidth, bufferHeight)]);
-}
-
-void encodeYUV420(const uint8_t *rgbaBuffer, uint8_t *yuvBuffer,
-                  int32_t bufferWidth, int32_t bufferHeight) {
-    const int32_t ySize = bufferWidth * bufferHeight;
-    const int32_t uSize = ySize / 4;
-    const int32_t vSize = uSize;
-
-    const int32_t yStride = bufferWidth;
-    const int32_t uStride = bufferWidth / 2;
-    const int32_t vStride = uStride;
-
-    uint8_t *yBuffer = yuvBuffer;
-    uint8_t *uBuffer = yBuffer + ySize;
-    uint8_t *vBuffer = uBuffer + uSize;
-
-    libyuv::RAWToI420((const uint8_t *)rgbaBuffer, bufferWidth * 3, yBuffer,
-                      yStride, uBuffer, uStride, vBuffer, vStride, bufferWidth,
-                      -bufferHeight);
-}
-
 static void dumpStack(lua_State *L) {
     int i;
     int stackSize = lua_gettop(L);
@@ -241,6 +205,10 @@ static void dumpStack(lua_State *L) {
     printf("\n");
 }
 
+static float lua_tofloat(lua_State *L, int32_t i) {
+    return static_cast<float>(lua_tonumber(L, i));
+}
+
 static int L_loadPlane(lua_State *L) {
     ConstantPModelList models;
 
@@ -249,37 +217,37 @@ static int L_loadPlane(lua_State *L) {
     auto type = static_cast<MaterialType>(lua_tointeger(L, idx++));
 
     glm::vec4 baseColorFactor;
-    baseColorFactor.x = lua_tonumber(L, idx++);
-    baseColorFactor.y = lua_tonumber(L, idx++);
-    baseColorFactor.z = lua_tonumber(L, idx++);
-    baseColorFactor.w = lua_tonumber(L, idx++);
+    baseColorFactor.x = lua_tofloat(L, idx++);
+    baseColorFactor.y = lua_tofloat(L, idx++);
+    baseColorFactor.z = lua_tofloat(L, idx++);
+    baseColorFactor.w = lua_tofloat(L, idx++);
 
     auto baseColorTexture = lua_tostring(L, idx++);
     auto normalTexture = lua_tostring(L, idx++);
-    auto roughness = lua_tonumber(L, idx++);
-    auto metalness = lua_tonumber(L, idx++);
+    auto roughness = lua_tofloat(L, idx++);
+    auto metalness = lua_tofloat(L, idx++);
     auto roughnessMetalnessTexture = lua_tostring(L, idx++);
 
     glm::vec3 emissive;
-    emissive.x = lua_tonumber(L, idx++);
-    emissive.y = lua_tonumber(L, idx++);
-    emissive.z = lua_tonumber(L, idx++);
+    emissive.x = lua_tofloat(L, idx++);
+    emissive.y = lua_tofloat(L, idx++);
+    emissive.z = lua_tofloat(L, idx++);
     auto emissiveTexture = lua_tostring(L, idx++);
 
     glm::vec3 position;
-    position.x = lua_tonumber(L, idx++);
-    position.y = lua_tonumber(L, idx++);
-    position.z = lua_tonumber(L, idx++);
+    position.x = lua_tofloat(L, idx++);
+    position.y = lua_tofloat(L, idx++);
+    position.z = lua_tofloat(L, idx++);
 
     glm::vec3 scale;
-    scale.x = lua_tonumber(L, idx++);
-    scale.y = lua_tonumber(L, idx++);
-    scale.z = lua_tonumber(L, idx++);
+    scale.x = lua_tofloat(L, idx++);
+    scale.y = lua_tofloat(L, idx++);
+    scale.z = lua_tofloat(L, idx++);
 
-    auto qx = lua_tonumber(L, idx++);
-    auto qy = lua_tonumber(L, idx++);
-    auto qz = lua_tonumber(L, idx++);
-    auto qw = lua_tonumber(L, idx++);
+    auto qx = lua_tofloat(L, idx++);
+    auto qy = lua_tofloat(L, idx++);
+    auto qz = lua_tofloat(L, idx++);
+    auto qw = lua_tofloat(L, idx++);
     auto quat = glm::quat(qw, qx, qy, qz);
 
     auto model = loadPlane(
@@ -308,37 +276,37 @@ static int L_loadCube(lua_State *L) {
     auto type = static_cast<MaterialType>(lua_tointeger(L, idx++));
 
     glm::vec4 baseColorFactor;
-    baseColorFactor.x = lua_tonumber(L, idx++);
-    baseColorFactor.y = lua_tonumber(L, idx++);
-    baseColorFactor.z = lua_tonumber(L, idx++);
-    baseColorFactor.w = lua_tonumber(L, idx++);
+    baseColorFactor.x = lua_tofloat(L, idx++);
+    baseColorFactor.y = lua_tofloat(L, idx++);
+    baseColorFactor.z = lua_tofloat(L, idx++);
+    baseColorFactor.w = lua_tofloat(L, idx++);
 
     auto baseColorTexture = lua_tostring(L, idx++);
     auto normalTexture = lua_tostring(L, idx++);
-    auto roughness = lua_tonumber(L, idx++);
-    auto metalness = lua_tonumber(L, idx++);
+    auto roughness = lua_tofloat(L, idx++);
+    auto metalness = lua_tofloat(L, idx++);
     auto roughnessMetalnessTexture = lua_tostring(L, idx++);
 
     glm::vec3 emissive;
-    emissive.x = lua_tonumber(L, idx++);
-    emissive.y = lua_tonumber(L, idx++);
-    emissive.z = lua_tonumber(L, idx++);
+    emissive.x = lua_tofloat(L, idx++);
+    emissive.y = lua_tofloat(L, idx++);
+    emissive.z = lua_tofloat(L, idx++);
     auto emissiveTexture = lua_tostring(L, idx++);
 
     glm::vec3 position;
-    position.x = lua_tonumber(L, idx++);
-    position.y = lua_tonumber(L, idx++);
-    position.z = lua_tonumber(L, idx++);
+    position.x = lua_tofloat(L, idx++);
+    position.y = lua_tofloat(L, idx++);
+    position.z = lua_tofloat(L, idx++);
 
     glm::vec3 scale;
-    scale.x = lua_tonumber(L, idx++);
-    scale.y = lua_tonumber(L, idx++);
-    scale.z = lua_tonumber(L, idx++);
+    scale.x = lua_tofloat(L, idx++);
+    scale.y = lua_tofloat(L, idx++);
+    scale.z = lua_tofloat(L, idx++);
 
-    auto qx = lua_tonumber(L, idx++);
-    auto qy = lua_tonumber(L, idx++);
-    auto qz = lua_tonumber(L, idx++);
-    auto qw = lua_tonumber(L, idx++);
+    auto qx = lua_tofloat(L, idx++);
+    auto qy = lua_tofloat(L, idx++);
+    auto qz = lua_tofloat(L, idx++);
+    auto qw = lua_tofloat(L, idx++);
     auto quat = glm::quat(qw, qx, qy, qz);
 
     auto model = loadCube(
@@ -367,40 +335,40 @@ static int L_loadSphere(lua_State *L) {
     auto type = static_cast<MaterialType>(lua_tointeger(L, idx++));
 
     glm::vec4 baseColorFactor;
-    baseColorFactor.x = lua_tonumber(L, idx++);
-    baseColorFactor.y = lua_tonumber(L, idx++);
-    baseColorFactor.z = lua_tonumber(L, idx++);
-    baseColorFactor.w = lua_tonumber(L, idx++);
+    baseColorFactor.x = lua_tofloat(L, idx++);
+    baseColorFactor.y = lua_tofloat(L, idx++);
+    baseColorFactor.z = lua_tofloat(L, idx++);
+    baseColorFactor.w = lua_tofloat(L, idx++);
 
     auto baseColorTexture = lua_tostring(L, idx++);
     auto normalTexture = lua_tostring(L, idx++);
-    auto roughness = lua_tonumber(L, idx++);
-    auto metalness = lua_tonumber(L, idx++);
+    auto roughness = lua_tofloat(L, idx++);
+    auto metalness = lua_tofloat(L, idx++);
     auto roughnessMetalnessTexture = lua_tostring(L, idx++);
 
     glm::vec3 emissive;
-    emissive.x = lua_tonumber(L, idx++);
-    emissive.y = lua_tonumber(L, idx++);
-    emissive.z = lua_tonumber(L, idx++);
+    emissive.x = lua_tofloat(L, idx++);
+    emissive.y = lua_tofloat(L, idx++);
+    emissive.z = lua_tofloat(L, idx++);
     auto emissiveTexture = lua_tostring(L, idx++);
 
-    auto segU = lua_tointeger(L, idx++);
-    auto segV = lua_tointeger(L, idx++);
+    auto segU = static_cast<uint32_t>(lua_tointeger(L, idx++));
+    auto segV = static_cast<uint32_t>(lua_tointeger(L, idx++));
 
     glm::vec3 position;
-    position.x = lua_tonumber(L, idx++);
-    position.y = lua_tonumber(L, idx++);
-    position.z = lua_tonumber(L, idx++);
+    position.x = lua_tofloat(L, idx++);
+    position.y = lua_tofloat(L, idx++);
+    position.z = lua_tofloat(L, idx++);
 
     glm::vec3 scale;
-    scale.x = lua_tonumber(L, idx++);
-    scale.y = lua_tonumber(L, idx++);
-    scale.z = lua_tonumber(L, idx++);
+    scale.x = lua_tofloat(L, idx++);
+    scale.y = lua_tofloat(L, idx++);
+    scale.z = lua_tofloat(L, idx++);
 
-    auto qx = lua_tonumber(L, idx++);
-    auto qy = lua_tonumber(L, idx++);
-    auto qz = lua_tonumber(L, idx++);
-    auto qw = lua_tonumber(L, idx++);
+    auto qx = lua_tofloat(L, idx++);
+    auto qy = lua_tofloat(L, idx++);
+    auto qz = lua_tofloat(L, idx++);
+    auto qw = lua_tofloat(L, idx++);
     auto quat = glm::quat(qw, qx, qy, qz);
 
     auto model = loadSphere(
@@ -431,7 +399,7 @@ static int L_setRenderMode(lua_State *L) {
 
 static int L_setCameraDir(lua_State *L) {
     auto dir = glm::normalize(
-        glm::vec3(lua_tonumber(L, 1), lua_tonumber(L, 2), lua_tonumber(L, 3)));
+        glm::vec3(lua_tofloat(L, 1), lua_tofloat(L, 2), lua_tofloat(L, 3)));
     g_camera.setCameraOrigin(dir);
     lua_settop(L, 0);
     return 0;
@@ -439,7 +407,7 @@ static int L_setCameraDir(lua_State *L) {
 
 static int L_setCameraOrigin(lua_State *L) {
     auto pos =
-        glm::vec3(lua_tonumber(L, 1), lua_tonumber(L, 2), lua_tonumber(L, 3));
+        glm::vec3(lua_tofloat(L, 1), lua_tofloat(L, 2), lua_tofloat(L, 3));
     g_camera.setCameraOrigin(pos);
     lua_settop(L, 0);
     return 0;
@@ -478,36 +446,48 @@ static int L_render(lua_State *L) {
 }
 
 static int L_finish(lua_State *L) {
-    auto b = false;
+    auto filtered = true;
+    auto yuv420 = true;
+
     if (lua_gettop(L) >= 1) {
         auto type = lua_type(L, 1);
         if (type == LUA_TBOOLEAN) {
-            b = !!lua_toboolean(L, 1);
+            filtered = !!lua_toboolean(L, 1);
         }
     }
 
-    g_rayTracer.finish(b);
+    if (lua_gettop(L) >= 2) {
+        auto type = lua_type(L, 2);
+        if (type == LUA_TBOOLEAN) {
+            yuv420 = !!lua_toboolean(L, 2);
+        }
+    }
+
+    g_rayTracer.finish(filtered, yuv420);
 
     lua_settop(L, 0);
 
     return 0;
 }
 
-static int L_writeFrame(lua_State *L) {
+static int L_getImageWidth(lua_State *L) {
+    lua_settop(L, 0);
+    lua_pushinteger(L, g_rayTracer.getImage().getWidth());
+    return 1;
+}
+
+static int L_getImageHeight(lua_State *L) {
+    lua_settop(L, 0);
+    lua_pushinteger(L, g_rayTracer.getImage().getHeight());
+    return 1;
+}
+
+static int L_writeFrameYUV420(lua_State *L) {
     auto p = (luaL_Stream *)luaL_checkudata(L, 1, LUA_FILEHANDLE);
-
     FILE *f = p->f;
-
     auto &raytracer = g_rayTracer;
-    const auto width = raytracer.getImage().getWidth();
-    const auto height = raytracer.getImage().getHeight();
-
-    auto buffer = createYUV420(raytracer.getImage());
-    encodeYUV420(reinterpret_cast<const uint8_t *>(
-                     raytracer.getImage().GetTextureBuffer()),
-                 buffer.get(), width, height);
-    fputs("FRAME\n", f);
-    fwrite(buffer.get(), getYUV420Size(width, height), 1, f);
+    fwrite(raytracer.getImage().GetReadonlyYUV420(),
+           raytracer.getImage().getYUV420Size(), 1, f);
 
     return 0;
 }
@@ -548,9 +528,7 @@ int main(void) {
     raytracer.resize(windowSize / debugGui.getBufferScale());
     raytracer.loadSkybox("./assets/small_rural_road_2k.hdr");
 
-    auto yuvBuffer = createYUV420(raytracer.getImage());
-
-    FILE * &fpMovie = g_fpMovie;
+    FILE *&fpMovie = g_fpMovie;
 
     lua_State *L = nullptr;
 
@@ -727,7 +705,6 @@ int main(void) {
                 }
 
                 raytracer.resize(windowSize / debugGui.getBufferScale());
-                yuvBuffer = createYUV420(raytracer.getImage());
 
                 if (fpMovie != nullptr) {
                     fclose(fpMovie);
@@ -833,7 +810,10 @@ int main(void) {
                 lua_register(L, "_loadCube", L_loadCube);
                 lua_register(L, "_loadPlane", L_loadPlane);
 
-                lua_register(L, "_writeFrame", L_writeFrame);
+                lua_register(L, "_getImageWidth", L_getImageWidth);
+                lua_register(L, "_getImageHeight", L_getImageHeight);
+
+                lua_register(L, "_writeFrameYUV420", L_writeFrameYUV420);
 
                 lua_register(L, "_dumpStack", L_dumpStack);
 
@@ -841,6 +821,7 @@ int main(void) {
             }
 
             if (debugGui.getIsRendering()) {
+                bool isMovie = fpMovie != nullptr;
                 bool finished = raytracer.render(scene, camera);
                 bool nextFrame = false;
 
@@ -852,33 +833,20 @@ int main(void) {
                     if (debugGui.getIsMovie()) {
                         nextFrame = debugGui.nextFrame(
                             model->getAnimations()[debugGui.getAnimIndex()]);
-                        if (!nextFrame) {
-                            debugGui.setIsRendering(false);
-                            if (fpMovie != nullptr) {
-                                fclose(fpMovie);
-                                fpMovie = nullptr;
-                            }
-                        }
                     } else {
                         debugGui.setIsRendering(false);
                     }
                 }
 
-                raytracer.finish(raytracer.getRenderingMode() == PATHTRACING);
+                raytracer.finish(raytracer.getRenderingMode() == PATHTRACING, isMovie);
 
                 copyPixelsToTexture(raytracer.getImage(), fbo, texture);
 
                 if (finished) {
-                    if (fpMovie != nullptr) {
-                        const auto width = raytracer.getImage().getWidth();
-                        const auto height = raytracer.getImage().getHeight();
-                        encodeYUV420(
-                            reinterpret_cast<const uint8_t *>(
-                                raytracer.getImage().GetTextureBuffer()),
-                            yuvBuffer.get(), width, height);
+                    if (isMovie) {
                         fputs("FRAME\n", fpMovie);
-                        fwrite(yuvBuffer.get(), getYUV420Size(width, height), 1,
-                               fpMovie);
+                        fwrite(raytracer.getImage().GetReadonlyYUV420(),
+                               raytracer.getImage().getYUV420Size(), 1, fpMovie);
                     }
 
                     if (nextFrame) {
@@ -888,6 +856,12 @@ int main(void) {
                             debugGui.getAnimTime(), glm::mat4(1.0f));
                         rtcCommitScene(scene);
                         raytracer.reset();
+                    } else {
+                        debugGui.setIsRendering(false);
+                        if (fpMovie != nullptr) {
+                            fclose(fpMovie);
+                            fpMovie = nullptr;
+                        }
                     }
                 }
             }
@@ -909,6 +883,7 @@ int main(void) {
                 } break;
 
                 default: {
+                    luaL_traceback(L, L, lua_tostring(L, 1), 1);
                     fprintf(stderr, "%s\n", lua_tostring(L, -1));
                     lua_close(L);
                     L = nullptr;

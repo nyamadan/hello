@@ -59,7 +59,7 @@ ExternalProject_Add(oidn
 ExternalProject_Add(lua
     PREFIX              ${EXTERNAL_DIR}
     URL                 http://www.lua.org/ftp/lua-5.4.0.tar.gz
-    BUILD_IN_SOURCE     True
+    BUILD_IN_SOURCE     False
     UPDATE_COMMAND      ""
     CONFIGURE_COMMAND   ""
     BUILD_COMMAND       ""

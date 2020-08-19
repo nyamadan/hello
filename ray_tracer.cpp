@@ -981,6 +981,6 @@ void RayTracer::denoise(oidn::DeviceRef denoiser) {
     filter.execute();
 }
 
-void RayTracer::finish(bool filtered) {
-    this->image.updateTextureBuffer(filtered);
+void RayTracer::finish(bool filtered, bool yuv420) {
+    this->image.updateTextureBuffer(filtered, yuv420);
 }

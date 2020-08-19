@@ -101,7 +101,7 @@ class RayTracer {
     RenderingMode getRenderingMode() const;
     bool render(RTCScene scene, const RayTracerCamera &camera);
     void denoise(oidn::DeviceRef denoiser);
-    void finish(bool filtered);
+    void finish(bool filtered, bool yuv420);
     void reset();
     void resize(const glm::i32vec2 &size);
     const ImageBuffer &getImage() const;

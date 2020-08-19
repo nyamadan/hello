@@ -81,7 +81,9 @@ local running = true
 _setRenderMode(RenderMode.PATHTRACING)
 _setMaxSamples(100)
 
-local f = io.open("test.y4m", "w")
+local f = io.open("test.y4m", "wb")
+
+f:write("YUV4MPEG2 W" .. _getImageWidth() .. " H" .. _getImageHeight() .. " F30000:1001 Ip A0:0 C420 XYSCSS=420\n")
 
 while running do
     if _render() then
@@ -89,9 +91,10 @@ while running do
         running = false
     end
 
-    _finish(true);
+    _finish(true, true);
 
-    _writeFrame(f)
+    f:write("FRAME\n")
+    _writeFrameYUV420(f)
 
     coroutine.yield()
 end
