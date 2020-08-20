@@ -70,33 +70,49 @@ _loadPlane(
     nil,                        -- emissiveTexture
 
     0, 0, 0,                    -- position
-    10, 10, 10,                    -- scale
+    10, 10, 10,                 -- scale
+    0, 0, 0, 1                  -- quat
+)
+
+_loadGltf(
+    "../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
+    0, 1, 0,                   -- position
+    1, 1, 1,                    -- scale
     0, 0, 0, 1                  -- quat
 )
 
 _commitScene()
 
-local running = true
-
 _setRenderMode(RenderMode.PATHTRACING)
-_setMaxSamples(100)
+_setMaxSamples(20)
 
 local f = io.open("test.y4m", "wb")
 
 f:write("YUV4MPEG2 W" .. _getImageWidth() .. " H" .. _getImageHeight() .. " F30000:1001 Ip A0:0 C420 XYSCSS=420\n")
 
-while running do
-    if _render() then
-        _denoise()
-        running = false
-    end
+for i=1,60 do
+    print("FRAME: " .. i)
 
-    _finish(true, true);
+    local running = true
+
+    _setLensRadius(0.75)
+    _setFocusDistance(i * 0.10 + 2.0)
+    _reset()
+
+    while running do
+        if _render() then
+            _denoise()
+            running = false
+        end
+
+        _finish(true, not running);
+
+        coroutine.yield()
+    end
 
     f:write("FRAME\n")
     _writeFrameYUV420(f)
-
-    coroutine.yield()
 end
+
 
 f:close()

@@ -390,6 +390,54 @@ static int L_loadSphere(lua_State *L) {
     return 0;
 }
 
+static int L_loadGltf(lua_State *L) {
+    ConstantPModelList models;
+
+    auto idx = 1;
+
+    auto path = lua_tostring(L, idx++);
+
+    glm::vec3 position;
+    position.x = lua_tofloat(L, idx++);
+    position.y = lua_tofloat(L, idx++);
+    position.z = lua_tofloat(L, idx++);
+
+    glm::vec3 scale;
+    scale.x = lua_tofloat(L, idx++);
+    scale.y = lua_tofloat(L, idx++);
+    scale.z = lua_tofloat(L, idx++);
+
+    auto qx = lua_tofloat(L, idx++);
+    auto qy = lua_tofloat(L, idx++);
+    auto qz = lua_tofloat(L, idx++);
+    auto qw = lua_tofloat(L, idx++);
+    auto quat = glm::quat(qw, qx, qy, qz);
+
+    tinygltf::Model gltfModel;
+    tinygltf::TinyGLTF loader;
+    std::string err = "", warn = "";
+    auto result = loader.LoadBinaryFromFile(&gltfModel, &err, &warn, path);
+
+    auto model = loadGltfModel(gltfModel);
+    auto transform = glm::translate(position) * glm::toMat4(quat) * glm::scale(scale);
+
+    ConstantPGeometryList &geometries = g_geometries;
+
+    for (auto node : model->getScene()->getNodes()) {
+        geometries.splice(
+            geometries.cend(),
+            Geometry::generateGeometries(g_device, g_scene, node, transform));
+    }
+
+    lua_settop(L, 0);
+
+    lua_pushboolean(L, result ? 1 : 0);
+    lua_pushstring(L, err.c_str());
+
+    return 2;
+}
+
+
 static int L_setRenderMode(lua_State *L) {
     auto mode = static_cast<RenderingMode>(lua_tointeger(L, 1));
     g_rayTracer.setRenderingMode(mode);
@@ -409,6 +457,18 @@ static int L_setCameraOrigin(lua_State *L) {
     auto pos =
         glm::vec3(lua_tofloat(L, 1), lua_tofloat(L, 2), lua_tofloat(L, 3));
     g_camera.setCameraOrigin(pos);
+    lua_settop(L, 0);
+    return 0;
+}
+
+static int L_setLensRadius(lua_State *L) {
+    g_camera.setLensRadius(lua_tofloat(L, 1));
+    lua_settop(L, 0);
+    return 0;
+}
+
+static int L_setFocusDistance(lua_State *L) {
+    g_camera.setFocusDistance(lua_tofloat(L, 1));
     lua_settop(L, 0);
     return 0;
 }
@@ -802,6 +862,9 @@ int main(void) {
                 lua_register(L, "_setCameraDir", L_setCameraDir);
                 lua_register(L, "_setCameraOrigin", L_setCameraOrigin);
 
+                lua_register(L, "_setLensRadius", L_setLensRadius);
+                lua_register(L, "_setFocusDistance", L_setFocusDistance);
+
                 lua_register(L, "_setMaxSamples", L_setMaxSamples);
 
                 lua_register(L, "_setRenderMode", L_setRenderMode);
@@ -809,6 +872,7 @@ int main(void) {
                 lua_register(L, "_loadSphere", L_loadSphere);
                 lua_register(L, "_loadCube", L_loadCube);
                 lua_register(L, "_loadPlane", L_loadPlane);
+                lua_register(L, "_loadGltf", L_loadGltf);
 
                 lua_register(L, "_getImageWidth", L_getImageWidth);
                 lua_register(L, "_getImageHeight", L_getImageHeight);
