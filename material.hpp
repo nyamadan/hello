@@ -55,6 +55,22 @@ class Material {
         this->emissiveTexture = emissiveTexture;
         this->materialType = materialType;
     }
+
+    std::shared_ptr<Material> clone() const {
+        auto p = std::shared_ptr<Material>(new Material());
+
+        p->baseColorFactor = this->baseColorFactor;
+        p->baseColorTexture = this->baseColorTexture;
+        p->normalTexture = this->normalTexture;
+        p->roughnessFactor = this->roughnessFactor;
+        p->metalnessFactor = this->metalnessFactor;
+        p->metallicRoughnessTexture = this->metallicRoughnessTexture;
+        p->emissiveFactor = this->emissiveFactor;
+        p->emissiveTexture = this->emissiveTexture;
+        p->materialType = this->materialType;
+
+        return p;
+    }
 };
 
 using PMaterial = std::shared_ptr<Material>;

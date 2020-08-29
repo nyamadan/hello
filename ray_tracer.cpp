@@ -519,6 +519,9 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
 
     if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
         const auto skybox = this->skybox.get();
+        if (skybox == nullptr) {
+            return glm::vec3(0.0f);
+        }
         auto uv = toRadialCoords(rayDir);
         return bilinear(uv, skybox, skyboxWidth, skyboxHeight, false);
     }
@@ -618,9 +621,11 @@ glm::vec3 RayTracer::renderAlbedo(RTCScene scene, const RayTracerCamera &camera,
 
             if (ray.hit.geomID == RTC_INVALID_GEOMETRY_ID) {
                 const auto skybox = this->skybox.get();
-                auto uv = toRadialCoords(rayDir);
-                totalColor +=
-                    bilinear(uv, skybox, skyboxWidth, skyboxHeight, false);
+                if (skybox != nullptr) {
+                    auto uv = toRadialCoords(rayDir);
+                    totalColor +=
+                        bilinear(uv, skybox, skyboxWidth, skyboxHeight, false);
+                }
                 continue;
             }
 

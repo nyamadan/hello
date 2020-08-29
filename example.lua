@@ -99,6 +99,9 @@ print(dump(geoms))
 for i, v in ipairs(geoms) do
     local mat = _getGeometryMaterial(v)
     print(dump(mat))
+
+    local ok = _replaceGeometryPrimitiveMaterial(v, mat)
+    print(ok)
 end
 
 _commitScene()

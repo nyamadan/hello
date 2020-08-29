@@ -481,6 +481,19 @@ std::list<std::shared_ptr<const Geometry>> Geometry::updateGeometries(
     return geometries;
 };
 
+void Geometry::setUserData(void *data) const {
+    rtcSetGeometryUserData(geom, data);
+}
+
+void *Geometry::getUserData() const { return rtcGetGeometryUserData(geom); }
+
+void Geometry::setMaterial(std::shared_ptr<Material> material) {
+    auto p = this->primitive->clone();
+    p->setMaterial(material);
+    this->primitive = p;
+    this->setUserData(material.get());
+}
+
 void Geometry::release(RTCScene scene) const {
     rtcDetachGeometry(scene, geomID);
     rtcReleaseGeometry(geom);
@@ -488,8 +501,19 @@ void Geometry::release(RTCScene scene) const {
 
 uint32_t Geometry::getGeomId() const { return this->geomID; }
 
+RTCGeometry Geometry::getGeom() const { return this->geom; }
+
 ConstantPMaterial Geometry::getMaterial() const {
     return this->primitive->getMaterial();
+}
+
+std::shared_ptr<Geometry> Geometry::clone() const {
+    auto p = std::shared_ptr<Geometry>(new Geometry);
+    p->geom = this->geom;
+    p->geomID = this->geomID;
+    p->nodes = this->nodes;
+    p->primitive = this->primitive;
+    return p;
 }
 
 ConstantPModel loadSphere(ConstantPMaterial material, uint32_t widthSegments,

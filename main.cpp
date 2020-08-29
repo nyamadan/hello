@@ -209,34 +209,6 @@ static float lua_checkfloat(lua_State *L, int32_t i) {
     return static_cast<float>(luaL_checknumber(L, i));
 }
 
-static glm::vec3 lua_checkvec3(lua_State *L, int32_t i) {
-    glm::vec3 v;
-
-    for (auto i = 0; i < 3; i++) {
-        lua_pushinteger(L, i + 1);
-        lua_gettable(L, i);
-        auto x = luaL_checknumber(L, -1);
-        lua_pop(L, 1);
-        v[i] = static_cast<float>(x);
-    }
-
-    return v;
-}
-
-static glm::vec4 lua_checkvec4(lua_State *L, int32_t i) {
-    glm::vec4 v;
-
-    for (auto i = 0; i < 4; i++) {
-        lua_pushinteger(L, i + 1);
-        lua_gettable(L, i);
-        auto x = luaL_checknumber(L, -1);
-        lua_pop(L, 1);
-        v[i] = static_cast<float>(x);
-    }
-
-    return v;
-}
-
 static void lua_push_geometries(lua_State *L,
                                 const ConstantPGeometryList &geometries) {
     const auto n = geometries.size();
@@ -268,6 +240,57 @@ static void lua_push_vec4(lua_State *L, const glm::vec4 &v) {
     lua_rawseti(L, -2, 3);
     lua_pushnumber(L, v.w);
     lua_rawseti(L, -2, 4);
+}
+
+static glm::vec3 lua_checkvec3(lua_State *L, int32_t idx) {
+    glm::vec3 v;
+
+    for (auto i = 0; i < 3; i++) {
+        lua_rawgeti(L, idx, i + 1);
+        v[i] = lua_checkfloat(L, -1);
+        lua_pop(L, 1);
+    }
+
+    return v;
+}
+
+static glm::vec4 lua_checkvec4(lua_State *L, int32_t idx) {
+    glm::vec4 v;
+
+    for (auto i = 0; i < 4; i++) {
+        lua_rawgeti(L, idx, i + 1);
+        v[i] = lua_checkfloat(L, -1);
+        lua_pop(L, 1);
+    }
+
+    return v;
+}
+
+static std::shared_ptr<Material> lua_checkmaterial(lua_State *L, int32_t i) {
+    lua_getfield(L, i, "baseColorFactor");
+    const auto baseColorFactor = lua_checkvec4(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, i, "emissiveFactor");
+    const auto emissiveFactor = lua_checkvec3(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, i, "materialType");
+    const auto materialType =
+        static_cast<MaterialType>(luaL_checkinteger(L, -1));
+    lua_pop(L, 1);
+
+    lua_getfield(L, i, "metalnessFactor");
+    const auto metalnessFactor = lua_checkfloat(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, i, "roughnessFactor");
+    const auto roughnessFactor = lua_checkfloat(L, -1);
+    lua_pop(L, 1);
+
+    return std::shared_ptr<Material>(new Material(
+        materialType, baseColorFactor, nullptr, nullptr, roughnessFactor,
+        metalnessFactor, nullptr, emissiveFactor, nullptr));
 }
 
 static int L_loadPlane(lua_State *L) {
@@ -541,6 +564,37 @@ static int L_getGeometryMaterial(lua_State *L) {
     return 1;
 }
 
+static int L_replaceGeometryPrimitiveMaterial(lua_State *L) {
+    dumpStack(L);
+
+    auto geomId = luaL_checkinteger(L, 1);
+
+    auto it = std::find_if(
+        g_geometries.cbegin(), g_geometries.cend(),
+        [geomId](ConstantPGeometry g) { return g->getGeomId() == geomId; });
+
+    if (it == g_geometries.cend()) {
+        lua_settop(L, 0);
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+
+    auto g = (*it)->clone();
+    auto m = lua_checkmaterial(L, 2);
+
+    g->setMaterial(m);
+
+    g_geometries.push_front(g);
+
+    rtcCommitGeometry(g->getGeom());
+
+    g_geometries.erase(it);
+
+    lua_settop(L, 0);
+    lua_pushboolean(L, 1);
+    return 1;
+}
+
 static int L_setRenderMode(lua_State *L) {
     auto mode = static_cast<RenderingMode>(lua_tointeger(L, 1));
     g_rayTracer.setRenderingMode(mode);
@@ -689,6 +743,7 @@ int main(void) {
     auto debugGui = DebugGUI();
 
     raytracer.resize(windowSize / debugGui.getBufferScale());
+
     raytracer.loadSkybox("./assets/small_rural_road_2k.hdr");
 
     FILE *&fpMovie = g_fpMovie;
@@ -978,6 +1033,8 @@ int main(void) {
                 lua_register(L, "_loadGltf", L_loadGltf);
 
                 lua_register(L, "_getGeometryMaterial", L_getGeometryMaterial);
+                lua_register(L, "_replaceGeometryPrimitiveMaterial",
+                             L_replaceGeometryPrimitiveMaterial);
 
                 lua_register(L, "_getImageWidth", L_getImageWidth);
                 lua_register(L, "_getImageHeight", L_getImageHeight);

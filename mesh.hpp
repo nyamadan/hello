@@ -39,7 +39,16 @@ class Primitive {
     std::vector<glm::vec4> tangents;
 
   public:
-    Primitive() { this->material = nullptr; }
+    std::shared_ptr<Primitive> clone() const {
+        auto p = std::shared_ptr<Primitive>(new Primitive());
+        p->material = this->material->clone();
+        p->triangles = triangles;
+        p->positions = positions;
+        p->normals = normals;
+        p->texCoords0 = texCoords0;
+        p->tangents = tangents;
+        return p;
+    }
 
     template <class T>
     void setTriangles(T &&triangles) {
@@ -314,6 +323,9 @@ class Geometry {
 
     Geometry() {}
 
+    void setUserData(void *) const;
+    void *getUserData() const;
+
     static std::list<std::shared_ptr<const Geometry>> generateGeometries(
         RTCDevice device, RTCScene scene, ConstantPNodeList nodes,
         const glm::mat4 &parent);
@@ -324,14 +336,18 @@ class Geometry {
     static std::list<std::shared_ptr<const Geometry>> generateGeometries(
         RTCDevice device, RTCScene scene, ConstantPNode node,
         const glm::mat4 &parent);
+
     static std::list<std::shared_ptr<const Geometry>> updateGeometries(
         RTCDevice device, RTCScene scene,
         std::list<std::shared_ptr<const Geometry>> geometries,
         ConstantPAnimation animation, float timeStep, const glm::mat4 &parent);
 
     uint32_t getGeomId() const;
-
+    RTCGeometry getGeom() const;
     ConstantPMaterial getMaterial() const;
+    std::shared_ptr<Geometry> clone() const;
+
+    void setMaterial(std::shared_ptr<Material> material);
 
     void release(RTCScene scene) const;
 };
