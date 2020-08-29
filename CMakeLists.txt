@@ -59,7 +59,6 @@ ExternalProject_Add(oidn
 ExternalProject_Add(lua
     PREFIX              ${EXTERNAL_DIR}
     URL                 http://www.lua.org/ftp/lua-5.4.0.tar.gz
-    BUILD_IN_SOURCE     False
     UPDATE_COMMAND      ""
     CONFIGURE_COMMAND   ""
     BUILD_COMMAND       ""
@@ -128,6 +127,7 @@ add_executable(
     "${LUA_SOURCES}"
 )
 
-add_definitions(-DGLM_ENABLE_EXPERIMENTAL)
+add_definitions(-DGLM_ENABLE_EXPERIMENTAL -DGLM_FORCE_AVX)
 add_dependencies(hello_embree glfw embree tbb oidn lua)
+target_compile_options(hello_embree PRIVATE /arch:AVX)
 target_link_libraries(hello_embree glfw embree3 yuv OpenImageDenoise)

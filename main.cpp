@@ -419,7 +419,8 @@ static int L_loadGltf(lua_State *L) {
     auto result = loader.LoadBinaryFromFile(&gltfModel, &err, &warn, path);
 
     auto model = loadGltfModel(gltfModel);
-    auto transform = glm::translate(position) * glm::toMat4(quat) * glm::scale(scale);
+    auto transform =
+        glm::translate(position) * glm::toMat4(quat) * glm::scale(scale);
 
     ConstantPGeometryList &geometries = g_geometries;
 
@@ -436,7 +437,6 @@ static int L_loadGltf(lua_State *L) {
 
     return 2;
 }
-
 
 static int L_setRenderMode(lua_State *L) {
     auto mode = static_cast<RenderingMode>(lua_tointeger(L, 1));
@@ -902,7 +902,8 @@ int main(void) {
                     }
                 }
 
-                raytracer.finish(raytracer.getRenderingMode() == PATHTRACING, isMovie);
+                raytracer.finish(raytracer.getRenderingMode() == PATHTRACING,
+                                 isMovie);
 
                 copyPixelsToTexture(raytracer.getImage(), fbo, texture);
 
@@ -910,7 +911,8 @@ int main(void) {
                     if (isMovie) {
                         fputs("FRAME\n", fpMovie);
                         fwrite(raytracer.getImage().GetReadonlyYUV420(),
-                               raytracer.getImage().getYUV420Size(), 1, fpMovie);
+                               raytracer.getImage().getYUV420Size(), 1,
+                               fpMovie);
                     }
 
                     if (nextFrame) {
