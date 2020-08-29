@@ -8,6 +8,19 @@ function protect(tbl)
     })
 end
 
+function dump(o)
+    if type(o) == 'table' then
+        local s = '{ '
+        for k,v in pairs(o) do
+                if type(k) ~= 'number' then k = '"'..k..'"' end
+                s = s .. '['..k..'] = ' .. dump(v) .. ','
+        end
+        return s .. '} '
+    else
+        return tostring(o)
+    end
+end
+
 local RenderMode = protect({
     ALBEDO = 0,
     EMISSIVE = 1,
@@ -74,12 +87,19 @@ _loadPlane(
     0, 0, 0, 1                  -- quat
 )
 
-_loadGltf(
+local geoms, err = _loadGltf(
     "../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
     0, 1, 0,                   -- position
     1, 1, 1,                    -- scale
     0, 0, 0, 1                  -- quat
 )
+
+print(dump(geoms))
+
+for i, v in ipairs(geoms) do
+    local mat = _getGeometryMaterial(v)
+    print(dump(mat))
+end
 
 _commitScene()
 

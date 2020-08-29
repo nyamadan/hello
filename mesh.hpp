@@ -225,7 +225,7 @@ class Animation {
     float getTimelineMin() const {
         auto min = FLT_MAX;
 
-        for(const auto &ch: channels) {
+        for (const auto &ch : channels) {
             const auto &timeline = ch->getSampler()->getTimeline();
             auto it = std::min_element(timeline.cbegin(), timeline.cend());
             if (it != timeline.cend() && min > *it) {
@@ -239,7 +239,7 @@ class Animation {
     float getTimelineMax() const {
         auto max = -FLT_MAX;
 
-        for(const auto &ch: channels) {
+        for (const auto &ch : channels) {
             const auto &timeline = ch->getSampler()->getTimeline();
             auto it = std::max_element(timeline.cbegin(), timeline.cend());
             if (it != timeline.cend() && max < *it) {
@@ -328,6 +328,10 @@ class Geometry {
         RTCDevice device, RTCScene scene,
         std::list<std::shared_ptr<const Geometry>> geometries,
         ConstantPAnimation animation, float timeStep, const glm::mat4 &parent);
+
+    uint32_t getGeomId() const;
+
+    ConstantPMaterial getMaterial() const;
 
     void release(RTCScene scene) const;
 };

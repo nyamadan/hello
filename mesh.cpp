@@ -486,6 +486,12 @@ void Geometry::release(RTCScene scene) const {
     rtcReleaseGeometry(geom);
 }
 
+uint32_t Geometry::getGeomId() const { return this->geomID; }
+
+ConstantPMaterial Geometry::getMaterial() const {
+    return this->primitive->getMaterial();
+}
+
 ConstantPModel loadSphere(ConstantPMaterial material, uint32_t widthSegments,
                           uint32_t heightSegments, const glm::mat4 transform) {
     const auto radius = 1.0f;
