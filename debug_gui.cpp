@@ -103,7 +103,7 @@ std::list<DebugGuiCommand> DebugGUI::beginFrame(const RayTracer &raytracer,
             if (ImGui::MenuItem("Open Lua")) {
                 luaPath = "";
                 openFileDialog(luaPath,
-                               "OBJ File (*.lua)\0*.lua\0"
+                               "Lua File (*.lua)\0*.lua\0"
                                "All Files (*.*)\0*.*\0\0");
                 if (!luaPath.empty()) {
                     commands.push_back(DebugOpenLua);

@@ -38,16 +38,17 @@ set(LUA_INCLUDE_DIR ${LUA_DIR}/src)
 ExternalProject_Add(
     lua-${LUA_RELEASE}
     URL http://www.lua.org/ftp/lua-${LUA_RELEASE}.tar.gz
-    DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}/download/lua-${LUA_RELEASE}
-    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/lua/lua-${LUA_RELEASE}
-    BINARY_DIR ${LUA_LIBRARY_DIR}
-    UPDATE_COMMAND ""
-    INSTALL_COMMAND ""
-    PATCH_COMMAND ${CMAKE_COMMAND} -E copy
-      "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/lua/CMakeLists.txt" <SOURCE_DIR>/CMakeLists.txt
+    DOWNLOAD_DIR        ${CMAKE_CURRENT_BINARY_DIR}/download/lua-${LUA_RELEASE}
+    SOURCE_DIR          ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/lua/lua-${LUA_RELEASE}
+    BINARY_DIR          ${LUA_LIBRARY_DIR}
+    UPDATE_COMMAND      ""
+    INSTALL_COMMAND     ""
+    PATCH_COMMAND       ${CMAKE_COMMAND} -E copy
+                        "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/lua/CMakeLists.txt" <SOURCE_DIR>/CMakeLists.txt
 )
 
-ExternalProject_Add(embree-${EMBREE_RELEASE}
+ExternalProject_Add(
+    embree-${EMBREE_RELEASE}
     URL                 https://github.com/embree/embree/releases/download/v${EMBREE_RELEASE}/embree-${EMBREE_RELEASE}.x64.vc14.windows.zip
     DOWNLOAD_DIR        ${CMAKE_CURRENT_BINARY_DIR}/download/embree-${EMBREE_RELEASE}
     SOURCE_DIR          ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/embree/embree-${EMBREE_RELEASE}
@@ -58,7 +59,8 @@ ExternalProject_Add(embree-${EMBREE_RELEASE}
     INSTALL_COMMAND     COMMAND ${CMAKE_COMMAND} -E copy "${EMBREE_BINARY_DIR}/embree3.dll" "${PROJECT_SOURCE_DIR}/"
 )
 
-ExternalProject_Add(tbb-${TBB_RELEASE}
+ExternalProject_Add(
+    tbb-${TBB_RELEASE}
     URL                 https://github.com/oneapi-src/oneTBB/releases/download/v${TBB_RELEASE}/tbb-${TBB_RELEASE}-win.zip
     DOWNLOAD_DIR        ${CMAKE_CURRENT_BINARY_DIR}/download/tbb-${TBB_RELEASE}
     SOURCE_DIR          ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/tbb/tbb-${TBB_RELEASE}
@@ -69,7 +71,8 @@ ExternalProject_Add(tbb-${TBB_RELEASE}
     INSTALL_COMMAND     COMMAND ${CMAKE_COMMAND} -E copy "${TBB_BINARY_DIR}/tbb.dll" "${TBB_BINARY_DIR}/tbb_debug.dll" "${PROJECT_SOURCE_DIR}/"
 )
 
-ExternalProject_Add(oidn-${OIDN_RELEASE}
+ExternalProject_Add(
+    oidn-${OIDN_RELEASE}
     URL                 https://github.com/OpenImageDenoise/oidn/releases/download/v${OIDN_RELEASE}/oidn-${OIDN_RELEASE}.x64.vc14.windows.zip
     DOWNLOAD_DIR        ${CMAKE_CURRENT_BINARY_DIR}/download/oidn-${OIDN_RELEASE}
     SOURCE_DIR          ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/oidn/oidn-${OIDN_RELEASE}

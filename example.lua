@@ -36,62 +36,59 @@ local MaterialType = protect({
 })
 
 _loadSphere(
-    MaterialType.REFRACTION,    -- Type
-    1.0, 1.0, 1.0, 1.0,         -- baseColor
-    nil,                        -- baseColorTexture
-    nil,                        -- normalTexture
-    0.0,                       -- roughness
-    1.0,                        -- metalness
-    nil,                        -- roughnessMetalnessTexture
-    0.0, 0.0, 0.0,              -- emissive
-    nil,                        -- emissiveTexture
-
-    80, 60,                     -- segments
-
-    -3, 1, 0,                    -- position
-    1, 1, 1,                    -- scale
-    0, 0, 0, 1                  -- quat
+    {
+        materialType = MaterialType.REFRACTION,
+        baseColorFactor = {1.0, 1.0, 1.0, 1.0},
+        emissiveFactor = {0.0, 0.0, 0.0},
+        metalnessFactor = 1.0,
+        roughnessFactor = 0.0
+    },
+    {
+        translate = {-3, 1, 0},
+        scale = {1, 1, 1},
+        rotate = {0, 0, 0, 1}
+    },
+    80, 60
 )
 
 _loadSphere(
-    MaterialType.REFLECTION,    -- Type
-    1.0, 0.0, 0.0, 1.0,         -- baseColor
-    nil,                        -- baseColorTexture
-    nil,                        -- normalTexture
-    0.25,                       -- roughness
-    1.0,                        -- metalness
-    nil,                        -- roughnessMetalnessTexture
-    0.0, 0.0, 0.0,              -- emissive
-    nil,                        -- emissiveTexture
-
-    80, 60,                     -- segments
-
-    3, 1, 0,                    -- position
-    1, 1, 1,                    -- scale
-    0, 0, 0, 1                  -- quat
+    {
+        materialType = MaterialType.REFLECTION,
+        baseColorFactor = {1.0, 0.0, 0.0, 1.0},
+        emissiveFactor = {0.0, 0.0, 0.0},
+        metalnessFactor = 1.0,
+        roughnessFactor = 0.25
+    },
+    {
+        translate = {3, 1, 0},
+        scale = {1, 1, 1},
+        rotate = {0, 0, 0, 1}
+    },
+    80, 60
 )
 
 _loadPlane(
-    MaterialType.REFLECTION,    -- Type
-    0.2, 0.2, 0.2, 1.0,         -- baseColor
-    nil,                        -- baseColorTexture
-    nil,                        -- normalTexture
-    0.0,                       -- roughness
-    0.0,                        -- metalness
-    nil,                        -- roughnessMetalnessTexture
-    0.0, 0.0, 0.0,              -- emissive
-    nil,                        -- emissiveTexture
-
-    0, 0, 0,                    -- position
-    10, 10, 10,                 -- scale
-    0, 0, 0, 1                  -- quat
+    {
+        materialType = MaterialType.REFLECTION,
+        baseColorFactor = {0.2, 0.2, 0.2, 1.0},
+        emissiveFactor = {0.0, 0.0, 0.0},
+        metalnessFactor = 0.0,
+        roughnessFactor = 0.0
+    },
+    {
+        translate = {0, 0, 0},
+        scale = {10, 10, 10},
+        rotate = {0, 0, 0, 1}
+    }
 )
 
 local geoms, err = _loadGltf(
     "../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
-    0, 1, 0,                   -- position
-    1, 1, 1,                    -- scale
-    0, 0, 0, 1                  -- quat
+    {
+        translate = {0, 1, 0},
+        scale = {1, 1, 1},
+        rotate = {0, 0, 0, 1},
+    }
 )
 
 print(dump(geoms))
@@ -100,8 +97,10 @@ for i, v in ipairs(geoms) do
     local mat = _getGeometryMaterial(v)
     print(dump(mat))
 
-    local ok = _replaceGeometryPrimitiveMaterial(v, mat)
-    print(ok)
+    -- local ok = _replaceGeometryPrimitiveMaterial(v, mat)
+    -- print(ok)
+
+    _commitGeometry(v)
 end
 
 _commitScene()
@@ -109,9 +108,10 @@ _commitScene()
 _setRenderMode(RenderMode.PATHTRACING)
 _setMaxSamples(20)
 
-local f = io.open("test.y4m", "wb")
+local f = io.open("out/video.y4m", "wb")
 
-f:write("YUV4MPEG2 W" .. _getImageWidth() .. " H" .. _getImageHeight() .. " F30000:1001 Ip A0:0 C420 XYSCSS=420\n")
+f:write("YUV4MPEG2 W" .. _getImageWidth() .. " H" .. _getImageHeight()
+    .. " F30000:1001 Ip A0:0 C420 XYSCSS=420\n")
 
 for i=1,60 do
     print("FRAME: " .. i)

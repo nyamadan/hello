@@ -266,6 +266,56 @@ static glm::vec4 lua_checkvec4(lua_State *L, int32_t idx) {
     return v;
 }
 
+static glm::quat lua_checkquat(lua_State *L, int32_t idx) {
+    glm::quat v;
+
+    lua_rawgeti(L, idx, 1);
+    v.x = lua_checkfloat(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, idx, 2);
+    v.y = lua_checkfloat(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, idx, 3);
+    v.z = lua_checkfloat(L, -1);
+    lua_pop(L, 1);
+
+    lua_rawgeti(L, idx, 4);
+    v.w = lua_checkfloat(L, -1);
+    lua_pop(L, 1);
+
+    return v;
+}
+
+class Transform {
+  public:
+    glm::vec3 scale = glm::vec3(1.0f);
+    glm::vec3 translate = glm::vec3(1.0f);
+    glm::quat rotate = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+
+    glm::mat4 toMat4() const {
+        return glm::translate(translate) * glm::toMat4(rotate) *
+               glm::scale(scale);
+    }
+};
+
+static const Transform lua_checktransform(lua_State *L, int32_t i) {
+    Transform tr;
+    lua_getfield(L, i, "translate");
+    tr.translate = lua_checkvec3(L, -1);
+
+    lua_getfield(L, i, "rotate");
+    tr.rotate = lua_checkquat(L, -1);
+    lua_pop(L, 1);
+
+    lua_getfield(L, i, "scale");
+    tr.scale = lua_checkvec3(L, -1);
+    lua_pop(L, 1);
+
+    return tr;
+}
+
 static std::shared_ptr<Material> lua_checkmaterial(lua_State *L, int32_t i) {
     lua_getfield(L, i, "baseColorFactor");
     const auto baseColorFactor = lua_checkvec4(L, -1);
@@ -296,49 +346,9 @@ static std::shared_ptr<Material> lua_checkmaterial(lua_State *L, int32_t i) {
 static int L_loadPlane(lua_State *L) {
     ConstantPModelList models;
 
-    auto idx = 1;
-
-    auto type = static_cast<MaterialType>(lua_tointeger(L, idx++));
-
-    glm::vec4 baseColorFactor;
-    baseColorFactor.x = lua_checkfloat(L, idx++);
-    baseColorFactor.y = lua_checkfloat(L, idx++);
-    baseColorFactor.z = lua_checkfloat(L, idx++);
-    baseColorFactor.w = lua_checkfloat(L, idx++);
-
-    auto baseColorTexture = lua_tostring(L, idx++);
-    auto normalTexture = lua_tostring(L, idx++);
-    auto roughness = lua_checkfloat(L, idx++);
-    auto metalness = lua_checkfloat(L, idx++);
-    auto roughnessMetalnessTexture = lua_tostring(L, idx++);
-
-    glm::vec3 emissive;
-    emissive.x = lua_checkfloat(L, idx++);
-    emissive.y = lua_checkfloat(L, idx++);
-    emissive.z = lua_checkfloat(L, idx++);
-    auto emissiveTexture = lua_tostring(L, idx++);
-
-    glm::vec3 position;
-    position.x = lua_checkfloat(L, idx++);
-    position.y = lua_checkfloat(L, idx++);
-    position.z = lua_checkfloat(L, idx++);
-
-    glm::vec3 scale;
-    scale.x = lua_checkfloat(L, idx++);
-    scale.y = lua_checkfloat(L, idx++);
-    scale.z = lua_checkfloat(L, idx++);
-
-    auto qx = lua_checkfloat(L, idx++);
-    auto qy = lua_checkfloat(L, idx++);
-    auto qz = lua_checkfloat(L, idx++);
-    auto qw = lua_checkfloat(L, idx++);
-    auto quat = glm::quat(qw, qx, qy, qz);
-
-    auto model = loadPlane(
-        PMaterial(new Material(type, baseColorFactor, nullptr, nullptr,
-                               roughness, metalness, nullptr, emissive,
-                               nullptr)),
-        glm::translate(position) * glm::toMat4(quat) * glm::scale(scale));
+    auto material = lua_checkmaterial(L, 1);
+    auto tr = lua_checktransform(L, 2);
+    auto model = loadPlane(material, tr.toMat4());
 
     ConstantPGeometryList geometries;
 
@@ -357,49 +367,10 @@ static int L_loadPlane(lua_State *L) {
 static int L_loadCube(lua_State *L) {
     ConstantPModelList models;
 
-    auto idx = 1;
+    auto material = lua_checkmaterial(L, 1);
+    auto tr = lua_checktransform(L, 2);
 
-    auto type = static_cast<MaterialType>(lua_tointeger(L, idx++));
-
-    glm::vec4 baseColorFactor;
-    baseColorFactor.x = lua_checkfloat(L, idx++);
-    baseColorFactor.y = lua_checkfloat(L, idx++);
-    baseColorFactor.z = lua_checkfloat(L, idx++);
-    baseColorFactor.w = lua_checkfloat(L, idx++);
-
-    auto baseColorTexture = lua_tostring(L, idx++);
-    auto normalTexture = lua_tostring(L, idx++);
-    auto roughness = lua_checkfloat(L, idx++);
-    auto metalness = lua_checkfloat(L, idx++);
-    auto roughnessMetalnessTexture = lua_tostring(L, idx++);
-
-    glm::vec3 emissive;
-    emissive.x = lua_checkfloat(L, idx++);
-    emissive.y = lua_checkfloat(L, idx++);
-    emissive.z = lua_checkfloat(L, idx++);
-    auto emissiveTexture = lua_tostring(L, idx++);
-
-    glm::vec3 position;
-    position.x = lua_checkfloat(L, idx++);
-    position.y = lua_checkfloat(L, idx++);
-    position.z = lua_checkfloat(L, idx++);
-
-    glm::vec3 scale;
-    scale.x = lua_checkfloat(L, idx++);
-    scale.y = lua_checkfloat(L, idx++);
-    scale.z = lua_checkfloat(L, idx++);
-
-    auto qx = lua_checkfloat(L, idx++);
-    auto qy = lua_checkfloat(L, idx++);
-    auto qz = lua_checkfloat(L, idx++);
-    auto qw = lua_checkfloat(L, idx++);
-    auto quat = glm::quat(qw, qx, qy, qz);
-
-    auto model = loadCube(
-        PMaterial(new Material(type, baseColorFactor, nullptr, nullptr,
-                               roughness, metalness, nullptr, emissive,
-                               nullptr)),
-        glm::translate(position) * glm::toMat4(quat) * glm::scale(scale));
+    auto model = loadCube(material, tr.toMat4());
 
     ConstantPGeometryList geometries;
 
@@ -418,53 +389,14 @@ static int L_loadCube(lua_State *L) {
 static int L_loadSphere(lua_State *L) {
     ConstantPModelList models;
 
-    auto idx = 1;
+    auto material = lua_checkmaterial(L, 1);
 
-    auto type = static_cast<MaterialType>(lua_tointeger(L, idx++));
+    auto tr = lua_checktransform(L, 2);
 
-    glm::vec4 baseColorFactor;
-    baseColorFactor.x = lua_checkfloat(L, idx++);
-    baseColorFactor.y = lua_checkfloat(L, idx++);
-    baseColorFactor.z = lua_checkfloat(L, idx++);
-    baseColorFactor.w = lua_checkfloat(L, idx++);
+    auto segU = static_cast<uint32_t>(luaL_checkinteger(L, 3));
+    auto segV = static_cast<uint32_t>(luaL_checkinteger(L, 4));
 
-    auto baseColorTexture = lua_tostring(L, idx++);
-    auto normalTexture = lua_tostring(L, idx++);
-    auto roughness = lua_checkfloat(L, idx++);
-    auto metalness = lua_checkfloat(L, idx++);
-    auto roughnessMetalnessTexture = lua_tostring(L, idx++);
-
-    glm::vec3 emissive;
-    emissive.x = lua_checkfloat(L, idx++);
-    emissive.y = lua_checkfloat(L, idx++);
-    emissive.z = lua_checkfloat(L, idx++);
-    auto emissiveTexture = lua_tostring(L, idx++);
-
-    auto segU = static_cast<uint32_t>(lua_tointeger(L, idx++));
-    auto segV = static_cast<uint32_t>(lua_tointeger(L, idx++));
-
-    glm::vec3 position;
-    position.x = lua_checkfloat(L, idx++);
-    position.y = lua_checkfloat(L, idx++);
-    position.z = lua_checkfloat(L, idx++);
-
-    glm::vec3 scale;
-    scale.x = lua_checkfloat(L, idx++);
-    scale.y = lua_checkfloat(L, idx++);
-    scale.z = lua_checkfloat(L, idx++);
-
-    auto qx = lua_checkfloat(L, idx++);
-    auto qy = lua_checkfloat(L, idx++);
-    auto qz = lua_checkfloat(L, idx++);
-    auto qw = lua_checkfloat(L, idx++);
-    auto quat = glm::quat(qw, qx, qy, qz);
-
-    auto model = loadSphere(
-        PMaterial(new Material(type, baseColorFactor, nullptr, nullptr,
-                               roughness, metalness, nullptr, emissive,
-                               nullptr)),
-        segU, segV,
-        glm::translate(position) * glm::toMat4(quat) * glm::scale(scale));
+    auto model = loadSphere(material, segU, segV, tr.toMat4());
 
     ConstantPGeometryList geometries;
 
@@ -483,25 +415,8 @@ static int L_loadSphere(lua_State *L) {
 static int L_loadGltf(lua_State *L) {
     ConstantPModelList models;
 
-    auto idx = 1;
-
-    auto path = lua_tostring(L, idx++);
-
-    glm::vec3 position;
-    position.x = lua_checkfloat(L, idx++);
-    position.y = lua_checkfloat(L, idx++);
-    position.z = lua_checkfloat(L, idx++);
-
-    glm::vec3 scale;
-    scale.x = lua_checkfloat(L, idx++);
-    scale.y = lua_checkfloat(L, idx++);
-    scale.z = lua_checkfloat(L, idx++);
-
-    auto qx = lua_checkfloat(L, idx++);
-    auto qy = lua_checkfloat(L, idx++);
-    auto qz = lua_checkfloat(L, idx++);
-    auto qw = lua_checkfloat(L, idx++);
-    auto quat = glm::quat(qw, qx, qy, qz);
+    auto path = lua_tostring(L, 1);
+    auto tr = lua_checktransform(L, 2);
 
     tinygltf::Model gltfModel;
     tinygltf::TinyGLTF loader;
@@ -509,8 +424,7 @@ static int L_loadGltf(lua_State *L) {
     auto result = loader.LoadBinaryFromFile(&gltfModel, &err, &warn, path);
 
     auto model = loadGltfModel(gltfModel);
-    auto transform =
-        glm::translate(position) * glm::toMat4(quat) * glm::scale(scale);
+    auto transform = tr.toMat4();
 
     ConstantPGeometryList geometries;
 
@@ -565,8 +479,6 @@ static int L_getGeometryMaterial(lua_State *L) {
 }
 
 static int L_replaceGeometryPrimitiveMaterial(lua_State *L) {
-    dumpStack(L);
-
     auto geomId = luaL_checkinteger(L, 1);
 
     auto it = std::find_if(
@@ -585,8 +497,6 @@ static int L_replaceGeometryPrimitiveMaterial(lua_State *L) {
     g->setMaterial(m);
 
     g_geometries.push_front(g);
-
-    rtcCommitGeometry(g->getGeom());
 
     g_geometries.erase(it);
 
@@ -643,8 +553,31 @@ static int L_reset(lua_State *L) {
     return 0;
 }
 
+static int L_resize(lua_State *L) {
+    auto w = luaL_checkinteger(L, 1);
+    auto h = luaL_checkinteger(L, 2);
+    g_rayTracer.resize(glm::i32vec2(w, h));
+    lua_settop(L, 0);
+    return 0;
+}
+
 static int L_commitScene(lua_State *L) {
     rtcCommitScene(g_scene);
+    lua_settop(L, 0);
+    return 0;
+}
+
+static int L_commitGeometry(lua_State* L) {
+    auto geomId = luaL_checkinteger(L, 1);
+
+    auto it = std::find_if(
+        g_geometries.cbegin(), g_geometries.cend(),
+        [&](ConstantPGeometry g) { return g->getGeomId() == geomId; });
+
+    if (it != g_geometries.cend()) {
+        rtcCommitGeometry((*it)->getGeom());
+    }
+
     lua_settop(L, 0);
     return 0;
 }
@@ -1015,7 +948,9 @@ int main(void) {
                 lua_register(L, "_finish", L_finish);
                 lua_register(L, "_denoise", L_denoise);
                 lua_register(L, "_reset", L_reset);
+                lua_register(L, "_resize", L_resize);
                 lua_register(L, "_commitScene", L_commitScene);
+                lua_register(L, "_commitGeometry", L_commitGeometry);
 
                 lua_register(L, "_setCameraDir", L_setCameraDir);
                 lua_register(L, "_setCameraOrigin", L_setCameraOrigin);
