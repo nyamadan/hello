@@ -149,6 +149,7 @@ local function renderVideo()
 end
 
 local function renderImage()
+    _setSkybox(nil)
     _setRenderMode(RenderMode.PATHTRACING)
     _setMaxSamples(20)
 

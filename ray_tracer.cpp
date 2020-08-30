@@ -239,6 +239,10 @@ void RayTracer::loadSkybox(const std::string &path) {
     // }
 }
 
+void RayTracer::unloadSkybox() {
+    this->skybox = nullptr;
+}
+
 void RayTracer::setEnableSuperSampling(bool enableSuperSampling) {
     this->enableSuperSamples = enableSuperSampling;
 }

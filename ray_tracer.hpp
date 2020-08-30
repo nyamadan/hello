@@ -110,6 +110,7 @@ class RayTracer {
     void setMaxSamples(int32_t samples);
     void intersectionFilter(const struct RTCFilterFunctionNArguments *args);
     void loadSkybox(const std::string &path);
+    void unloadSkybox();
 };
 
 struct IntersectContext : public RTCIntersectContext {

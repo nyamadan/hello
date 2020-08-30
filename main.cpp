@@ -286,18 +286,6 @@ static glm::quat lua_checkquat(lua_State *L, int32_t idx) {
     return v;
 }
 
-class Transform {
-  public:
-    glm::vec3 scale = glm::vec3(1.0f);
-    glm::vec3 translate = glm::vec3(1.0f);
-    glm::quat rotate = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-
-    glm::mat4 toMat4() const {
-        return glm::translate(translate) * glm::toMat4(rotate) *
-               glm::scale(scale);
-    }
-};
-
 static const Transform lua_checktransform(lua_State *L, int32_t i) {
     Transform tr;
     lua_getfield(L, i, "translate");
@@ -493,10 +481,13 @@ static int L_replaceGeometryPrimitiveMaterial(lua_State *L) {
         return 1;
     }
 
-    auto g = (*it)->clone();
-    auto m = lua_checkmaterial(L, 2);
+    auto m = PMaterial(new Material(lua_checkmaterial(L, 2)));
 
-    g->setMaterial(PMaterial(new Material(m)));
+    auto g = (*it)->clone();
+    auto p = g->getPrimitive()->clone();
+    p->setMaterial(m);
+    g->setPrimitive(p);
+    g->setUserData(m.get());
 
     g_geometries.push_front(g);
 
@@ -505,6 +496,22 @@ static int L_replaceGeometryPrimitiveMaterial(lua_State *L) {
     lua_settop(L, 0);
     lua_pushboolean(L, 1);
     return 1;
+}
+
+static int L_setSkybox(lua_State *L) {
+    auto type = lua_type(L, 1);
+
+    switch (type) {
+        case LUA_TSTRING: {
+            auto path = luaL_checkstring(L, 1);
+            g_rayTracer.loadSkybox(path);
+        } break;
+        case LUA_TNIL: {
+            g_rayTracer.unloadSkybox();
+        } break;
+    }
+    lua_settop(L, 0);
+    return 0;
 }
 
 static int L_setRenderMode(lua_State *L) {
@@ -978,8 +985,8 @@ int main(void) {
                 lua_register(L, "_setFocusDistance", L_setFocusDistance);
 
                 lua_register(L, "_setMaxSamples", L_setMaxSamples);
-
                 lua_register(L, "_setRenderMode", L_setRenderMode);
+                lua_register(L, "_setSkybox", L_setSkybox);
 
                 lua_register(L, "_loadSphere", L_loadSphere);
                 lua_register(L, "_loadCube", L_loadCube);

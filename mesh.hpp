@@ -10,6 +10,7 @@
 #include <functional>
 
 #include <glm/glm.hpp>
+#include <glm/ext.hpp>
 
 #include <embree3/rtcore.h>
 #include <tiny_gltf.h>
@@ -313,17 +314,30 @@ using PModel = std::shared_ptr<Model>;
 using ConstantPModel = std::shared_ptr<const Model>;
 using ConstantPModelList = std::vector<std::shared_ptr<const Model>>;
 
+class Transform {
+  public:
+    glm::vec3 scale = glm::vec3(1.0f);
+    glm::vec3 translate = glm::vec3(1.0f);
+    glm::quat rotate = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+
+    glm::mat4 toMat4() const {
+        return glm::translate(translate) * glm::toMat4(rotate) *
+               glm::scale(scale);
+    }
+};
+
 class Geometry {
   private:
     RTCGeometry geom = nullptr;
     uint32_t geomID = 0;
+
+    glm::mat4 transform = glm::mat4(1.0f);
 
     ConstantPNodeList nodes;
     ConstantPPrimitive primitive;
 
     Geometry() {}
 
-    void setUserData(void *) const;
     void *getUserData() const;
 
     static std::list<std::shared_ptr<const Geometry>> generateGeometries(
@@ -347,8 +361,10 @@ class Geometry {
     ConstantPMaterial getMaterial() const;
     std::shared_ptr<Geometry> clone() const;
 
-    void setMaterial(std::shared_ptr<Material> material);
+    void setPrimitive(ConstantPPrimitive primitive);
+    ConstantPPrimitive getPrimitive() const;
 
+    void setUserData(void *) const;
     void release(RTCScene scene) const;
 };
 

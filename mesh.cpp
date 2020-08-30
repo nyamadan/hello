@@ -487,11 +487,10 @@ void Geometry::setUserData(void *data) const {
 
 void *Geometry::getUserData() const { return rtcGetGeometryUserData(geom); }
 
-void Geometry::setMaterial(std::shared_ptr<Material> material) {
-    auto p = this->primitive->clone();
-    p->setMaterial(material);
-    this->primitive = p;
-    this->setUserData(material.get());
+ConstantPPrimitive Geometry::getPrimitive() const { return this->primitive; }
+
+void Geometry::setPrimitive(ConstantPPrimitive primitive) {
+    this->primitive = primitive;
 }
 
 void Geometry::release(RTCScene scene) const {
