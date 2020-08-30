@@ -316,7 +316,7 @@ static const Transform lua_checktransform(lua_State *L, int32_t i) {
     return tr;
 }
 
-static std::shared_ptr<Material> lua_checkmaterial(lua_State *L, int32_t i) {
+static Material lua_checkmaterial(lua_State *L, int32_t i) {
     lua_getfield(L, i, "baseColorFactor");
     const auto baseColorFactor = lua_checkvec4(L, -1);
     lua_pop(L, 1);
@@ -338,9 +338,9 @@ static std::shared_ptr<Material> lua_checkmaterial(lua_State *L, int32_t i) {
     const auto roughnessFactor = lua_checkfloat(L, -1);
     lua_pop(L, 1);
 
-    return std::shared_ptr<Material>(new Material(
+    return Material(
         materialType, baseColorFactor, nullptr, nullptr, roughnessFactor,
-        metalnessFactor, nullptr, emissiveFactor, nullptr));
+        metalnessFactor, nullptr, emissiveFactor, nullptr);
 }
 
 static int L_loadPlane(lua_State *L) {
@@ -348,7 +348,7 @@ static int L_loadPlane(lua_State *L) {
 
     auto material = lua_checkmaterial(L, 1);
     auto tr = lua_checktransform(L, 2);
-    auto model = loadPlane(material, tr.toMat4());
+    auto model = loadPlane(ConstantPMaterial(new Material(material)), tr.toMat4());
 
     ConstantPGeometryList geometries;
 
@@ -370,7 +370,7 @@ static int L_loadCube(lua_State *L) {
     auto material = lua_checkmaterial(L, 1);
     auto tr = lua_checktransform(L, 2);
 
-    auto model = loadCube(material, tr.toMat4());
+    auto model = loadCube(ConstantPMaterial(new Material(material)), tr.toMat4());
 
     ConstantPGeometryList geometries;
 
@@ -396,7 +396,7 @@ static int L_loadSphere(lua_State *L) {
     auto segU = static_cast<uint32_t>(luaL_checkinteger(L, 3));
     auto segV = static_cast<uint32_t>(luaL_checkinteger(L, 4));
 
-    auto model = loadSphere(material, segU, segV, tr.toMat4());
+    auto model = loadSphere(ConstantPMaterial(new Material(material)), segU, segV, tr.toMat4());
 
     ConstantPGeometryList geometries;
 
@@ -412,21 +412,27 @@ static int L_loadSphere(lua_State *L) {
     return 1;
 }
 
-static int L_loadGltf(lua_State *L) {
+static int L_loadModel(lua_State *L) {
     ConstantPModelList models;
 
-    auto path = lua_tostring(L, 1);
+    auto path = luaL_checkstring(L, 1);
     auto tr = lua_checktransform(L, 2);
+
+    ConstantPModel model;
+    std::string err = "", warn = "";
 
     tinygltf::Model gltfModel;
     tinygltf::TinyGLTF loader;
-    std::string err = "", warn = "";
-    auto result = loader.LoadBinaryFromFile(&gltfModel, &err, &warn, path);
-
-    auto model = loadGltfModel(gltfModel);
-    auto transform = tr.toMat4();
+    if (loader.LoadBinaryFromFile(&gltfModel, &err, &warn, path)) {
+        model = loadGltfModel(gltfModel);
+    } else if (loader.LoadBinaryFromFile(&gltfModel, &err, &warn, path)) {
+        model = loadGltfModel(gltfModel);
+    } else {
+        model = loadObjModel(path);
+    }
 
     ConstantPGeometryList geometries;
+    auto transform = tr.toMat4();
 
     for (auto node : model->getScene()->getNodes()) {
         geometries.splice(
@@ -438,9 +444,7 @@ static int L_loadGltf(lua_State *L) {
     lua_push_geometries(L, geometries);
     g_geometries.splice(g_geometries.cend(), std::move(geometries));
 
-    lua_pushstring(L, err.c_str());
-
-    return 2;
+    return 1;
 }
 
 static int L_getGeometryMaterial(lua_State *L) {
@@ -494,7 +498,7 @@ static int L_replaceGeometryPrimitiveMaterial(lua_State *L) {
     auto g = (*it)->clone();
     auto m = lua_checkmaterial(L, 2);
 
-    g->setMaterial(m);
+    g->setMaterial(PMaterial(new Material(m)));
 
     g_geometries.push_front(g);
 
@@ -798,7 +802,7 @@ int main(void) {
             glm::dvec2 mousePos = getWindowMousePos(window, windowSize);
             glm::vec2 mouseDelta = mousePos - prevMousePos;
 
-            auto debugCommands = debugGui.beginFrame(raytracer, model);
+            auto debugCommands = debugGui.beginFrame(raytracer, camera, model);
 
             needUpdate = needUpdate ||
                          std::find(debugCommands.cbegin(), debugCommands.cend(),
@@ -965,7 +969,7 @@ int main(void) {
                 lua_register(L, "_loadSphere", L_loadSphere);
                 lua_register(L, "_loadCube", L_loadCube);
                 lua_register(L, "_loadPlane", L_loadPlane);
-                lua_register(L, "_loadGltf", L_loadGltf);
+                lua_register(L, "_loadModel", L_loadModel);
 
                 lua_register(L, "_getGeometryMaterial", L_getGeometryMaterial);
                 lua_register(L, "_replaceGeometryPrimitiveMaterial",

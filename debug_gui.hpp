@@ -30,6 +30,7 @@ class DebugGUI {
 
     void setup(GLFWwindow *window);
     std::list<DebugGuiCommand> beginFrame(const RayTracer &raytracer,
+                                          const RayTracerCamera &camera,
                                           ConstantPModel model);
     bool nextFrame(ConstantPAnimation anim);
     void renderFrame() const;

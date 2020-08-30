@@ -82,7 +82,7 @@ _loadPlane(
     }
 )
 
-local geoms, err = _loadGltf(
+local geoms, err = _loadModel(
     "../glTF-Sample-Models/2.0/DamagedHelmet/glTF-Binary/DamagedHelmet.glb",
     {
         translate = {0, 1, 0},
