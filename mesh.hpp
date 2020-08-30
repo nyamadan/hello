@@ -356,14 +356,20 @@ class Geometry {
         std::list<std::shared_ptr<const Geometry>> geometries,
         ConstantPAnimation animation, float timeStep);
 
+    static std::shared_ptr<const Geometry> updateGeometry(
+        RTCDevice device, RTCScene scene,
+        std::shared_ptr<const Geometry> geometry, ConstantPAnimation animation,
+        float timeStep);
+
     uint32_t getGeomId() const;
     RTCGeometry getGeom() const;
     ConstantPMaterial getMaterial() const;
     std::shared_ptr<Geometry> clone() const;
 
     void setPrimitive(ConstantPPrimitive primitive);
-    ConstantPPrimitive getPrimitive() const;
+    void setTransform(const glm::mat4 &transform);
 
+    ConstantPPrimitive getPrimitive() const;
     void setUserData(void *) const;
     void release(RTCScene scene) const;
 };

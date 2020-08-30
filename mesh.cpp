@@ -336,6 +336,148 @@ std::list<std::shared_ptr<const Geometry>> Geometry::generateGeometries(
     return geometries;
 }
 
+std::shared_ptr<const Geometry> Geometry::updateGeometry(
+    RTCDevice device, RTCScene scene, std::shared_ptr<const Geometry> geometry,
+    ConstantPAnimation animation, float timeStep) {
+    if (animation.get() != nullptr) {
+        timeStep = glm::mod(timeStep, animation->getTimelineMax());
+    }
+
+    auto primitive = geometry->primitive;
+    auto nodes = geometry->nodes;
+
+    const auto transform = std::accumulate(
+        nodes.begin(), nodes.end(), geometry->transform,
+        [&](glm::mat4 matrix, ConstantPNode node) {
+            if (animation.get() == nullptr) {
+                return matrix * node->getMatrix();
+            }
+
+            auto rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
+            auto translation = glm::vec3(0.0f);
+            auto scale = glm::vec3(1.0f);
+
+            for (auto channel : animation->getChannels()) {
+                if (channel->getTargetNode()->getIndex() != node->getIndex()) {
+                    continue;
+                }
+
+                auto sampler = channel->getSampler();
+
+                const auto &values = sampler->getValues();
+                const auto &timeline = sampler->getTimeline();
+                auto len = timeline.size();
+
+                for (auto i = 1; i < len; i++) {
+                    const auto t0 = timeline[i - 1];
+                    const auto t1 = timeline[i];
+                    if (t0 > timeStep || t1 < timeStep) {
+                        continue;
+                    }
+
+                    if (channel->getTargetPath().compare("rotation") == 0) {
+                        const auto &v0 = 4 * (i - 1);
+                        const auto &v1 = 4 * i;
+
+                        auto q0 = glm::quat(values[v0 + 3], values[v0 + 0],
+                                            values[v0 + 1], values[v0 + 2]);
+                        auto q1 = glm::quat(values[v1 + 3], values[v1 + 0],
+                                            values[v1 + 1], values[v1 + 2]);
+                        rotation *=
+                            glm::slerp(q0, q1, (timeStep - t0) / (t1 - t0));
+                    }
+
+                    else if (channel->getTargetPath().compare("translation") ==
+                             0) {
+                        const auto &v0 = 3 * (i - 1);
+                        const auto &v1 = 3 * i;
+
+                        const auto p0 = glm::vec3(
+                            values[v0 + 0], values[v0 + 1], values[v0 + 2]);
+                        const auto p1 = glm::vec3(
+                            values[v1 + 0], values[v1 + 1], values[v1 + 2]);
+                        translation +=
+                            glm::lerp(p0, p1, (timeStep - t0) / (t1 - t0));
+                    }
+
+                    else if (channel->getTargetPath().compare("scale") == 0) {
+                        const auto &v0 = 3 * (i - 1);
+                        const auto &v1 = 3 * i;
+
+                        const auto p0 = glm::vec3(
+                            values[v0 + 0], values[v0 + 1], values[v0 + 2]);
+                        const auto p1 = glm::vec3(
+                            values[v1 + 0], values[v1 + 1], values[v1 + 2]);
+                        scale += glm::lerp(p0, p1, (timeStep - t0) / (t1 - t0));
+                    }
+
+                    break;
+                }
+            }
+
+            return matrix * glm::translate(translation) *
+                   glm::toMat4(rotation) * glm::scale(scale) *
+                   node->getMatrix();
+        });
+
+    const auto inverseTranspose = glm::inverseTranspose(transform);
+
+    const auto &srcTriangles = primitive->getTriangles();
+    const auto &srcPositions = primitive->getPositions();
+    const auto &srcNormals = primitive->getNormals();
+    const auto &srcTexcoords0 = primitive->getTexCoords0();
+    const auto &srcTangents = primitive->getTangents();
+    const auto material = primitive->getMaterial();
+
+    const auto numVertices = srcPositions.size();
+    const auto numFaces = srcTriangles.size();
+
+    auto geom = geometry->geom;
+    auto positionsBuffer =
+        (glm::vec3 *)rtcGetGeometryBufferData(geom, RTC_BUFFER_TYPE_VERTEX, 0);
+    auto *normalsBuffer = (glm::vec3 *)rtcGetGeometryBufferData(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+        (uint32_t)VertexAttributeSlot::SLOT_NORMAL);
+    auto *texCoords0Buffer = (glm::vec2 *)rtcGetGeometryBufferData(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+        (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0);
+    auto *tangentsBuffer = (glm::vec3 *)rtcGetGeometryBufferData(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+        (uint32_t)VertexAttributeSlot::SLOT_TANGENT);
+    auto *bitangentsBuffer = (glm::vec3 *)rtcGetGeometryBufferData(
+        geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+        (uint32_t)VertexAttributeSlot::SLOT_BITANGENT);
+
+    for (auto i = 0; i < numVertices; i++) {
+        positionsBuffer[i] =
+            glm::vec3(transform * glm::vec4(srcPositions[i], 1.0f));
+        normalsBuffer[i] = glm::normalize(
+            glm::vec3(inverseTranspose * glm::vec4(srcNormals[i], 0.0f)));
+        texCoords0Buffer[i] = srcTexcoords0[i];
+        tangentsBuffer[i] = glm::normalize(
+            glm::vec3(transform * glm::vec4(glm::vec3(srcTangents[i]), 0.0f)));
+        bitangentsBuffer[i] = glm::normalize(glm::vec3(
+            inverseTranspose *
+            glm::vec4((glm::cross(srcNormals[i], glm::vec3(srcTangents[i])) *
+                       srcTangents[i].w),
+                      0.0f)));
+    }
+
+    rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0);
+    rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                            SLOT_NORMAL);
+    rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                            SLOT_TEXCOORD_0);
+    rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                            SLOT_TANGENT);
+    rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
+                            SLOT_BITANGENT);
+
+    rtcCommitGeometry(geom);
+
+    return geometry;
+};
+
 std::list<std::shared_ptr<const Geometry>> Geometry::updateGeometries(
     RTCDevice device, RTCScene scene,
     std::list<std::shared_ptr<const Geometry>> geometries,
@@ -343,142 +485,9 @@ std::list<std::shared_ptr<const Geometry>> Geometry::updateGeometries(
     timeStep = glm::mod(timeStep, animation->getTimelineMax());
 
     for (auto geometry : geometries) {
-        auto primitive = geometry->primitive;
-        auto nodes = geometry->nodes;
-
-        const auto transform = std::accumulate(
-            nodes.begin(), nodes.end(), geometry->transform,
-            [&](glm::mat4 matrix, ConstantPNode node) {
-                if (animation.get() == nullptr) {
-                    return matrix * node->getMatrix();
-                }
-
-                auto rotation = glm::quat(1.0f, 0.0f, 0.0f, 0.0f);
-                auto translation = glm::vec3(0.0f);
-                auto scale = glm::vec3(1.0f);
-
-                for (auto channel : animation->getChannels()) {
-                    if (channel->getTargetNode()->getIndex() !=
-                        node->getIndex()) {
-                        continue;
-                    }
-
-                    auto sampler = channel->getSampler();
-
-                    const auto &values = sampler->getValues();
-                    const auto &timeline = sampler->getTimeline();
-                    auto len = timeline.size();
-
-                    for (auto i = 1; i < len; i++) {
-                        const auto t0 = timeline[i - 1];
-                        const auto t1 = timeline[i];
-                        if (t0 > timeStep || t1 < timeStep) {
-                            continue;
-                        }
-
-                        if (channel->getTargetPath().compare("rotation") == 0) {
-                            const auto &v0 = 4 * (i - 1);
-                            const auto &v1 = 4 * i;
-
-                            auto q0 = glm::quat(values[v0 + 3], values[v0 + 0],
-                                                values[v0 + 1], values[v0 + 2]);
-                            auto q1 = glm::quat(values[v1 + 3], values[v1 + 0],
-                                                values[v1 + 1], values[v1 + 2]);
-                            rotation *=
-                                glm::slerp(q0, q1, (timeStep - t0) / (t1 - t0));
-                        }
-
-                        else if (channel->getTargetPath().compare(
-                                     "translation") == 0) {
-                            const auto &v0 = 3 * (i - 1);
-                            const auto &v1 = 3 * i;
-
-                            const auto p0 = glm::vec3(
-                                values[v0 + 0], values[v0 + 1], values[v0 + 2]);
-                            const auto p1 = glm::vec3(
-                                values[v1 + 0], values[v1 + 1], values[v1 + 2]);
-                            translation +=
-                                glm::lerp(p0, p1, (timeStep - t0) / (t1 - t0));
-                        }
-
-                        else if (channel->getTargetPath().compare("scale") ==
-                                 0) {
-                            const auto &v0 = 3 * (i - 1);
-                            const auto &v1 = 3 * i;
-
-                            const auto p0 = glm::vec3(
-                                values[v0 + 0], values[v0 + 1], values[v0 + 2]);
-                            const auto p1 = glm::vec3(
-                                values[v1 + 0], values[v1 + 1], values[v1 + 2]);
-                            scale +=
-                                glm::lerp(p0, p1, (timeStep - t0) / (t1 - t0));
-                        }
-
-                        break;
-                    }
-                }
-
-                return matrix * glm::translate(translation) *
-                       glm::toMat4(rotation) * glm::scale(scale) *
-                       node->getMatrix();
-            });
-
-        const auto inverseTranspose = glm::inverseTranspose(transform);
-
-        const auto &srcTriangles = primitive->getTriangles();
-        const auto &srcPositions = primitive->getPositions();
-        const auto &srcNormals = primitive->getNormals();
-        const auto &srcTexcoords0 = primitive->getTexCoords0();
-        const auto &srcTangents = primitive->getTangents();
-        const auto material = primitive->getMaterial();
-
-        const auto numVertices = srcPositions.size();
-        const auto numFaces = srcTriangles.size();
-
-        auto geom = geometry->geom;
-        auto positionsBuffer = (glm::vec3 *)rtcGetGeometryBufferData(
-            geom, RTC_BUFFER_TYPE_VERTEX, 0);
-        auto *normalsBuffer = (glm::vec3 *)rtcGetGeometryBufferData(
-            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-            (uint32_t)VertexAttributeSlot::SLOT_NORMAL);
-        auto *texCoords0Buffer = (glm::vec2 *)rtcGetGeometryBufferData(
-            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-            (uint32_t)VertexAttributeSlot::SLOT_TEXCOORD_0);
-        auto *tangentsBuffer = (glm::vec3 *)rtcGetGeometryBufferData(
-            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-            (uint32_t)VertexAttributeSlot::SLOT_TANGENT);
-        auto *bitangentsBuffer = (glm::vec3 *)rtcGetGeometryBufferData(
-            geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-            (uint32_t)VertexAttributeSlot::SLOT_BITANGENT);
-
-        for (auto i = 0; i < numVertices; i++) {
-            positionsBuffer[i] =
-                glm::vec3(transform * glm::vec4(srcPositions[i], 1.0f));
-            normalsBuffer[i] = glm::normalize(
-                glm::vec3(inverseTranspose * glm::vec4(srcNormals[i], 0.0f)));
-            texCoords0Buffer[i] = srcTexcoords0[i];
-            tangentsBuffer[i] = glm::normalize(glm::vec3(
-                transform * glm::vec4(glm::vec3(srcTangents[i]), 0.0f)));
-            bitangentsBuffer[i] = glm::normalize(glm::vec3(
-                inverseTranspose *
-                glm::vec4(
-                    (glm::cross(srcNormals[i], glm::vec3(srcTangents[i])) *
-                     srcTangents[i].w),
-                    0.0f)));
-        }
-
-        rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX, 0);
-        rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                                SLOT_NORMAL);
-        rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                                SLOT_TEXCOORD_0);
-        rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                                SLOT_TANGENT);
-        rtcUpdateGeometryBuffer(geom, RTC_BUFFER_TYPE_VERTEX_ATTRIBUTE,
-                                SLOT_BITANGENT);
-
-        rtcCommitGeometry(geom);
+        updateGeometry(device, scene, geometry, animation, timeStep);
     }
+
     return geometries;
 };
 
@@ -492,6 +501,10 @@ ConstantPPrimitive Geometry::getPrimitive() const { return this->primitive; }
 
 void Geometry::setPrimitive(ConstantPPrimitive primitive) {
     this->primitive = primitive;
+}
+
+void Geometry::setTransform(const glm::mat4 &transform) {
+    this->transform = transform;
 }
 
 void Geometry::release(RTCScene scene) const {
@@ -513,6 +526,7 @@ std::shared_ptr<Geometry> Geometry::clone() const {
     p->geomID = this->geomID;
     p->nodes = this->nodes;
     p->primitive = this->primitive;
+    p->transform = this->transform;
     return p;
 }
 

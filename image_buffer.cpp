@@ -19,7 +19,8 @@ void ImageBuffer::resize(const glm::i32vec2 &size) {
     const int32_t ySize = size.x * size.y;
     const int32_t uSize = ySize / 4;
     const int32_t vSize = uSize;
-    this->yuv420 = std::shared_ptr<uint8_t []>(new uint8_t[ySize + uSize + vSize]);
+    this->yuv420 =
+        std::shared_ptr<uint8_t[]>(new uint8_t[ySize + uSize + vSize]);
 
     this->reset();
 }
@@ -52,7 +53,7 @@ void ImageBuffer::updateTextureBuffer(bool filtered, bool encodeYUV420) {
         }
     }
 
-    if(encodeYUV420) {
+    if (encodeYUV420) {
         this->encodeYUV420();
     }
 }
@@ -73,9 +74,9 @@ void ImageBuffer::encodeYUV420() {
     uint8_t *uBuffer = yBuffer + ySize;
     uint8_t *vBuffer = uBuffer + uSize;
 
-    libyuv::RAWToI420((const uint8_t *)textureBuffer.get(), bufferWidth * 3, yBuffer,
-                      yStride, uBuffer, uStride, vBuffer, vStride, bufferWidth,
-                      -bufferHeight);
+    libyuv::RAWToI420((const uint8_t *)textureBuffer.get(), bufferWidth * 3,
+                      yBuffer, yStride, uBuffer, uStride, vBuffer, vStride,
+                      bufferWidth, -bufferHeight);
 }
 
 int32_t ImageBuffer::getYUV420Size() const {

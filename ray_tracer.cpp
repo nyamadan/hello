@@ -239,9 +239,7 @@ void RayTracer::loadSkybox(const std::string &path) {
     // }
 }
 
-void RayTracer::unloadSkybox() {
-    this->skybox = nullptr;
-}
+void RayTracer::unloadSkybox() { this->skybox = nullptr; }
 
 void RayTracer::setEnableSuperSampling(bool enableSuperSampling) {
     this->enableSuperSamples = enableSuperSampling;
@@ -567,13 +565,13 @@ glm::vec3 RayTracer::radiance(RTCScene scene, const RayTracerCamera &camera,
                 roughness, metalness, p, normal, orientingNormal, rayDir);
             return emissive + refraction / russianRouletteProbability;
         }
-        case REFLECTION:{
+        case REFLECTION: {
             auto reflection = computeReflection(
                 scene, camera, randomState, context, depth, baseColor,
                 roughness, metalness, p, orientingNormal, -rayDir);
             return emissive + reflection / russianRouletteProbability;
         }
-        default:{
+        default: {
             auto reflection = computeReflection(
                 scene, camera, randomState, context, depth, baseColor,
                 roughness, metalness, p, orientingNormal, -rayDir);

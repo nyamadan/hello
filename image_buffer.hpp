@@ -12,7 +12,7 @@ class ImageBuffer {
     std::shared_ptr<glm::vec3[]> normal;
     std::shared_ptr<glm::vec3[]> albedo;
     std::shared_ptr<glm::vec3[]> skybox;
-    std::shared_ptr<uint8_t []> yuv420;
+    std::shared_ptr<uint8_t[]> yuv420;
     std::shared_ptr<glm::u8vec3[]> textureBuffer;
     glm::i32vec2 size;
 

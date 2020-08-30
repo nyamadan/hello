@@ -150,7 +150,6 @@ std::list<DebugGuiCommand> DebugGUI::beginFrame(const RayTracer &raytracer,
         "Hello Embree", nullptr,
         ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_AlwaysAutoResize);
     {
-
         deltaTimes[deltaTimesOffset] = ImGui::GetIO().DeltaTime;
 
         auto average =
@@ -171,9 +170,11 @@ std::list<DebugGuiCommand> DebugGUI::beginFrame(const RayTracer &raytracer,
         auto dir = camera.getCameraDir();
         auto origin = camera.getCameraOrigin();
 
-        ImGui::LabelText("Camera Dir", "%06.2f, %06.2f, %06.2f", dir.x, dir.y, dir.z);
+        ImGui::LabelText("Camera Dir", "%06.2f, %06.2f, %06.2f", dir.x, dir.y,
+                         dir.z);
 
-        ImGui::LabelText("Camera Origin", "%06.2f, %06.2f, %06.2f", origin.x, origin.y, origin.z);
+        ImGui::LabelText("Camera Origin", "%06.2f, %06.2f, %06.2f", origin.x,
+                         origin.y, origin.z);
 
         ImGui::Separator();
 

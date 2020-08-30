@@ -97,17 +97,23 @@ for i, v in ipairs(geoms) do
     local mat = _getGeometryMaterial(v)
     print(dump(mat))
 
-    local ok = _replaceGeometryPrimitiveMaterial(v, {
+    _replaceGeometryPrimitiveMaterial(v, {
         materialType = MaterialType.REFRACTION,
         baseColorFactor = {1.0, 1.0, 1.0, 1.0},
         emissiveFactor = {0.0, 0.0, 0.0},
         metalnessFactor = 1.0,
         roughnessFactor = 0.0
     })
-
-    print(ok)
-
     _commitGeometry(v)
+end
+
+for i, v in ipairs(geoms) do
+    _setGeometryTransform(v, {
+        translate = {0, 2, 0},
+        scale = {2, 2, 2},
+        rotate = {0, 0, 0, 1},
+    })
+    _updateGeometry(v)
 end
 
 _commitScene()
@@ -149,7 +155,7 @@ local function renderVideo()
 end
 
 local function renderImage()
-    _setSkybox(nil)
+    -- _setSkybox(nil)
     _setRenderMode(RenderMode.PATHTRACING)
     _setMaxSamples(20)
 

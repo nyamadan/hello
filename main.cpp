@@ -471,6 +471,54 @@ static int L_getGeometryMaterial(lua_State *L) {
     return 1;
 }
 
+static int L_setGeometryTransform(lua_State *L) {
+    auto geomId = luaL_checkinteger(L, 1);
+
+    auto it = std::find_if(
+        g_geometries.cbegin(), g_geometries.cend(),
+        [geomId](ConstantPGeometry g) { return g->getGeomId() == geomId; });
+
+    if (it == g_geometries.cend()) {
+        lua_settop(L, 0);
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+
+    auto tr = lua_checktransform(L, 2);
+
+    auto g = (*it)->clone();
+
+    g->setTransform(tr.toMat4());
+
+    g_geometries.push_front(g);
+
+    g_geometries.erase(it);
+
+    lua_settop(L, 0);
+    lua_pushboolean(L, 1);
+    return 1;
+}
+
+static int L_updateGeometry(lua_State *L) {
+    auto geomId = luaL_checkinteger(L, 1);
+
+    auto it = std::find_if(
+        g_geometries.cbegin(), g_geometries.cend(),
+        [geomId](ConstantPGeometry g) { return g->getGeomId() == geomId; });
+
+    if (it == g_geometries.cend()) {
+        lua_settop(L, 0);
+        lua_pushboolean(L, 0);
+        return 1;
+    }
+
+    (*it)->updateGeometry(g_device, g_scene, *it, nullptr, 0);
+
+    lua_settop(L, 0);
+    lua_pushboolean(L, 1);
+    return 1;
+}
+
 static int L_replaceGeometryPrimitiveMaterial(lua_State *L) {
     auto geomId = luaL_checkinteger(L, 1);
 
@@ -493,6 +541,8 @@ static int L_replaceGeometryPrimitiveMaterial(lua_State *L) {
     g->setUserData(m.get());
 
     g_geometries.push_front(g);
+
+    rtcCommitGeometry(g->getGeom());
 
     g_geometries.erase(it);
 
@@ -909,7 +959,8 @@ int main(void) {
                     if (anims.size() > 0) {
                         auto anim = anims[debugGui.getAnimIndex()];
                         Geometry::updateGeometries(device, scene, geometries,
-                                                   anim, debugGui.getAnimTime());
+                                                   anim,
+                                                   debugGui.getAnimTime());
                         rtcCommitScene(scene);
                     }
                 }
@@ -979,6 +1030,10 @@ int main(void) {
                 lua_register(L, "_resize", L_resize);
                 lua_register(L, "_commitScene", L_commitScene);
                 lua_register(L, "_commitGeometry", L_commitGeometry);
+                lua_register(L, "_updateGeometry", L_updateGeometry);
+
+                lua_register(L, "_setGeometryTransform",
+                             L_setGeometryTransform);
 
                 lua_register(L, "_setCameraDir", L_setCameraDir);
                 lua_register(L, "_setCameraOrigin", L_setCameraOrigin);
