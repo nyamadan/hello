@@ -9,26 +9,48 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
 include(ExternalProject)
+set(EXTERNAL_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty)
 
-set(EXTERNAL_DIR ${CMAKE_CURRENT_BINARY_DIR}/external)
-set(EMBREE_DIR ${EXTERNAL_DIR}/src/embree)
+set(LUA_RELEASE 5.4.0)
+set(EMBREE_RELEASE 3.10.0)
+set(TBB_RELEASE 2020.2)
+set(OIDN_RELEASE 1.2.0)
+
+set(EMBREE_DIR ${EXTERNAL_DIR}/embree/embree-${EMBREE_RELEASE})
 set(EMBREE_LIBRARY_DIR ${EMBREE_DIR}/lib)
 set(EMBREE_BINARY_DIR ${EMBREE_DIR}/bin)
 set(EMBREE_INCLUDE_DIR ${EMBREE_DIR}/include)
-set(TBB_DIR ${EXTERNAL_DIR}/src/tbb/tbb)
+
+set(TBB_DIR ${EXTERNAL_DIR}/tbb/tbb-${TBB_RELEASE}/tbb)
 set(TBB_LIBRARY_DIR ${TBB_DIR}/lib/intel64/vc14)
 set(TBB_BINARY_DIR ${TBB_DIR}/bin/intel64/vc14)
 set(TBB_INCLUDE_DIR ${TBB_DIR}/include)
-set(OIDN_DIR ${EXTERNAL_DIR}/src/oidn)
+
+set(OIDN_DIR ${EXTERNAL_DIR}/oidn/oidn-${OIDN_RELEASE})
 set(OIDN_LIBRARY_DIR ${OIDN_DIR}/lib)
 set(OIDN_BINARY_DIR ${OIDN_DIR}/bin)
 set(OIDN_INCLUDE_DIR ${OIDN_DIR}/include)
-set(LUA_DIR ${EXTERNAL_DIR}/src/lua)
+
+set(LUA_DIR ${EXTERNAL_DIR}/lua/lua-${LUA_RELEASE})
+set(LUA_LIBRARY_DIR ${CMAKE_CURRENT_BINARY_DIR}/build/lua-${LUA_RELEASE})
 set(LUA_INCLUDE_DIR ${LUA_DIR}/src)
 
-ExternalProject_Add(embree
-    PREFIX              ${EXTERNAL_DIR}
-    URL                 https://github.com/embree/embree/releases/download/v3.10.0/embree-3.10.0.x64.vc14.windows.zip
+ExternalProject_Add(
+    lua-${LUA_RELEASE}
+    URL http://www.lua.org/ftp/lua-${LUA_RELEASE}.tar.gz
+    DOWNLOAD_DIR ${CMAKE_CURRENT_BINARY_DIR}/download/lua-${LUA_RELEASE}
+    SOURCE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/lua/lua-${LUA_RELEASE}
+    BINARY_DIR ${LUA_LIBRARY_DIR}
+    UPDATE_COMMAND ""
+    INSTALL_COMMAND ""
+    PATCH_COMMAND ${CMAKE_COMMAND} -E copy
+      "${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/lua/CMakeLists.txt" <SOURCE_DIR>/CMakeLists.txt
+)
+
+ExternalProject_Add(embree-${EMBREE_RELEASE}
+    URL                 https://github.com/embree/embree/releases/download/v${EMBREE_RELEASE}/embree-${EMBREE_RELEASE}.x64.vc14.windows.zip
+    DOWNLOAD_DIR        ${CMAKE_CURRENT_BINARY_DIR}/download/embree-${EMBREE_RELEASE}
+    SOURCE_DIR          ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/embree/embree-${EMBREE_RELEASE}
     BUILD_IN_SOURCE     True
     UPDATE_COMMAND      ""
     CONFIGURE_COMMAND   ""
@@ -36,9 +58,10 @@ ExternalProject_Add(embree
     INSTALL_COMMAND     COMMAND ${CMAKE_COMMAND} -E copy "${EMBREE_BINARY_DIR}/embree3.dll" "${PROJECT_SOURCE_DIR}/"
 )
 
-ExternalProject_Add(tbb
-    PREFIX              ${EXTERNAL_DIR}
-    URL                 https://github.com/oneapi-src/oneTBB/releases/download/v2020.2/tbb-2020.2-win.zip
+ExternalProject_Add(tbb-${TBB_RELEASE}
+    URL                 https://github.com/oneapi-src/oneTBB/releases/download/v${TBB_RELEASE}/tbb-${TBB_RELEASE}-win.zip
+    DOWNLOAD_DIR        ${CMAKE_CURRENT_BINARY_DIR}/download/tbb-${TBB_RELEASE}
+    SOURCE_DIR          ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/tbb/tbb-${TBB_RELEASE}
     BUILD_IN_SOURCE     True
     UPDATE_COMMAND      ""
     CONFIGURE_COMMAND   ""
@@ -46,23 +69,15 @@ ExternalProject_Add(tbb
     INSTALL_COMMAND     COMMAND ${CMAKE_COMMAND} -E copy "${TBB_BINARY_DIR}/tbb.dll" "${TBB_BINARY_DIR}/tbb_debug.dll" "${PROJECT_SOURCE_DIR}/"
 )
 
-ExternalProject_Add(oidn
-    PREFIX              ${EXTERNAL_DIR}
-    URL                 https://github.com/OpenImageDenoise/oidn/releases/download/v1.2.0/oidn-1.2.0.x64.vc14.windows.zip
+ExternalProject_Add(oidn-${OIDN_RELEASE}
+    URL                 https://github.com/OpenImageDenoise/oidn/releases/download/v${OIDN_RELEASE}/oidn-${OIDN_RELEASE}.x64.vc14.windows.zip
+    DOWNLOAD_DIR        ${CMAKE_CURRENT_BINARY_DIR}/download/oidn-${OIDN_RELEASE}
+    SOURCE_DIR          ${CMAKE_CURRENT_SOURCE_DIR}/thirdparty/oidn/oidn-${OIDN_RELEASE}
     BUILD_IN_SOURCE     True
     UPDATE_COMMAND      ""
     CONFIGURE_COMMAND   ""
     BUILD_COMMAND       ""
     INSTALL_COMMAND     COMMAND ${CMAKE_COMMAND} -E copy "${OIDN_BINARY_DIR}/OpenImageDenoise.dll" "${PROJECT_SOURCE_DIR}/"
-)
-
-ExternalProject_Add(lua
-    PREFIX              ${EXTERNAL_DIR}
-    URL                 http://www.lua.org/ftp/lua-5.4.0.tar.gz
-    UPDATE_COMMAND      ""
-    CONFIGURE_COMMAND   ""
-    BUILD_COMMAND       ""
-    INSTALL_COMMAND     ""
 )
 
 execute_process(
@@ -72,12 +87,6 @@ execute_process(
 
 add_subdirectory("${PROJECT_SOURCE_DIR}/glfw")
 add_subdirectory("${PROJECT_SOURCE_DIR}/libyuv")
-
-file( GLOB_RECURSE LUA_SOURCES ${LUA_DIR}/src/*.c )
-list( REMOVE_ITEM LUA_SOURCES
-  ${LUA_DIR}/src/lua.c
-  ${LUA_DIR}/src/luac.c
-)
 
 include_directories(
     "${EMBREE_INCLUDE_DIR}"
@@ -99,6 +108,7 @@ link_directories(
     "${EMBREE_LIBRARY_DIR}"
     "${TBB_LIBRARY_DIR}"
     "${OIDN_LIBRARY_DIR}"
+    "${LUA_LIBRARY_DIR}"
 )
 
 add_executable(
@@ -124,10 +134,9 @@ add_executable(
     "${PROJECT_SOURCE_DIR}/imgui/examples/imgui_impl_glfw.cpp"
     "${PROJECT_SOURCE_DIR}/imgui/examples/imgui_impl_opengl3.cpp"
     "${PROJECT_SOURCE_DIR}/mikktspace/mikktspace.c"
-    "${LUA_SOURCES}"
 )
 
 add_definitions(-DGLM_ENABLE_EXPERIMENTAL -DGLM_FORCE_AVX)
-add_dependencies(hello_embree glfw embree tbb oidn lua)
+add_dependencies(hello_embree glfw embree-${EMBREE_RELEASE} tbb-${TBB_RELEASE} oidn-${OIDN_RELEASE} lua-${LUA_RELEASE})
 target_compile_options(hello_embree PRIVATE /arch:AVX)
-target_link_libraries(hello_embree glfw embree3 yuv OpenImageDenoise)
+target_link_libraries(hello_embree glfw embree3 yuv OpenImageDenoise lua)

@@ -1,3 +1,8 @@
+thirdparty/lua/lua-*
+thirdparty/tbb/tbb-*
+thirdparty/embree/embree-*
+thirdparty/oidn/oidn-*
+
 /build
 
 ### Embree
