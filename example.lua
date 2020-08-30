@@ -112,23 +112,50 @@ end
 
 _commitScene()
 
-_setRenderMode(RenderMode.PATHTRACING)
-_setMaxSamples(20)
+local function renderVideo()
+    _setRenderMode(RenderMode.PATHTRACING)
+    _setMaxSamples(20)
 
-local f = io.open("out/video.y4m", "wb")
+    local f = io.open("video.y4m", "wb")
 
-f:write("YUV4MPEG2 W" .. _getImageWidth() .. " H" .. _getImageHeight()
-    .. " F30000:1001 Ip A0:0 C420 XYSCSS=420\n")
+    f:write("YUV4MPEG2 W" .. _getImageWidth() .. " H" .. _getImageHeight()
+        .. " F30000:1001 Ip A0:0 C420 XYSCSS=420\n")
 
-for i=1,60 do
-    print("FRAME: " .. i)
+    for i=1, 60 do
+        print("FRAME: " .. i)
+
+        local running = true
+
+        _setLensRadius(0.75)
+        _setFocusDistance(i * 0.10 + 2.0)
+        _reset()
+
+        while running do
+            if _render() then
+                _denoise()
+                running = false
+            end
+
+            _finish(true, not running);
+
+            coroutine.yield()
+        end
+
+        f:write("FRAME\n")
+        _writeFrameYUV420(f)
+    end
+
+    f:close()
+end
+
+local function renderImage()
+    _setRenderMode(RenderMode.PATHTRACING)
+    _setMaxSamples(20)
+
+    local f = io.open("image.png", "wb")
 
     local running = true
-
-    _setLensRadius(0.75)
-    _setFocusDistance(i * 0.10 + 2.0)
     _reset()
-
     while running do
         if _render() then
             _denoise()
@@ -140,9 +167,9 @@ for i=1,60 do
         coroutine.yield()
     end
 
-    f:write("FRAME\n")
-    _writeFrameYUV420(f)
+    _writeFramePNG(f)
+
+    f:close()
 end
 
-
-f:close()
+renderImage()

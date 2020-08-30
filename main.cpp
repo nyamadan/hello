@@ -3,6 +3,8 @@
 #include <glm/ext.hpp>
 #include <OpenImageDenoise/oidn.hpp>
 
+#include <stb_image_write.h>
+
 #include <lua.hpp>
 
 #include <random>
@@ -39,10 +41,6 @@ void glDebugOutput(GLenum source, GLenum type, GLuint eid, GLenum severity,
                    GLsizei length, const GLchar *message,
                    const void *user_param) {
     switch (severity) {
-        case GL_DEBUG_SEVERITY_NOTIFICATION:
-            break;
-        case GL_DEBUG_SEVERITY_LOW:
-        case GL_DEBUG_SEVERITY_MEDIUM:
         case GL_DEBUG_SEVERITY_HIGH:
             fprintf(stderr, "ERROR(%X): %s\n", eid, message);
             break;
@@ -642,7 +640,24 @@ static int L_writeFrameYUV420(lua_State *L) {
     auto &raytracer = g_rayTracer;
     fwrite(raytracer.getImage().GetReadonlyYUV420(),
            raytracer.getImage().getYUV420Size(), 1, f);
+    lua_settop(L, 0);
+    return 0;
+}
 
+static void write_png(void *context, void *data, int32_t size) {
+    fwrite(data, size, 1, (FILE *)context);
+}
+
+static int L_writeFramePNG(lua_State *L) {
+    auto p = (luaL_Stream *)luaL_checkudata(L, 1, LUA_FILEHANDLE);
+    FILE *f = p->f;
+    auto &raytracer = g_rayTracer;
+    const auto &image = raytracer.getImage();
+    stbi_flip_vertically_on_write(true);
+    stbi_write_png_to_func(write_png, f, image.getWidth(), image.getHeight(),
+                           image.getChannels(), image.GetTextureBuffer(),
+                           image.getWidth() * image.getChannels());
+    lua_settop(L, 0);
     return 0;
 }
 
@@ -979,6 +994,7 @@ int main(void) {
                 lua_register(L, "_getImageHeight", L_getImageHeight);
 
                 lua_register(L, "_writeFrameYUV420", L_writeFrameYUV420);
+                lua_register(L, "_writeFramePNG", L_writeFramePNG);
 
                 lua_register(L, "_dumpStack", L_dumpStack);
 
