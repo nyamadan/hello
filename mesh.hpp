@@ -354,7 +354,7 @@ class Geometry {
     static std::list<std::shared_ptr<const Geometry>> updateGeometries(
         RTCDevice device, RTCScene scene,
         std::list<std::shared_ptr<const Geometry>> geometries,
-        ConstantPAnimation animation, float timeStep, const glm::mat4 &parent);
+        ConstantPAnimation animation, float timeStep);
 
     uint32_t getGeomId() const;
     RTCGeometry getGeom() const;

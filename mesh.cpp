@@ -320,6 +320,7 @@ std::list<std::shared_ptr<const Geometry>> Geometry::generateGeometries(
             geometry->geomID = geomId;
             geometry->nodes = nodes;
             geometry->primitive = primitive;
+            geometry->transform = transform;
             geometries.push_back(ConstantPGeometry(geometry));
         }
     }
@@ -338,7 +339,7 @@ std::list<std::shared_ptr<const Geometry>> Geometry::generateGeometries(
 std::list<std::shared_ptr<const Geometry>> Geometry::updateGeometries(
     RTCDevice device, RTCScene scene,
     std::list<std::shared_ptr<const Geometry>> geometries,
-    ConstantPAnimation animation, float timeStep, const glm::mat4 &parent) {
+    ConstantPAnimation animation, float timeStep) {
     timeStep = glm::mod(timeStep, animation->getTimelineMax());
 
     for (auto geometry : geometries) {
@@ -346,7 +347,7 @@ std::list<std::shared_ptr<const Geometry>> Geometry::updateGeometries(
         auto nodes = geometry->nodes;
 
         const auto transform = std::accumulate(
-            nodes.begin(), nodes.end(), parent,
+            nodes.begin(), nodes.end(), geometry->transform,
             [&](glm::mat4 matrix, ConstantPNode node) {
                 if (animation.get() == nullptr) {
                     return matrix * node->getMatrix();

@@ -324,9 +324,9 @@ static Material lua_checkmaterial(lua_State *L, int32_t i) {
     const auto roughnessFactor = lua_checkfloat(L, -1);
     lua_pop(L, 1);
 
-    return Material(
-        materialType, baseColorFactor, nullptr, nullptr, roughnessFactor,
-        metalnessFactor, nullptr, emissiveFactor, nullptr);
+    return Material(materialType, baseColorFactor, nullptr, nullptr,
+                    roughnessFactor, metalnessFactor, nullptr, emissiveFactor,
+                    nullptr);
 }
 
 static int L_loadPlane(lua_State *L) {
@@ -334,7 +334,8 @@ static int L_loadPlane(lua_State *L) {
 
     auto material = lua_checkmaterial(L, 1);
     auto tr = lua_checktransform(L, 2);
-    auto model = loadPlane(ConstantPMaterial(new Material(material)), tr.toMat4());
+    auto model =
+        loadPlane(ConstantPMaterial(new Material(material)), tr.toMat4());
 
     ConstantPGeometryList geometries;
 
@@ -356,7 +357,8 @@ static int L_loadCube(lua_State *L) {
     auto material = lua_checkmaterial(L, 1);
     auto tr = lua_checktransform(L, 2);
 
-    auto model = loadCube(ConstantPMaterial(new Material(material)), tr.toMat4());
+    auto model =
+        loadCube(ConstantPMaterial(new Material(material)), tr.toMat4());
 
     ConstantPGeometryList geometries;
 
@@ -382,7 +384,8 @@ static int L_loadSphere(lua_State *L) {
     auto segU = static_cast<uint32_t>(luaL_checkinteger(L, 3));
     auto segV = static_cast<uint32_t>(luaL_checkinteger(L, 4));
 
-    auto model = loadSphere(ConstantPMaterial(new Material(material)), segU, segV, tr.toMat4());
+    auto model = loadSphere(ConstantPMaterial(new Material(material)), segU,
+                            segV, tr.toMat4());
 
     ConstantPGeometryList geometries;
 
@@ -576,7 +579,7 @@ static int L_commitScene(lua_State *L) {
     return 0;
 }
 
-static int L_commitGeometry(lua_State* L) {
+static int L_commitGeometry(lua_State *L) {
     auto geomId = luaL_checkinteger(L, 1);
 
     auto it = std::find_if(
@@ -906,8 +909,7 @@ int main(void) {
                     if (anims.size() > 0) {
                         auto anim = anims[debugGui.getAnimIndex()];
                         Geometry::updateGeometries(device, scene, geometries,
-                                                   anim, debugGui.getAnimTime(),
-                                                   glm::mat4(1.0f));
+                                                   anim, debugGui.getAnimTime());
                         rtcCommitScene(scene);
                     }
                 }
@@ -1043,7 +1045,7 @@ int main(void) {
                         Geometry::updateGeometries(
                             device, scene, geometries,
                             model->getAnimations()[debugGui.getAnimIndex()],
-                            debugGui.getAnimTime(), glm::mat4(1.0f));
+                            debugGui.getAnimTime());
                         rtcCommitScene(scene);
                         raytracer.reset();
                     } else {
