@@ -1,0 +1,28 @@
+lockfileVersion: 5.4
+
+importers:
+
+  .:
+    specifiers:
+      hello_embree_script: workspace:*
+    dependencies:
+      hello_embree_script: link:packages/hello_embree_script
+
+  packages/hello_embree_host:
+    specifiers: {}
+
+  packages/hello_embree_script:
+    specifiers:
+      hello_embree_host: workspace:*
+      typescript: ^4.8.2
+    devDependencies:
+      hello_embree_host: link:../hello_embree_host
+      typescript: 4.8.2
+
+packages:
+
+  /typescript/4.8.2:
+    resolution: {integrity: sha512-C0I1UsrrDHo2fYI5oaCGbSejwX4ch+9Y5jTQELvovfmFkK3HHSZJB8MSJcWLmCUBzQBchCrZ9rMRV6GuNrvGtw==}
+    engines: {node: '>=4.2.0'}
+    hasBin: true
+    dev: true

@@ -1,0 +1,12 @@
+{
+  "name": "hello_embree_host",
+  "version": "0.0.1",
+  "description": "",
+  "main": "build/hello_embree_host",
+  "scripts": {
+    "build": "cmake -S ./ -B ./build/ -DCMAKE_BUILD_TYPE=Release && cmake --build ./build/ --config Release --parallel"
+  },
+  "keywords": [],
+  "author": "Yoshiki YAMADA",
+  "license": "MIT"
+}

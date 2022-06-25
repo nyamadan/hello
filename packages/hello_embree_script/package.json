@@ -1,0 +1,12 @@
+{
+  "name": "hello_embree_script",
+  "version": "0.0.1",
+  "description": "",
+  "keywords": [],
+  "author": "Yoshiki YAMADA",
+  "license": "MIT",
+  "devDependencies": {
+    "hello_embree_host": "workspace:*",
+    "typescript": "^4.8.2"
+  }
+}

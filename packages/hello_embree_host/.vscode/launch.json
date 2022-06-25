@@ -1,0 +1,16 @@
+{
+    // Use IntelliSense to learn about possible attributes.
+    // Hover to view descriptions of existing attributes.
+    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "lua",
+            "request": "launch",
+            "name": "Debug",
+            "runtimeExecutable": "${workspaceFolder}/build/hello_embree_host.exe",
+            "runtimeArgs": ["-f", "${workspaceFolder}/main.lua"],
+            "console": "internalConsole"
+        }
+    ]
+}

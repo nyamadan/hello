@@ -1,0 +1,17 @@
+{
+  "cmake.debugConfig": {
+    "cwd": "${workspaceFolder}",
+    "args": [
+      "-f",
+      "${workspaceFolder}/main.lua"
+    ]
+  },
+  "files.associations": {
+    "stdexcept": "cpp",
+    "chrono": "cpp",
+    "charconv": "cpp",
+    "format": "cpp",
+    "xlocale": "cpp",
+    "xlocmon": "cpp"
+  }
+}

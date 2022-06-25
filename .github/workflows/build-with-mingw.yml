@@ -1,0 +1,28 @@
+name: Build With MinGW
+on: [push]
+jobs:
+  Build:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: msys2 {0}
+    steps:
+      - uses: msys2/setup-msys2@v2
+        with:
+          update: true
+          install: >-
+            base-devel
+            git
+            mingw64/mingw-w64-x86_64-ninja
+            mingw64/mingw-w64-x86_64-cmake
+            mingw64/mingw-w64-x86_64-clang
+      - name: git(config)
+        run: git config --global core.autocrlf false
+        shell: bash
+      - uses: actions/checkout@v3
+      - name: Run CMake (Configure)
+        run: cmake -S packages/hello_embree_host -B packages/hello_embree_host/build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
+      - name: Run CMake (Build)
+        run: cmake --build packages/hello_embree_host/build --config Release --parallel
+      - name: Run (CTest)
+        run: ctest --test-dir packages/hello_embree_host/build -C Release
