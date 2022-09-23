@@ -55,6 +55,12 @@ int L_isLinux(lua_State *L) {
   return 1;
 }
 
+int L_registerFunction(lua_State *L) {
+  luaL_checkstring(L, 1);
+  luaL_checktype(L, 2, LUA_TFUNCTION);
+  return 0;
+}
+
 int L_require(lua_State *L) {
   lua_newtable(L);
 
@@ -70,13 +76,16 @@ int L_require(lua_State *L) {
   lua_pushcfunction(L, L_isLinux);
   lua_setfield(L, -2, "isLinux");
 
+  lua_pushcfunction(L, L_registerFunction);
+  lua_setfield(L, -2, "registerFunction");
+
   return 1;
 }
 
 } // namespace
 
-namespace hello::lua {
-void openlibs(lua_State *L) { luaL_requiref(L, "lua", L_require, false); }
+namespace hello::lua::utils {
+void openlibs(lua_State *L) { luaL_requiref(L, "utils", L_require, false); }
 
 int docall(lua_State *L, int narg, int nres) {
   int status;
@@ -105,4 +114,4 @@ int report(lua_State *L, int status) {
   }
   return status;
 }
-} // namespace hello::lua
+} // namespace hello::lua::utils

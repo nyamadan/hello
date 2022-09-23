@@ -10,8 +10,8 @@ int run(const hello::utils::arguments::ParsedArguments &parsed) {
   auto L = luaL_newstate();
   luaL_openlibs(L);
   hello::lua::sdl2::openlibs(L);
-  hello::lua::report(L, (luaL_loadfile(L, parsed.file.c_str()) ||
-                         hello::lua::docall(L, 0, LUA_MULTRET)));
+  hello::lua::utils::report(L, (luaL_loadfile(L, parsed.file.c_str()) ||
+                                hello::lua::utils::docall(L, 0, LUA_MULTRET)));
   lua_close(L);
   return 0;
 }
