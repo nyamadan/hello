@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.16.0)
+cmake_minimum_required(VERSION 3.20.0)
 project(hello_embree_host VERSION 0.1.0)
 
 set(CMAKE_VERBOSE_MAKEFILE True)
@@ -246,12 +246,9 @@ ExternalProject_Add(lua54
 )
 link_directories(${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR})
 
+file(GLOB_RECURSE CORE_SOURCES "src/core/*.cpp" "src/core/*.c")
 # core library
-add_library(hello_embree_host_lib
-  src/utils/arguments.cpp
-  src/lua/lua_utils.cpp
-  src/lua/sdl2/lua_sdl2.cpp
-)
+add_library(hello_embree_host_lib "${CORE_SOURCES}")
 
 if(MSVC)
   set_target_properties(hello_embree_host_lib PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
@@ -371,10 +368,9 @@ elseif(EMSCRIPTEN)
     "-sENVIRONMENT=web"
     "-sNO_EXIT_RUNTIME=1"
     "-sFORCE_FILESYSTEM=1"
-    "-s \"EXPORTED_RUNTIME_METHODS=['FS']\""
+    "-sINVOKE_RUN=0"
+    "-s \"EXPORTED_RUNTIME_METHODS=['FS', 'callMain']\""
     "--use-preload-plugins"
-    "--embed-file"
-    "${PROJECT_SOURCE_DIR}/main.lua@main.lua"
     "--pre-js"
     "${PROJECT_SOURCE_DIR}/pre.js"
   )
@@ -387,14 +383,8 @@ add_dependencies(hello_embree_host hello_embree_host_lib)
 include(CTest)
 enable_testing()
 
-add_executable(
-  hello_embree_host_test
-  src/tests/lua_utils_test.cpp
-  src/tests/lua_sdl2_test.cpp
-  src/tests/args_test.cpp
-  src/tests/tbb_test.cpp
-  src/tests/embree3_test.cpp
-)
+file(GLOB_RECURSE TEST_SOURCES "src/tests/*.cpp" "src/tests/*.c")
+add_executable( hello_embree_host_test "${TEST_SOURCES}")
 
 if(MSVC)
   set_target_properties(hello_embree_host_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
@@ -445,4 +435,4 @@ target_link_libraries(
 )
 
 include(GoogleTest)
-gtest_discover_tests(hello_embree_host_test DISCOVERY_MODE PRE_TEST)
+gtest_discover_tests(hello_embree_host_test)

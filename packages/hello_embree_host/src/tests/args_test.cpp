@@ -1,6 +1,6 @@
 #include <gtest/gtest.h>
 
-#include "../utils/arguments.hpp"
+#include "../core/utils/arguments.hpp"
 
 TEST(ArgsTest, GetFile) {
   const auto argc = 3;

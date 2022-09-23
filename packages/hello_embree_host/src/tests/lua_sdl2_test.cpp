@@ -2,9 +2,9 @@
 
 #include <SDL2/SDL.h>
 
-#include "../lua/lua_common.hpp"
-#include "../lua/lua_utils.hpp"
-#include "../lua/sdl2/lua_sdl2.hpp"
+#include "../core/lua/lua_common.hpp"
+#include "../core/lua/lua_utils.hpp"
+#include "../core/lua/sdl2/lua_sdl2.hpp"
 
 using namespace hello::lua;
 

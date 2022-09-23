@@ -1,7 +1,7 @@
 #include <gtest/gtest.h>
 
-#include "../lua/lua_common.hpp"
-#include "../lua/lua_utils.hpp"
+#include "../core/lua/lua_common.hpp"
+#include "../core/lua/lua_utils.hpp"
 
 using namespace hello::lua;
 

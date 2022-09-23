@@ -1,3 +1,5 @@
+print "This is main.lua"
+
 local ok, message = pcall(function()
     local SDL = require("sdl2")
 
