@@ -17,9 +17,15 @@ local ok, message = pcall(function()
         return events;
     end
 
-    if SDL.Init(SDL.INIT_VIDEO) ~= 0 then
+    if SDL.Init(SDL.INIT_VIDEO | SDL.INIT_TIMER) ~= 0 then
         error(SDL.GetError())
     end
+
+    local GLSL_VERSION = "#version 130";
+    SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);
+    SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, SDL.GL_CONTEXT_PROFILE_CORE);
+    SDL.GL_SetAttribute(SDL.GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL.GL_SetAttribute(SDL.GL_CONTEXT_MINOR_VERSION, 0);
 
     local window = SDL.CreateWindow("Hello World!!", SDL.WINDOWPOS_UNDEFINED, SDL.WINDOWPOS_UNDEFINED, 1280, 720, 0)
     local renderer = SDL.CreateRenderer(window, -1, SDL.RENDERER_ACCELERATED)

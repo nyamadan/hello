@@ -81,11 +81,22 @@ int L_SDL_Delay(lua_State *L) {
   return 0;
 }
 
+int L_SDL_GL_SetAttribute(lua_State *L) {
+  const auto attr = static_cast<SDL_GLattr>(luaL_checkinteger(L, 1));
+  const auto value = static_cast<int>(luaL_checkinteger(L, 2));
+  auto result = SDL_GL_SetAttribute(attr, value);
+  lua_pushinteger(L, result);
+  return 1;
+}
+
 int L_require(lua_State *L) {
   lua_newtable(L);
 
   lua_pushinteger(L, SDL_INIT_VIDEO);
   lua_setfield(L, -2, "INIT_VIDEO");
+
+  lua_pushinteger(L, SDL_INIT_TIMER);
+  lua_setfield(L, -2, "INIT_TIMER");
 
   lua_pushinteger(L, SDL_WINDOWPOS_UNDEFINED);
   lua_setfield(L, -2, "WINDOWPOS_UNDEFINED");
@@ -95,6 +106,21 @@ int L_require(lua_State *L) {
 
   lua_pushinteger(L, SDL_QUIT);
   lua_setfield(L, -2, "QUIT");
+
+  lua_pushinteger(L, SDL_GL_CONTEXT_FLAGS);
+  lua_setfield(L, -2, "GL_CONTEXT_FLAGS");
+
+  lua_pushinteger(L, SDL_GL_CONTEXT_PROFILE_MASK);
+  lua_setfield(L, -2, "GL_CONTEXT_PROFILE_MASK");
+
+  lua_pushinteger(L, SDL_GL_CONTEXT_PROFILE_CORE);
+  lua_setfield(L, -2, "GL_CONTEXT_PROFILE_CORE");
+
+  lua_pushinteger(L, SDL_GL_CONTEXT_MAJOR_VERSION);
+  lua_setfield(L, -2, "GL_CONTEXT_MAJOR_VERSION");
+
+  lua_pushinteger(L, SDL_GL_CONTEXT_MINOR_VERSION);
+  lua_setfield(L, -2, "GL_CONTEXT_MINOR_VERSION");
 
   lua_pushcfunction(L, L_SDL_Init);
   lua_setfield(L, -2, "Init");
@@ -122,6 +148,9 @@ int L_require(lua_State *L) {
 
   lua_pushcfunction(L, L_SDL_Delay);
   lua_setfield(L, -2, "Delay");
+
+  lua_pushcfunction(L, L_SDL_GL_SetAttribute);
+  lua_setfield(L, -2, "GL_SetAttribute");
 
   return 1;
 }
