@@ -23,12 +23,13 @@
   "extensions": [
     "ms-vscode.cmake-tools",
     "ms-vscode.cpptools",
-    "esbenp.prettier-vscode"
+    "esbenp.prettier-vscode",
+    "xaver.clang-format"
   ],
   "settings": {
     "cmake.configureSettings": {
       "CMAKE_TOOLCHAIN_FILE": "/emsdk/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
-      "CMAKE_INSTALL_PREFIX": "/workspaces/hello_embree/packages/hello_embree_host/",
+      "CMAKE_INSTALL_PREFIX": "/workspaces/",
       "CMAKE_CROSSCOMPILING_EMULATOR": "/usr/local/bin/node"
     }
   }

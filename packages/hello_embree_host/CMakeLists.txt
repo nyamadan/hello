@@ -301,6 +301,10 @@ if(MSVC)
   set_target_properties(hello_embree_host PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
 endif()
 
+if(EMSCRIPTEN)
+  set_target_properties(hello_embree_host PROPERTIES OUTPUT_NAME "index" SUFFIX ".js")
+endif()
+
 # compile options
 target_compile_options(hello_embree_host PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
@@ -363,7 +367,8 @@ elseif(EMSCRIPTEN)
     "-sNO_EXIT_RUNTIME=1"
     "-sFORCE_FILESYSTEM=1"
     "-sINVOKE_RUN=0"
-    "-s \"EXPORTED_RUNTIME_METHODS=['FS', 'callMain']\""
+    "--post-js"
+    "${PROJECT_SOURCE_DIR}/post.js"
   )
 endif()
 
@@ -381,6 +386,8 @@ if(MSVC)
   set_target_properties(hello_embree_host_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
   set_target_properties(hello_embree_host_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
   set_target_properties(hello_embree_host_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
+elseif(EMSCRIPTEN)
+  set_target_properties(hello_embree_host_test PROPERTIES OUTPUT_NAME "hello_embree_host_test" SUFFIX ".cjs")
 endif()
 
 # compile option
@@ -426,4 +433,4 @@ target_link_libraries(
 )
 
 include(GoogleTest)
-gtest_discover_tests(hello_embree_host_test)
+gtest_discover_tests(hello_embree_host_test DISCOVERY_MODE PRE_TEST)

@@ -19,6 +19,8 @@ RUN cd /tmp \
 RUN cd /tmp \
     && curl -LO https://nodejs.org/dist/v18.9.0/node-v18.9.0-linux-x64.tar.xz \
     && tar -xvJf node-v18.9.0-linux-x64.tar.xz -C /usr/local --strip-components=1 --no-same-owner \
+    && npm install -g npm \
+    && npm install -g pnpm \
     && rm node-v18.9.0-linux-x64.tar.xz
 RUN git clone https://github.com/emscripten-core/emsdk.git /emsdk \
     && cd /emsdk \

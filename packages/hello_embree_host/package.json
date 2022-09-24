@@ -1,11 +1,14 @@
 {
   "name": "hello_embree_host",
   "version": "0.0.1",
-  "description": "",
-  "main": "build/hello_embree_host",
+  "type": "module",
+  "main": "build/index.js",
   "scripts": {
     "build": "cmake -S ./ -B ./build/ -DCMAKE_BUILD_TYPE=Release && cmake --build ./build/ --config Release --parallel"
   },
+  "files": [
+    "build/index.js"
+  ],
   "keywords": [],
   "author": "Yoshiki YAMADA",
   "license": "MIT"

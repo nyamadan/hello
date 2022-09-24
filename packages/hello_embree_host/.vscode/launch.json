@@ -8,8 +8,8 @@
             "type": "lua",
             "request": "launch",
             "name": "Debug",
-            "runtimeExecutable": "${workspaceFolder}/build/hello_embree_host.exe",
-            "runtimeArgs": ["-f", "${workspaceFolder}/main.lua"],
+            "runtimeExecutable": "${workspaceFolder}/../hello_embree_host/build/hello_embree_host.exe",
+            "runtimeArgs": ["-f", "${workspaceFolder}/public/main.lua"],
             "console": "internalConsole"
         }
     ]
