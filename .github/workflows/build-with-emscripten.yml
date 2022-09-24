@@ -15,4 +15,4 @@ jobs:
       - name: Run CMake (Build)
         run: cmake --build packages/hello_embree_host/build --config Release --parallel
       - name: Run (CTest)
-        run: ctest --test-dir packages/hello_embree_host/build -C Release
+        run: ctest --test-dir packages/hello_embree_host/build -C Release --output-on-failure
