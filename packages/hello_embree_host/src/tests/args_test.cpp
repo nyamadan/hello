@@ -7,7 +7,7 @@ TEST(ArgsTest, GetFile) {
   const char *const argv[argc] = {"./test", "-f", "test.txt"};
   auto result =
       hello::utils::arguments::parse(argc, argv, std::cout, std::cerr);
-  ASSERT_EQ(result.file, "test.txt");
+  ASSERT_EQ("test.txt", result.file);
 }
 
 TEST(ArgsTest, ShowHelp) {

@@ -179,7 +179,7 @@ TEST_F(LuaSDL2_Test, DestroyRenderer) {
                      "local args = {...};"
                      "return SDL.DestroyRenderer(args[1]);");
   lua_rawgeti(L, LUA_REGISTRYINDEX, refRenderer);
-  ASSERT_EQ(utils::docall(L, 1), LUA_OK) << lua_tostring(L, -1);
+  ASSERT_EQ(LUA_OK, utils::docall(L, 1)) << lua_tostring(L, -1);
   luaL_unref(L, LUA_REGISTRYINDEX, refRenderer);
   refRenderer = LUA_REFNIL;
 }
@@ -190,9 +190,8 @@ TEST_F(LuaSDL2_Test, TestPollEvent) {
 #endif
   initWindow();
 
-  ASSERT_EQ(utils::dostring(L, "local SDL = require('sdl2');"
-                               "return SDL.PollEvent();"),
-            LUA_OK)
+  ASSERT_EQ(LUA_OK, utils::dostring(L, "local SDL = require('sdl2');"
+                                       "return SDL.PollEvent();"))
       << lua_tostring(L, -1);
   ASSERT_TRUE(lua_istable(L, -1))
       << "SDL_PollEvent did not return table: " << lua_typename(L, -1);
@@ -209,9 +208,8 @@ TEST_F(LuaSDL2_Test, TestDelay) {
 #endif
   initWindow();
 
-  ASSERT_EQ(utils::dostring(L, "local SDL = require('sdl2');"
-                               "return SDL.Delay(16);"),
-            LUA_OK)
+  ASSERT_EQ(LUA_OK, utils::dostring(L, "local SDL = require('sdl2');"
+                                       "return SDL.Delay(16);"))
       << lua_tostring(L, -1);
 }
 
@@ -221,7 +219,6 @@ TEST_F(LuaSDL2_Test, TestFailToDelay) {
 #endif
   initWindow();
 
-  ASSERT_NE(utils::dostring(L, "local SDL = require('sdl2');"
-                               "return SDL.Delay();"),
-            LUA_OK);
+  ASSERT_NE(LUA_OK, utils::dostring(L, "local SDL = require('sdl2');"
+                                       "return SDL.Delay();"));
 }
