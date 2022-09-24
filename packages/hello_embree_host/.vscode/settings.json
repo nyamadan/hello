@@ -1,10 +1,7 @@
 {
   "cmake.debugConfig": {
     "cwd": "${workspaceFolder}",
-    "args": [
-      "-f",
-      "${workspaceFolder}/main.lua"
-    ]
+    "args": ["-f", "${workspaceFolder}/main.lua"]
   },
   "cmake.ctestArgs": ["--output-on-failure"],
   "files.associations": {

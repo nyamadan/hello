@@ -295,15 +295,6 @@ else()
   )
 endif()
 
-if(EMSCRIPTEN)
-  set_target_properties(
-      hello_embree_host 
-      PROPERTIES 
-          OUTPUT_NAME "hello_embree_host"
-          SUFFIX ".html"
-  )
-endif()
-
 if(MSVC)
   set_target_properties(hello_embree_host PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
   set_target_properties(hello_embree_host PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
@@ -366,13 +357,13 @@ elseif(EMSCRIPTEN)
     "-sMIN_WEBGL_VERSION=2"
     "-sALLOW_MEMORY_GROWTH=1"
     "-sENVIRONMENT=web"
+    "-sMODULARIZE=1"
+    "-sEXPORT_ES6=1"
+    "-sSINGLE_FILE=1"
     "-sNO_EXIT_RUNTIME=1"
     "-sFORCE_FILESYSTEM=1"
     "-sINVOKE_RUN=0"
     "-s \"EXPORTED_RUNTIME_METHODS=['FS', 'callMain']\""
-    "--use-preload-plugins"
-    "--pre-js"
-    "${PROJECT_SOURCE_DIR}/pre.js"
   )
 endif()
 
