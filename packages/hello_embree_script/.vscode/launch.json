@@ -8,12 +8,12 @@
       "type": "lua",
       "request": "launch",
       "name": "Debug",
-      "runtimeExecutable": "${workspaceFolder}/build/hello_embree_host",
+      "runtimeExecutable": "${workspaceFolder}/../hello_embree_host/build/hello_embree_host",
       "windows": {
-        "runtimeExecutable": "${workspaceFolder}/build/hello_embree_host.exe"
+        "runtimeExecutable": "${workspaceFolder}/../hello_embree_host/build/hello_embree_host.exe"
       },
       "runtimeArgs": ["-f", "main.lua"],
-      "cwd": "${workspaceFolder}/../hello_embree_script/public",
+      "cwd": "${workspaceFolder}/public",
       "console": "internalConsole"
     }
   ]

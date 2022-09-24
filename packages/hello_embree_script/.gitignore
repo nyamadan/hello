@@ -11,14 +11,14 @@ node_modules
 dist
 dist-ssr
 *.local
+### VisualStudioCode
 
-# Editor directories and files
 .vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
 !.vscode/extensions.json
-.idea
-.DS_Store
-*.suo
-*.ntvs*
-*.njsproj
-*.sln
-*.sw?
+*.code-workspace
+
+# Local History for Visual Studio Code
+.history/
