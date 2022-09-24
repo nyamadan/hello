@@ -1,0 +1,15 @@
+{
+  "configurations": [
+    {
+      "name": "Settings",
+      "includePath": [
+        "${workspaceFolder}/**",
+        "${workspaceFolder}/build/externals/include"
+      ],
+      "defines": [],
+      "cStandard": "c17",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

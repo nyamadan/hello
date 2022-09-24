@@ -12,6 +12,8 @@
     "charconv": "cpp",
     "format": "cpp",
     "xlocale": "cpp",
-    "xlocmon": "cpp"
+    "xlocmon": "cpp",
+    "new": "cpp",
+    "system_error": "cpp"
   }
 }

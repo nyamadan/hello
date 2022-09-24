@@ -8,5 +8,6 @@ int docall(lua_State *L, int narg, int nres = LUA_MULTRET);
 int dostring(lua_State *L, const char *const s, int narg = 0,
              int nres = LUA_MULTRET);
 int report(lua_State *L, int status);
+int getFunction(lua_State *L, const char *const name);
 } // namespace hello::lua::utils
 #endif

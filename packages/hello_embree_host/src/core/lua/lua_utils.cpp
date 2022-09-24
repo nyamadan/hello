@@ -55,9 +55,26 @@ int L_isLinux(lua_State *L) {
   return 1;
 }
 
+const char *FUNCTION_KEY = "HELLO_EMBREE_REGIDTER_FUNCTION";
+
 int L_registerFunction(lua_State *L) {
-  luaL_checkstring(L, 1);
+  auto name = luaL_checkstring(L, 1);
   luaL_checktype(L, 2, LUA_TFUNCTION);
+
+  lua_pushstring(L, FUNCTION_KEY);
+  if (lua_gettable(L, LUA_REGISTRYINDEX) != LUA_TTABLE) {
+    lua_pushstring(L, FUNCTION_KEY);
+    lua_newtable(L);
+    lua_settable(L, LUA_REGISTRYINDEX);
+
+    lua_pushstring(L, FUNCTION_KEY);
+    lua_gettable(L, LUA_REGISTRYINDEX);
+  }
+
+  lua_pushstring(L, name);
+  lua_pushvalue(L, 2);
+  lua_settable(L, -3);
+
   return 0;
 }
 
@@ -114,4 +131,10 @@ int report(lua_State *L, int status) {
   }
   return status;
 }
+
+int getFunction(lua_State *L, const char *const name) {
+  lua_pushstring(L, name);
+  return lua_gettable(L, LUA_REGISTRYINDEX);
+}
+
 } // namespace hello::lua::utils

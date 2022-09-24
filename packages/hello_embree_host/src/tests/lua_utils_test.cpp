@@ -58,5 +58,9 @@ TEST_F(LuaUtils_Test, registerFunctionTest) {
   lua_pushcfunction(L, L_noop);
   ASSERT_EQ(LUA_OK, docall(L, 1, 0));
 
-  // WIP
+  lua_settop(L, 0);
+
+  getFunction(L, "update");
+  ASSERT_EQ(1, lua_gettop(L));
+  ASSERT_EQ(L_noop, lua_tocfunction(L, 1));
 }
