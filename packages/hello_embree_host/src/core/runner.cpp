@@ -23,8 +23,8 @@ void handleEvents(void *arg) {
   auto L = static_cast<lua_State *>(arg);
 #if defined(__EMSCRIPTEN__)
   if (lua::utils::getFunction(L, "update") != LUA_TFUNCTION) {
+    finalize(L);
     emscripten_cancel_main_loop();
-    finalize();
     return;
   }
 #endif
