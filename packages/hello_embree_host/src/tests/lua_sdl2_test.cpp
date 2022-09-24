@@ -242,3 +242,16 @@ TEST_F(LuaSDL2_Test, TestFailedToGlSetAttribute) {
                                        "return SDL.GL_SetAttribute();"))
       << lua_tostring(L, -1);
 }
+
+TEST_F(LuaSDL2_Test, GL_CreateContext) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+  initWindow();
+  initRenderer();
+  luaL_loadstring(L, "local SDL = require('sdl2');"
+                     "local args = {...};"
+                     "return SDL.GL_CreateContext(args[1]);");
+  lua_rawgeti(L, LUA_REGISTRYINDEX, refWindow);
+  ASSERT_EQ(LUA_OK, utils::docall(L, 1)) << lua_tostring(L, -1);
+}
