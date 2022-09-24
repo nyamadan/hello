@@ -128,5 +128,8 @@ int L_require(lua_State *L) {
 } // namespace
 
 namespace hello::lua::sdl2 {
-void openlibs(lua_State *L) { luaL_requiref(L, "sdl2", L_require, false); }
+void openlibs(lua_State *L) {
+  luaL_requiref(L, "sdl2", L_require, false);
+  lua_pop(L, 1);
+}
 } // namespace hello::lua::sdl2

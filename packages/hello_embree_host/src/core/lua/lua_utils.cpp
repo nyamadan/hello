@@ -105,7 +105,10 @@ int L_require(lua_State *L) {
 } // namespace
 
 namespace hello::lua::utils {
-void openlibs(lua_State *L) { luaL_requiref(L, "utils", L_require, false); }
+void openlibs(lua_State *L) {
+  luaL_requiref(L, "utils", L_require, false);
+  lua_pop(L, 1);
+}
 
 int docall(lua_State *L, int narg, int nres) {
   int status;
