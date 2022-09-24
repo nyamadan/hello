@@ -46,23 +46,34 @@ TEST_F(LuaUtils_Test, isEmscriptenTest) {
                              "local utils = require('utils');"
                              "return utils.isEmscripten();",
                              0, 1));
-  ASSERT_EQ(isEmscripten, lua_toboolean(L, -1));
+  ASSERT_EQ(isEmscripten, lua_toboolean(L, -1)) << lua_tostring(L, -1);
 }
 
 TEST_F(LuaUtils_Test, registerFunctionTest) {
   luaL_openlibs(L);
   openlibs(L);
+
+  // register
   luaL_loadstring(L, "local utils = require('utils');"
                      "local args = {...};"
                      "return utils.registerFunction('update', args[1]);");
   lua_pushcfunction(L, L_noop);
-  ASSERT_EQ(LUA_OK, docall(L, 1, 0));
+  ASSERT_EQ(LUA_OK, docall(L, 1, 0)) << lua_tostring(L, -1);
 
+  // getFunction
   lua_settop(L, 0);
-  getFunction(L, "update");
+  ASSERT_EQ(LUA_TFUNCTION, getFunction(L, "update"));
   ASSERT_EQ(1, lua_gettop(L));
   ASSERT_EQ(L_noop, lua_tocfunction(L, 1))
       << "typename: " << lua_typename(L, 1);
+
+  // unregister
+  ASSERT_EQ(LUA_OK, dostring(L, "local utils = require('utils');"
+                                "return utils.unregisterFunction('update');"))
+      << lua_tostring(L, -1);
+  lua_settop(L, 0);
+  ASSERT_EQ(LUA_TNIL, getFunction(L, "update"));
+  ASSERT_EQ(1, lua_gettop(L));
 }
 
 TEST_F(LuaUtils_Test, registerFunctionNoMethodTest) {

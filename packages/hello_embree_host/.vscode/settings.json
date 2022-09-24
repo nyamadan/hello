@@ -6,6 +6,7 @@
       "${workspaceFolder}/main.lua"
     ]
   },
+  "cmake.ctestArgs": ["--output-on-failure"],
   "files.associations": {
     "stdexcept": "cpp",
     "chrono": "cpp",

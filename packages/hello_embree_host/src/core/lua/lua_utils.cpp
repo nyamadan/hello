@@ -81,6 +81,22 @@ int L_registerFunction(lua_State *L) {
   return 0;
 }
 
+int L_unregisterFunction(lua_State *L) {
+  auto name = luaL_checkstring(L, 1);
+
+  lua_pushstring(L, FUNCTION_KEY);
+  if (lua_gettable(L, LUA_REGISTRYINDEX) != LUA_TTABLE) {
+    setFunctionTableToRegistry(L);
+    lua_pushstring(L, FUNCTION_KEY);
+    lua_gettable(L, LUA_REGISTRYINDEX);
+  }
+
+  lua_pushstring(L, name);
+  lua_pushnil(L);
+  lua_settable(L, -3);
+  return 0;
+}
+
 int L_require(lua_State *L) {
   lua_newtable(L);
 
@@ -98,6 +114,9 @@ int L_require(lua_State *L) {
 
   lua_pushcfunction(L, L_registerFunction);
   lua_setfield(L, -2, "registerFunction");
+
+  lua_pushcfunction(L, L_unregisterFunction);
+  lua_setfield(L, -2, "unregisterFunction");
 
   return 1;
 }

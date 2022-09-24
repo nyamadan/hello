@@ -1,6 +1,7 @@
 print "This is main.lua"
 
 local ok, message = pcall(function()
+    local utils = require("utils")
     local SDL = require("sdl2")
 
     local function collectEvents()
@@ -23,18 +24,24 @@ local ok, message = pcall(function()
     local window = SDL.CreateWindow("Hello World!!", SDL.WINDOWPOS_UNDEFINED, SDL.WINDOWPOS_UNDEFINED, 1280, 720, 0)
     local renderer = SDL.CreateRenderer(window, -1, SDL.RENDERER_ACCELERATED)
 
-    local running = true
-    while running do
-        local events = collectEvents()
-        for _, ev in ipairs(events) do
-            if ev.type == SDL.QUIT then
-                running = false
-            end
-        end
-        SDL.Delay(16)
-    end
+    utils.registerFunction("update", function()
+        local ok, message = pcall(function()
+            local events = collectEvents()
+            for _, ev in ipairs(events) do
+                if ev.type == SDL.QUIT then
+                    utils.unregisterFunction("update")
+                    SDL.Quit()
+                    return
+                end
 
-    SDL.Quit()
+                print("ev: type = " .. ev.type)
+            end
+            SDL.Delay(16)
+        end)
+        if not ok then
+            print(message)
+        end
+    end)
 end)
 
 if not ok then
