@@ -59,8 +59,21 @@ TEST_F(LuaUtils_Test, registerFunctionTest) {
   ASSERT_EQ(LUA_OK, docall(L, 1, 0));
 
   lua_settop(L, 0);
-
   getFunction(L, "update");
   ASSERT_EQ(1, lua_gettop(L));
-  ASSERT_EQ(L_noop, lua_tocfunction(L, 1));
+  ASSERT_EQ(L_noop, lua_tocfunction(L, 1))
+      << "typename: " << lua_typename(L, 1);
+}
+
+TEST_F(LuaUtils_Test, registerFunctionNoMethodTest) {
+  luaL_openlibs(L);
+  openlibs(L);
+
+  lua_settop(L, 0);
+  ASSERT_EQ(LUA_TNIL, getFunction(L, "name1"));
+  ASSERT_EQ(1, lua_gettop(L));
+
+  lua_settop(L, 0);
+  ASSERT_EQ(LUA_TNIL, getFunction(L, "name2"));
+  ASSERT_EQ(1, lua_gettop(L));
 }

@@ -55,7 +55,13 @@ int L_isLinux(lua_State *L) {
   return 1;
 }
 
-const char *FUNCTION_KEY = "HELLO_EMBREE_REGIDTER_FUNCTION";
+const char *FUNCTION_KEY = "93202c1a-90c3-4248-a174-5a37033be3c8";
+
+void setFunctionTableToRegistry(lua_State *L) {
+  lua_pushstring(L, FUNCTION_KEY);
+  lua_newtable(L);
+  lua_settable(L, LUA_REGISTRYINDEX);
+}
 
 int L_registerFunction(lua_State *L) {
   auto name = luaL_checkstring(L, 1);
@@ -63,10 +69,7 @@ int L_registerFunction(lua_State *L) {
 
   lua_pushstring(L, FUNCTION_KEY);
   if (lua_gettable(L, LUA_REGISTRYINDEX) != LUA_TTABLE) {
-    lua_pushstring(L, FUNCTION_KEY);
-    lua_newtable(L);
-    lua_settable(L, LUA_REGISTRYINDEX);
-
+    setFunctionTableToRegistry(L);
     lua_pushstring(L, FUNCTION_KEY);
     lua_gettable(L, LUA_REGISTRYINDEX);
   }
@@ -133,8 +136,19 @@ int report(lua_State *L, int status) {
 }
 
 int getFunction(lua_State *L, const char *const name) {
+  lua_pushstring(L, FUNCTION_KEY);
+  if (lua_gettable(L, LUA_REGISTRYINDEX) != LUA_TTABLE) {
+    lua_pop(L, 1);
+    setFunctionTableToRegistry(L);
+    lua_pushstring(L, FUNCTION_KEY);
+    lua_gettable(L, LUA_REGISTRYINDEX);
+  }
+
   lua_pushstring(L, name);
-  return lua_gettable(L, LUA_REGISTRYINDEX);
+  lua_gettable(L, -2);
+  lua_remove(L, -2);
+
+  return lua_type(L, -1);
 }
 
 } // namespace hello::lua::utils
