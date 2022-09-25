@@ -40,9 +40,10 @@ protected:
   }
 
   void pushWindow() {
-    lua_pushlightuserdata(L, this->window);
-    luaL_newmetatable(L, "SDL_Window");
-    lua_setmetatable(L, -2);
+    auto pWindow =
+        static_cast<SDL_Window **>(lua_newuserdata(L, sizeof(SDL_Window *)));
+    *pWindow = window;
+    luaL_setmetatable(L, "SDL_Window");
   }
 
   void initRenderer() {
@@ -52,9 +53,10 @@ protected:
   }
 
   void pushRenderer() {
-    lua_pushlightuserdata(L, this->renderer);
-    luaL_newmetatable(L, "SDL_Renderer");
-    lua_setmetatable(L, -2);
+    auto pRenderer = static_cast<SDL_Renderer **>(
+        lua_newuserdata(L, sizeof(SDL_Renderer *)));
+    *pRenderer = renderer;
+    luaL_setmetatable(L, "SDL_Renderer");
   }
 
   virtual void SetUp() { initLuaState(); }
