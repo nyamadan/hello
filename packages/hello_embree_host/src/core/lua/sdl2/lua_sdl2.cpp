@@ -3,6 +3,10 @@
 #include <SDL2/SDL.h>
 
 namespace {
+const char *const SDL_WINDOW_NAME = "SDL_Window";
+const char *const SDL_RENDERER_NAME = "SDL_Renderer";
+const char *const SDL_GL_CONTEXT_NAME = "SDL_GL_Context";
+
 int L_SDL_Init(lua_State *L) {
   auto flags = static_cast<Uint32>(luaL_checkinteger(L, 1));
   auto result = SDL_Init(flags);
@@ -30,32 +34,33 @@ int L_SDL_CreateWindow(lua_State *L) {
   const auto flags = static_cast<uint32_t>(luaL_checkinteger(L, 6));
   auto window = SDL_CreateWindow(title, x, y, w, h, flags);
   lua_pushlightuserdata(L, window);
-  luaL_newmetatable(L, "SDL_Window");
+  luaL_newmetatable(L, SDL_WINDOW_NAME);
   lua_setmetatable(L, -2);
   return 1;
 }
 
 int L_SDL_DestroyWindow(lua_State *L) {
-  auto window = static_cast<SDL_Window *>(luaL_checkudata(L, 1, "SDL_Window"));
+  auto window =
+      static_cast<SDL_Window *>(luaL_checkudata(L, 1, SDL_WINDOW_NAME));
   SDL_DestroyWindow(window);
   return 0;
 }
 
 int L_SDL_CreateRenderer(lua_State *L) {
   SDL_Window *window =
-      reinterpret_cast<SDL_Window *>(luaL_checkudata(L, 1, "SDL_Window"));
+      reinterpret_cast<SDL_Window *>(luaL_checkudata(L, 1, SDL_WINDOW_NAME));
   const int32_t index = static_cast<int32_t>(luaL_checkinteger(L, 2));
   const uint32_t flags = static_cast<uint32_t>(luaL_checkinteger(L, 3));
   auto renderer = SDL_CreateRenderer(window, index, flags);
   lua_pushlightuserdata(L, renderer);
-  luaL_newmetatable(L, "SDL_Renderer");
+  luaL_newmetatable(L, SDL_RENDERER_NAME);
   lua_setmetatable(L, -2);
   return 1;
 }
 
 int L_SDL_DestroyRenderer(lua_State *L) {
   auto renderer =
-      static_cast<SDL_Renderer *>(luaL_checkudata(L, 1, "SDL_Renderer"));
+      static_cast<SDL_Renderer *>(luaL_checkudata(L, 1, SDL_RENDERER_NAME));
   SDL_DestroyRenderer(renderer);
   return 0;
 }
@@ -90,11 +95,16 @@ int L_SDL_GL_SetAttribute(lua_State *L) {
 }
 
 int L_SDL_GL_CreateContext(lua_State *L) {
-  auto window = static_cast<SDL_Window *>(luaL_checkudata(L, 1, "SDL_Window"));
+  auto window =
+      static_cast<SDL_Window *>(luaL_checkudata(L, 1, SDL_WINDOW_NAME));
   auto context = SDL_GL_CreateContext(window);
-  lua_pushlightuserdata(L, context);
-  luaL_newmetatable(L, "SDL_GL_Context");
-  lua_setmetatable(L, -2);
+  if (context == nullptr) {
+    lua_pushnil(L);
+  } else {
+    lua_pushlightuserdata(L, context);
+    luaL_newmetatable(L, SDL_GL_CONTEXT_NAME);
+    lua_setmetatable(L, -2);
+  }
   return 1;
 }
 
@@ -106,6 +116,9 @@ int L_require(lua_State *L) {
 
   lua_pushinteger(L, SDL_INIT_TIMER);
   lua_setfield(L, -2, "INIT_TIMER");
+
+  lua_pushinteger(L, SDL_WINDOW_OPENGL);
+  lua_setfield(L, -2, "WINDOW_OPENGL");
 
   lua_pushinteger(L, SDL_WINDOWPOS_UNDEFINED);
   lua_setfield(L, -2, "WINDOWPOS_UNDEFINED");

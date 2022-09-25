@@ -34,8 +34,9 @@ protected:
   }
 
   void initWindow() {
-    this->window = SDL_CreateWindow("Hello", SDL_WINDOWPOS_UNDEFINED,
-                                    SDL_WINDOWPOS_UNDEFINED, 1280, 720, 0);
+    this->window =
+        SDL_CreateWindow("Hello", SDL_WINDOWPOS_UNDEFINED,
+                         SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_OPENGL);
   }
 
   void pushWindow() {
@@ -79,6 +80,7 @@ protected:
 TEST_F(LuaSDL2_Test, TestSDLConstants) {
   TEST_LUA_CONSTANT("sdl2", "INIT_VIDEO", SDL_INIT_VIDEO);
   TEST_LUA_CONSTANT("sdl2", "INIT_TIMER", SDL_INIT_TIMER);
+  TEST_LUA_CONSTANT("sdl2", "WINDOW_OPENGL", SDL_WINDOW_OPENGL);
   TEST_LUA_CONSTANT("sdl2", "WINDOWPOS_UNDEFINED", SDL_WINDOWPOS_UNDEFINED);
   TEST_LUA_CONSTANT("sdl2", "RENDERER_ACCELERATED", SDL_RENDERER_ACCELERATED);
   TEST_LUA_CONSTANT("sdl2", "QUIT", SDL_QUIT);
@@ -243,7 +245,13 @@ TEST_F(LuaSDL2_Test, GL_CreateContext) {
   initRenderer();
   luaL_loadstring(L, "local SDL = require('sdl2');"
                      "local args = {...};"
-                     "SDL.GL_CreateContext(args[1]);");
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, "
+                     "SDL.GL_CONTEXT_PROFILE_CORE);"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_MAJOR_VERSION, 3);"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_MINOR_VERSION, 0);"
+                     "return SDL.GL_CreateContext(args[1]);");
   pushWindow();
   ASSERT_EQ(LUA_OK, utils::docall(L, 1, 1)) << lua_tostring(L, -1);
+  ASSERT_NE(nullptr, luaL_testudata(L, -1, "SDL_GL_Context"));
 }

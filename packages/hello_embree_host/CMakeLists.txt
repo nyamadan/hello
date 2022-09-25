@@ -234,8 +234,8 @@ endif()
 
 ExternalProject_Add(lua54
   PREFIX "${EXTERNALS_ROOT}"
-  URL https://www.lua.org/ftp/lua-5.4.3.tar.gz
-  URL_MD5 ef63ed2ecfb713646a7fcc583cf5f352
+  URL https://www.lua.org/ftp/lua-5.4.4.tar.gz
+  URL_MD5 bd8ce7069ff99a400efd14cf339a727b
   BUILD_BYPRODUCTS ${LUA_LIB}
   CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
