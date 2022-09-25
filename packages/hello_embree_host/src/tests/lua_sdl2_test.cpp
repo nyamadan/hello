@@ -37,7 +37,8 @@ protected:
     utils::dostring(L,
                     "local SDL = require('sdl2');"
                     "return SDL.CreateWindow('Hello', SDL.WINDOWPOS_UNDEFINED, "
-                    "SDL.WINDOWPOS_UNDEFINED, 1280, 720, 0);");
+                    "SDL.WINDOWPOS_UNDEFINED, 1280, 720, 0);",
+                    0, 1);
     refWindow = luaL_ref(L, LUA_REGISTRYINDEX);
   }
 
@@ -47,7 +48,7 @@ protected:
                        "return SDL.CreateRenderer(args[1], -1, "
                        "SDL.RENDERER_ACCELERATED);");
     lua_rawgeti(L, LUA_REGISTRYINDEX, refWindow);
-    utils::docall(L, 1);
+    utils::docall(L, 1, 1);
     refRenderer = luaL_ref(L, LUA_REGISTRYINDEX);
   }
 
@@ -249,9 +250,6 @@ TEST_F(LuaSDL2_Test, GL_CreateContext) {
 #endif
   initWindow();
   initRenderer();
-  luaL_loadstring(L, "local SDL = require('sdl2');"
-                     "local args = {...};"
-                     "return SDL.GL_CreateContext(args[1]);");
   lua_rawgeti(L, LUA_REGISTRYINDEX, refWindow);
-  ASSERT_EQ(LUA_OK, utils::docall(L, 1)) << lua_tostring(L, -1);
+  ASSERT_EQ(LUA_OK, utils::docall(L, 1, 1)) << lua_tostring(L, -1);
 }

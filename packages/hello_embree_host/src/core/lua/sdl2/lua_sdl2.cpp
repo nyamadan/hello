@@ -89,6 +89,15 @@ int L_SDL_GL_SetAttribute(lua_State *L) {
   return 1;
 }
 
+int L_SDL_GL_CreateContext(lua_State *L) {
+  auto window = static_cast<SDL_Window *>(luaL_checkudata(L, 1, "SDL_Window"));
+  auto context = SDL_GL_CreateContext(window);
+  lua_pushlightuserdata(L, context);
+  luaL_newmetatable(L, "SDL_GL_Context");
+  lua_setmetatable(L, -2);
+  return 1;
+}
+
 int L_require(lua_State *L) {
   lua_newtable(L);
 
@@ -151,6 +160,9 @@ int L_require(lua_State *L) {
 
   lua_pushcfunction(L, L_SDL_GL_SetAttribute);
   lua_setfield(L, -2, "GL_SetAttribute");
+
+  lua_pushcfunction(L, L_SDL_GL_CreateContext);
+  lua_setfield(L, -2, "GL_CreateContext");
 
   return 1;
 }
