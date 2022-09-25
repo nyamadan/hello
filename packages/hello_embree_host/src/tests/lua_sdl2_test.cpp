@@ -255,3 +255,26 @@ TEST_F(LuaSDL2_Test, GL_CreateContext) {
   ASSERT_EQ(LUA_OK, utils::docall(L, 1, 1)) << lua_tostring(L, -1);
   ASSERT_NE(nullptr, luaL_testudata(L, -1, "SDL_GL_Context"));
 }
+
+TEST_F(LuaSDL2_Test, MetatableTest) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+  ASSERT_EQ(
+      LUA_OK,
+      utils::dostring(L, "local SDL = require('sdl2');"
+                         "local window = SDL.CreateWindow('Hello World!!', "
+                         "SDL.WINDOWPOS_UNDEFINED, SDL.WINDOWPOS_UNDEFINED, "
+                         "1280, 720, SDL.WINDOW_OPENGL)"
+                         "local renderer = SDL.CreateRenderer(window, -1, "
+                         "SDL.RENDERER_ACCELERATED)"
+                         "SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);"
+                         "SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, "
+                         "SDL.GL_CONTEXT_PROFILE_CORE);"
+                         "SDL.GL_SetAttribute(SDL.GL_CONTEXT_MAJOR_VERSION, 3);"
+                         "SDL.GL_SetAttribute(SDL.GL_CONTEXT_MINOR_VERSION, 0);"
+                         "SDL.GL_CreateContext(window);"
+                         "SDL.DestroyWindow(window);"
+                         "SDL.DestroyRenderer(renderer);"))
+      << lua_tostring(L, -1);
+}

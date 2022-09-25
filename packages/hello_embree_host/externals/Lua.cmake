@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.0.0)
-project(lua54 VERSION 5.4.3)
+project(lua VERSION 5.4.4)
 
 include(GNUInstallDirs)
 
@@ -38,21 +38,21 @@ set(LUA_SOURCES
   ./src/linit.c
 )
 
-add_library(lua54 SHARED ${LUA_SOURCES})
+add_library(lua SHARED ${LUA_SOURCES})
 
 if(MSVC OR MINGW)
-  target_compile_definitions(lua54 PUBLIC LUA_BUILD_AS_DLL)
+  target_compile_definitions(lua PUBLIC LUA_BUILD_AS_DLL)
 endif()
 
 if(MINGW)
-  target_link_options(lua54 PRIVATE "-static" "-lstdc++")
+  target_link_options(lua PRIVATE "-static" "-lstdc++")
 endif()
 
-set_target_properties(lua54 PROPERTIES DEBUG_POSTFIX "d")
+set_target_properties(lua PROPERTIES DEBUG_POSTFIX "d")
 
-install(TARGETS lua54 EXPORT lua-config)
+install(TARGETS lua EXPORT lua-config)
 
-set_property(TARGET lua54 PROPERTY PUBLIC_HEADER
+set_property(TARGET lua PROPERTY PUBLIC_HEADER
   ./src/lapi.h
   ./src/lauxlib.h
   ./src/lcode.h
@@ -82,7 +82,7 @@ set_property(TARGET lua54 PROPERTY PUBLIC_HEADER
   ./src/lzio.h
 )
 
-install(TARGETS lua54
+install(TARGETS lua
   EXPORT lua-config
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}

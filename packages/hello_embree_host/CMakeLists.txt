@@ -211,31 +211,31 @@ if(NOT EMSCRIPTEN)
   add_dependencies(embree3 tbb)
 endif()
 
-# LUA54
+# lua
 if(MSVC)
   if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-    set(LUA_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/lua54d.lib)
+    set(LUA_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/luad.lib)
   else()
-    set(LUA_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/lua54.lib)
+    set(LUA_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/lua.lib)
   endif()
 elseif(MINGW)
   if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-    set(LUA_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/liblua54d.dll.a)
+    set(LUA_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libluad.dll.a)
   else()
-    set(LUA_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/liblua54.dll.a)
+    set(LUA_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/liblua.dll.a)
   endif()
 else()
   if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-    set(LUA_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/liblua54d.a)
+    set(LUA_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libluad.a)
   else()
-    set(LUA_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/liblua54.a)
+    set(LUA_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/liblua.a)
   endif()
 endif()
 
-ExternalProject_Add(lua54
+ExternalProject_Add(lua
   PREFIX "${EXTERNALS_ROOT}"
   URL https://www.lua.org/ftp/lua-5.4.4.tar.gz
-  URL_MD5 bd8ce7069ff99a400efd14cf339a727b
+  URL_HASH SHA256=164c7849653b80ae67bec4b7473b884bf5cc8d2dca05653475ec2ed27b9ebf61
   BUILD_BYPRODUCTS ${LUA_LIB}
   CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
@@ -281,7 +281,7 @@ if(MSVC OR MINGW)
   )
 endif()
 
-add_dependencies(hello_embree_host_lib args lua54 sdl2 embree3)
+add_dependencies(hello_embree_host_lib args lua sdl2 embree3)
 
 # core executable
 if(MSVC OR MINGW)
