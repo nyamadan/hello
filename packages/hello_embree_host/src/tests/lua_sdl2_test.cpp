@@ -239,7 +239,7 @@ TEST_F(LuaSDL2_Test, TestFailedToGlSetAttribute) {
       << lua_tostring(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, GL_CreateContext) {
+TEST_F(LuaSDL2_Test, TestGL_CreateContext) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
@@ -258,25 +258,22 @@ TEST_F(LuaSDL2_Test, GL_CreateContext) {
   ASSERT_NE(nullptr, luaL_testudata(L, -1, "SDL_GL_Context"));
 }
 
-TEST_F(LuaSDL2_Test, MetatableTest) {
+TEST_F(LuaSDL2_Test, TestGL_MakeCurrent) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
-  ASSERT_EQ(
-      LUA_OK,
-      utils::dostring(L, "local SDL = require('sdl2');"
-                         "local window = SDL.CreateWindow('Hello World!!', "
-                         "SDL.WINDOWPOS_UNDEFINED, SDL.WINDOWPOS_UNDEFINED, "
-                         "1280, 720, SDL.WINDOW_OPENGL)"
-                         "local renderer = SDL.CreateRenderer(window, -1, "
-                         "SDL.RENDERER_ACCELERATED)"
-                         "SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);"
-                         "SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, "
-                         "SDL.GL_CONTEXT_PROFILE_CORE);"
-                         "SDL.GL_SetAttribute(SDL.GL_CONTEXT_MAJOR_VERSION, 3);"
-                         "SDL.GL_SetAttribute(SDL.GL_CONTEXT_MINOR_VERSION, 0);"
-                         "SDL.GL_CreateContext(window);"
-                         "SDL.DestroyWindow(window);"
-                         "SDL.DestroyRenderer(renderer);"))
-      << lua_tostring(L, -1);
+  initWindow();
+  initRenderer();
+  luaL_loadstring(L, "local SDL = require('sdl2');"
+                     "local args = {...};"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, "
+                     "SDL.GL_CONTEXT_PROFILE_CORE);"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_MAJOR_VERSION, 3);"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_MINOR_VERSION, 0);"
+                     "local context = SDL.GL_CreateContext(args[1]);"
+                     "return SDL.GL_MakeCurrent(args[1], context);");
+  pushWindow();
+  ASSERT_EQ(LUA_OK, utils::docall(L, 1)) << lua_tostring(L, -1);
+  ASSERT_TRUE(lua_isinteger(L, -1));
 }

@@ -111,6 +111,16 @@ int L_SDL_GL_CreateContext(lua_State *L) {
   return 1;
 }
 
+int L_SDL_GL_MakeCurrent(lua_State *L) {
+  auto pWindow =
+      static_cast<SDL_Window **>(luaL_checkudata(L, 1, SDL_WINDOW_NAME));
+  auto pContext =
+      static_cast<SDL_GLContext *>(luaL_checkudata(L, 2, SDL_GL_CONTEXT_NAME));
+  auto result = SDL_GL_MakeCurrent(*pWindow, *pContext);
+  lua_pushinteger(L, result);
+  return 1;
+}
+
 int L_require(lua_State *L) {
   lua_newtable(L);
 
@@ -179,6 +189,9 @@ int L_require(lua_State *L) {
 
   lua_pushcfunction(L, L_SDL_GL_CreateContext);
   lua_setfield(L, -2, "GL_CreateContext");
+
+  lua_pushcfunction(L, L_SDL_GL_MakeCurrent);
+  lua_setfield(L, -2, "GL_MakeCurrent");
 
   return 1;
 }
