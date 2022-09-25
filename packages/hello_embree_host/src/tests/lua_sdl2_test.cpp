@@ -23,9 +23,9 @@ public:
   static void TearDownTestSuite() { SDL_Quit(); }
 
 protected:
-  lua_State *L;
-  int refWindow = LUA_REFNIL;
-  int refRenderer = LUA_REFNIL;
+  lua_State *L = nullptr;
+  SDL_Window *window = nullptr;
+  SDL_Renderer *renderer = nullptr;
 
   void initLuaState() {
     L = luaL_newstate();
@@ -34,47 +34,39 @@ protected:
   }
 
   void initWindow() {
-    utils::dostring(L,
-                    "local SDL = require('sdl2');"
-                    "return SDL.CreateWindow('Hello', SDL.WINDOWPOS_UNDEFINED, "
-                    "SDL.WINDOWPOS_UNDEFINED, 1280, 720, 0);",
-                    0, 1);
-    refWindow = luaL_ref(L, LUA_REGISTRYINDEX);
+    this->window = SDL_CreateWindow("Hello", SDL_WINDOWPOS_UNDEFINED,
+                                    SDL_WINDOWPOS_UNDEFINED, 1280, 720, 0);
+  }
+
+  void pushWindow() {
+    lua_pushlightuserdata(L, this->window);
+    luaL_newmetatable(L, "SDL_Window");
+    lua_setmetatable(L, -2);
   }
 
   void initRenderer() {
-    luaL_loadstring(L, "local SDL = require('sdl2');"
-                       "local args = {...};"
-                       "return SDL.CreateRenderer(args[1], -1, "
-                       "SDL.RENDERER_ACCELERATED);");
-    lua_rawgeti(L, LUA_REGISTRYINDEX, refWindow);
-    utils::docall(L, 1, 1);
-    refRenderer = luaL_ref(L, LUA_REGISTRYINDEX);
+    ASSERT_NE(nullptr, this->window);
+    this->renderer =
+        SDL_CreateRenderer(this->window, -1, SDL_RENDERER_ACCELERATED);
+  }
+
+  void pushRenderer() {
+    lua_pushlightuserdata(L, this->renderer);
+    luaL_newmetatable(L, "SDL_Renderer");
+    lua_setmetatable(L, -2);
   }
 
   virtual void SetUp() { initLuaState(); }
 
   virtual void TearDown() {
-    if (refRenderer != LUA_REFNIL) {
-      luaL_loadstring(L, "local SDL = require('sdl2');"
-                         "local args = {...};"
-                         "return SDL.DestroyRenderer(args[1]);");
-      lua_rawgeti(L, LUA_REGISTRYINDEX, refWindow);
-      utils::docall(L, 1);
-
-      luaL_unref(L, LUA_REGISTRYINDEX, refRenderer);
-      refRenderer = LUA_REFNIL;
+    if (this->renderer != nullptr) {
+      SDL_DestroyRenderer(this->renderer);
+      this->renderer = nullptr;
     }
 
-    if (refWindow != LUA_REFNIL) {
-      luaL_loadstring(L, "local SDL = require('sdl2');"
-                         "local args = {...};"
-                         "return SDL.DestroyWindow(args[1]);");
-      lua_rawgeti(L, LUA_REGISTRYINDEX, refWindow);
-      utils::docall(L, 1);
-
-      luaL_unref(L, LUA_REGISTRYINDEX, refWindow);
-      refWindow = LUA_REFNIL;
+    if (this->window != nullptr) {
+      SDL_DestroyWindow(this->window);
+      this->window = nullptr;
     }
 
     if (L != nullptr) {
@@ -120,9 +112,9 @@ TEST_F(LuaSDL2_Test, CreateWindow) {
                    "SDL.WINDOWPOS_UNDEFINED, 1280, 720, 0);"),
             LUA_OK)
       << "Failed to create: " << lua_tostring(L, -1);
-  ASSERT_NE(luaL_testudata(L, -1, "SDL_Window"), nullptr)
-      << "SDL_CreateWindow did not return SDL_Window ";
-  refWindow = luaL_ref(L, LUA_REGISTRYINDEX);
+  auto w = static_cast<SDL_Window *>(luaL_testudata(L, -1, "SDL_Window"));
+  ASSERT_NE(w, nullptr) << "SDL_CreateWindow did not return SDL_Window ";
+  SDL_DestroyWindow(w);
 }
 
 TEST_F(LuaSDL2_Test, FailedToCreateWindow) {
@@ -142,11 +134,10 @@ TEST_F(LuaSDL2_Test, DestroyWindow) {
   luaL_loadstring(L, "local SDL = require('sdl2');"
                      "local args = {...};"
                      "return SDL.DestroyWindow(args[1]);");
-  lua_rawgeti(L, LUA_REGISTRYINDEX, refWindow);
+  pushWindow();
   ASSERT_EQ(utils::docall(L, 1), LUA_OK)
       << "Failed to destroy: " << lua_tostring(L, -1);
-  luaL_unref(L, LUA_REGISTRYINDEX, refWindow);
-  refWindow = LUA_REFNIL;
+  this->window = nullptr;
 }
 
 TEST_F(LuaSDL2_Test, CreateRenderer) {
@@ -158,10 +149,11 @@ TEST_F(LuaSDL2_Test, CreateRenderer) {
                      "local args = {...};"
                      "return SDL.CreateRenderer(args[1], -1, "
                      "SDL.RENDERER_ACCELERATED);");
-  lua_rawgeti(L, LUA_REGISTRYINDEX, refWindow);
+  pushWindow();
   ASSERT_EQ(utils::docall(L, 1), LUA_OK) << lua_tostring(L, -1);
-  ASSERT_NE(luaL_testudata(L, -1, "SDL_Renderer"), nullptr)
-      << "SDL_CreateWindow did not return SDL_Renderer";
+  auto r = static_cast<SDL_Renderer *>(luaL_testudata(L, -1, "SDL_Renderer"));
+  ASSERT_NE(r, nullptr) << "SDL_CreateWindow did not return SDL_Renderer";
+  SDL_DestroyRenderer(r);
 }
 
 TEST_F(LuaSDL2_Test, FailedToCreateRenderer) {
@@ -171,7 +163,7 @@ TEST_F(LuaSDL2_Test, FailedToCreateRenderer) {
   initWindow();
   luaL_loadstring(L, "local SDL = require('sdl2');"
                      "return SDL.CreateRenderer();");
-  lua_rawgeti(L, LUA_REGISTRYINDEX, refWindow);
+  pushWindow();
   ASSERT_NE(utils::docall(L, 1), LUA_OK);
 }
 
@@ -184,10 +176,9 @@ TEST_F(LuaSDL2_Test, DestroyRenderer) {
   luaL_loadstring(L, "local SDL = require('sdl2');"
                      "local args = {...};"
                      "return SDL.DestroyRenderer(args[1]);");
-  lua_rawgeti(L, LUA_REGISTRYINDEX, refRenderer);
+  pushRenderer();
   ASSERT_EQ(LUA_OK, utils::docall(L, 1)) << lua_tostring(L, -1);
-  luaL_unref(L, LUA_REGISTRYINDEX, refRenderer);
-  refRenderer = LUA_REFNIL;
+  this->renderer = nullptr;
 }
 
 TEST_F(LuaSDL2_Test, TestPollEvent) {
@@ -250,6 +241,9 @@ TEST_F(LuaSDL2_Test, GL_CreateContext) {
 #endif
   initWindow();
   initRenderer();
-  lua_rawgeti(L, LUA_REGISTRYINDEX, refWindow);
+  luaL_loadstring(L, "local SDL = require('sdl2');"
+                     "local args = {...};"
+                     "SDL.GL_CreateContext(args[1]);");
+  pushWindow();
   ASSERT_EQ(LUA_OK, utils::docall(L, 1, 1)) << lua_tostring(L, -1);
 }
