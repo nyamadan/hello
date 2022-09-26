@@ -24,12 +24,13 @@ local ok, message = pcall(function()
     local window = SDL.CreateWindow("Hello World!!", SDL.WINDOWPOS_UNDEFINED, SDL.WINDOWPOS_UNDEFINED, 1280, 720, SDL.WINDOW_OPENGL)
     local renderer = SDL.CreateRenderer(window, -1, SDL.RENDERER_ACCELERATED)
 
-    local GLSL_VERSION = "#version 130";
-    SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);
-    SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, SDL.GL_CONTEXT_PROFILE_CORE);
-    SDL.GL_SetAttribute(SDL.GL_CONTEXT_MAJOR_VERSION, 3);
-    SDL.GL_SetAttribute(SDL.GL_CONTEXT_MINOR_VERSION, 0);
+    local GLSL_VERSION = "#version 130"
+    SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0)
+    SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, SDL.GL_CONTEXT_PROFILE_CORE)
+    SDL.GL_SetAttribute(SDL.GL_CONTEXT_MAJOR_VERSION, 3)
+    SDL.GL_SetAttribute(SDL.GL_CONTEXT_MINOR_VERSION, 0)
     SDL.GL_CreateContext(window);
+    SDL.GL_SetSwapInterval(1)
 
     utils.registerFunction("update", function()
         local ok, message = pcall(function()
@@ -43,7 +44,8 @@ local ok, message = pcall(function()
 
                 print("ev: type = " .. ev.type)
             end
-            SDL.Delay(16)
+
+            SDL.GL_SwapWindow(window)
         end)
         if not ok then
             print(message)

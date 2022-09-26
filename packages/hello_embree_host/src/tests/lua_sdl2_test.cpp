@@ -277,3 +277,45 @@ TEST_F(LuaSDL2_Test, TestGL_MakeCurrent) {
   ASSERT_EQ(LUA_OK, utils::docall(L, 1)) << lua_tostring(L, -1);
   ASSERT_TRUE(lua_isinteger(L, -1));
 }
+
+TEST_F(LuaSDL2_Test, TestGL_SetSwapInterval) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+  initWindow();
+  initRenderer();
+  luaL_loadstring(L, "local SDL = require('sdl2');"
+                     "local args = {...};"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, "
+                     "SDL.GL_CONTEXT_PROFILE_CORE);"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_MAJOR_VERSION, 3);"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_MINOR_VERSION, 0);"
+                     "local context = SDL.GL_CreateContext(args[1]);"
+                     "SDL.GL_MakeCurrent(args[1], context);"
+                     "return SDL.GL_SetSwapInterval(1);");
+  pushWindow();
+  ASSERT_EQ(LUA_OK, utils::docall(L, 1)) << lua_tostring(L, -1);
+  ASSERT_TRUE(lua_isinteger(L, -1));
+}
+
+TEST_F(LuaSDL2_Test, TestGL_SwapWindow) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+  initWindow();
+  initRenderer();
+  luaL_loadstring(L, "local SDL = require('sdl2');"
+                     "local args = {...};"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, "
+                     "SDL.GL_CONTEXT_PROFILE_CORE);"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_MAJOR_VERSION, 3);"
+                     "SDL.GL_SetAttribute(SDL.GL_CONTEXT_MINOR_VERSION, 0);"
+                     "local context = SDL.GL_CreateContext(args[1]);"
+                     "SDL.GL_MakeCurrent(args[1], context);"
+                     "SDL.GL_SetSwapInterval(1);"
+                     "SDL.GL_SwapWindow(args[1]);");
+  pushWindow();
+  ASSERT_EQ(LUA_OK, utils::docall(L, 1)) << lua_tostring(L, -1);
+}

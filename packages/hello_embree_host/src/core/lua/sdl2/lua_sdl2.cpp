@@ -121,6 +121,19 @@ int L_SDL_GL_MakeCurrent(lua_State *L) {
   return 1;
 }
 
+int L_SDL_GL_SetSwapInterval(lua_State *L) {
+  auto result = SDL_GL_SetSwapInterval(1);
+  lua_pushinteger(L, result);
+  return 1;
+}
+
+int L_SDL_GL_SwapWindow(lua_State *L) {
+  auto pWindow =
+      static_cast<SDL_Window **>(luaL_checkudata(L, 1, SDL_WINDOW_NAME));
+  SDL_GL_SwapWindow(*pWindow);
+  return 0;
+}
+
 int L_require(lua_State *L) {
   lua_newtable(L);
 
@@ -193,6 +206,12 @@ int L_require(lua_State *L) {
   lua_pushcfunction(L, L_SDL_GL_MakeCurrent);
   lua_setfield(L, -2, "GL_MakeCurrent");
 
+  lua_pushcfunction(L, L_SDL_GL_SetSwapInterval);
+  lua_setfield(L, -2, "GL_SetSwapInterval");
+
+  lua_pushcfunction(L, L_SDL_GL_SwapWindow);
+  lua_setfield(L, -2, "GL_SwapWindow");
+
   return 1;
 }
 } // namespace
@@ -200,12 +219,9 @@ int L_require(lua_State *L) {
 namespace hello::lua::sdl2 {
 void openlibs(lua_State *L) {
   luaL_newmetatable(L, SDL_WINDOW_NAME);
-  lua_pop(L, 1);
   luaL_newmetatable(L, SDL_RENDERER_NAME);
-  lua_pop(L, 1);
   luaL_newmetatable(L, SDL_GL_CONTEXT_NAME);
-  lua_pop(L, 1);
   luaL_requiref(L, "sdl2", L_require, false);
-  lua_pop(L, 1);
+  lua_pop(L, 4);
 }
 } // namespace hello::lua::sdl2
