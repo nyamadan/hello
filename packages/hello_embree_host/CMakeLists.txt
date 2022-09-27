@@ -24,6 +24,8 @@ if(NOT DEFINED CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
+find_package(OpenGL REQUIRED)
+
 set(EXTERNALS_ROOT ${PROJECT_BINARY_DIR}/externals)
 
 # args
@@ -349,6 +351,7 @@ target_link_libraries(hello_embree_host
   ${TBB_LIB}
   ${LUA_LIB}
   ${SDL2_LIB}
+  ${OPENGL_LIBRARIES}
   ${PLATFROM_LIBS}
 )
 
@@ -429,6 +432,7 @@ target_link_libraries(
   ${TBB_LIB}
   ${LUA_LIB}
   ${SDL2_LIB}
+  ${OPENGL_LIBRARIES}
   ${PLATFROM_LIBS}
 )
 

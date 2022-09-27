@@ -4,6 +4,7 @@
 
 #include "../core/lua/lua_common.hpp"
 #include "../core/lua/lua_utils.hpp"
+#include "../core/lua/opengl/lua_opengl.hpp"
 #include "../core/lua/sdl2/lua_sdl2.hpp"
 
 using namespace hello::lua;
@@ -31,6 +32,17 @@ protected:
     L = luaL_newstate();
     luaL_openlibs(L);
     sdl2::openlibs(L);
+    opengl::openlibs(L);
+  }
+
+  void initOpenGL() {
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK,
+                        SDL_GL_CONTEXT_PROFILE_CORE);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
+    SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
+    SDL_GL_CreateContext(this->window);
+    SDL_GL_SetSwapInterval(1);
   }
 
   void initWindow() {
@@ -116,7 +128,7 @@ TEST_F(LuaSDL2_Test, CreateWindow) {
                    "SDL.WINDOWPOS_UNDEFINED, 1280, 720, 0);"),
             LUA_OK)
       << "Failed to create: " << lua_tostring(L, -1);
-  auto w = static_cast<SDL_Window *>(luaL_testudata(L, -1, "SDL_Window"));
+  auto w = *static_cast<SDL_Window **>(luaL_testudata(L, -1, "SDL_Window"));
   ASSERT_NE(w, nullptr) << "SDL_CreateWindow did not return SDL_Window ";
   SDL_DestroyWindow(w);
 }
@@ -318,4 +330,15 @@ TEST_F(LuaSDL2_Test, TestGL_SwapWindow) {
                      "SDL.GL_SwapWindow(args[1]);");
   pushWindow();
   ASSERT_EQ(LUA_OK, utils::docall(L, 1)) << lua_tostring(L, -1);
+}
+
+TEST_F(LuaSDL2_Test, TestglClearColor) {
+  initWindow();
+  initRenderer();
+  initOpenGL();
+
+  ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');"
+                               "gl.ClearColor(1, 0, 1, 1);"),
+            LUA_OK)
+      << lua_tostring(L, -1);
 }
