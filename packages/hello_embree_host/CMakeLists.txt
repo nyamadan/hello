@@ -26,6 +26,10 @@ endif()
 
 set(EXTERNALS_ROOT ${PROJECT_BINARY_DIR}/externals)
 
+if(CMAKE_GENERATOR MATCHES "Ninja")
+  set(BUILD_ARGS "-w" "dupbuild=warn")
+endif()
+
 if(NOT EMSCRIPTEN)
   find_package(OpenGL REQUIRED)
 else()
