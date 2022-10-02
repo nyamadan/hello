@@ -32,7 +32,6 @@
       "CMAKE_INSTALL_PREFIX": "/workspaces/",
       "CMAKE_CROSSCOMPILING_EMULATOR": "/usr/local/bin/node"
     },
-    "cmake.generator": "Ninja",
-    "cmake.buildArgs": ["--", "-w", "dupbuild=warn"]
+    "cmake.generator": "Unix Makefiles"
   }
 }

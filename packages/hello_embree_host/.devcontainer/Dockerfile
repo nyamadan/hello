@@ -10,7 +10,7 @@ ENV EMSDK=/emsdk \
     PATH="/emsdk:/emsdk/upstream/emscripten:/emsdk/node/14.18.2_64bit/bin:${PATH}"
 
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends bzip2 xz-utils ninja-build
+    && apt-get -y install --no-install-recommends bzip2 xz-utils make
 
 RUN cd /tmp \
     && curl -LO https://github.com/Kitware/CMake/releases/download/v3.24.2/cmake-3.24.2-linux-x86_64.tar.gz \
