@@ -24,9 +24,13 @@ if(NOT DEFINED CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE "Debug")
 endif()
 
-find_package(OpenGL REQUIRED)
-
 set(EXTERNALS_ROOT ${PROJECT_BINARY_DIR}/externals)
+
+if(NOT EMSCRIPTEN)
+  find_package(OpenGL REQUIRED)
+else()
+  set(OPENGL_LIBRARIES)
+endif()
 
 # args
 ExternalProject_Add(args
@@ -95,6 +99,124 @@ else()
   )
 endif()
 
+# SPIRVCROSS
+if(MSVC)
+  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+    set(SPIRVCROSS_LIB
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/spirv-cross-cored.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/spirv-cross-glsld.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/spirv-cross-hlsld.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SPIRVd.lib
+    )
+  else()
+    set(SPIRVCROSS_LIB
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/spirv-cross-core.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/spirv-cross-glsl.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/spirv-cross-hlsl.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SPIRV.lib
+    )
+  endif()
+else()
+  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+    set(SPIRVCROSS_LIB
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-cored.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-glsld.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-hlsld.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRVd.a
+    )
+  else()
+    set(SPIRVCROSS_LIB
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-core.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-glsl.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-hlsl.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRV.a
+    )
+  endif()
+endif()
+
+ExternalProject_Add(spirvcross
+  PREFIX "${EXTERNALS_ROOT}"
+  URL "https://github.com/KhronosGroup/SPIRV-Cross/archive/refs/tags/2021-01-15.tar.gz"
+  URL_HASH SHA256=d700863b548cbc7f27a678cee305f561669a126eb2cc11d36a7023dfc462b9c4
+  BUILD_BYPRODUCTS ${SPIRVCROSS_LIB}
+  CMAKE_ARGS
+  -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
+  -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+  -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
+  -DSPIRV_CROSS_CLI:BOOL=Off
+)
+
+# glslang
+if(MSVC)
+  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+    set(GLSLANG_LIB
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/GenericCodeGend.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/glslang-default-resource-limitsd.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/glslangd.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/HLSLd.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/MachineIndependentd.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/OGLCompilerd.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/OSDependentd.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SPIRVd.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SPVRemapperd.lib
+    )
+  else()
+    set(GLSLANG_LIB
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/GenericCodeGen.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/glslang-default-resource-limits.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/glslang.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/HLSL.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/MachineIndependent.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/OGLCompiler.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/OSDependent.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SPIRV.lib
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SPVRemapper.lib
+    )
+  endif()
+else()
+  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+    set(GLSLANG_LIB
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libGenericCodeGend.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslang-default-resource-limitsd.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslangd.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libHLSLd.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libMachineIndependentd.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOGLCompilerd.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOSDependentd.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRVd.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPVRemapperd.a
+    )
+  else()
+    set(GLSLANG_LIB
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libGenericCodeGen.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslang-default-resource-limits.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslang.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libHLSL.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libMachineIndependent.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOGLCompiler.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOSDependent.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRV.a
+      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPVRemapper.a
+    )
+  endif()
+endif()
+
+ExternalProject_Add(glslang
+  PREFIX "${EXTERNALS_ROOT}"
+  URL "https://github.com/KhronosGroup/glslang/archive/refs/tags/11.11.0.tar.gz"
+  URL_HASH SHA256=26c216c3062512c018cbdd752224b8dad703b7e5bb90bf338ba2dbb5d4f11438
+  BUILD_BYPRODUCTS ${GLSLANG_LIB}
+  CMAKE_ARGS
+  -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
+  -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+  -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
+  -DENABLE_SPVREMAPPER:BOOL=Off
+  -DENABLE_GLSLANG_BINARIES:BOOL=Off
+  -DENABLE_GLSLANG_JS:BOOL=Off
+  -DENABLE_CTEST:BOOL=Off
+)
+
+# EMBREE3
 if(MSVC)
   set(EMBREE3_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/embree3.lib)
 elseif(MINGW)
@@ -249,6 +371,7 @@ ExternalProject_Add(lua
 link_directories(${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR})
 
 file(GLOB_RECURSE CORE_SOURCES "src/core/*.cpp" "src/core/*.c")
+
 # core library
 add_library(hello_embree_host_lib "${CORE_SOURCES}")
 
@@ -283,7 +406,7 @@ if(MSVC OR MINGW)
   )
 endif()
 
-add_dependencies(hello_embree_host_lib args lua sdl2 embree3)
+add_dependencies(hello_embree_host_lib args lua sdl2 embree3 glslang spirvcross)
 
 # core executable
 if(MSVC OR MINGW)
@@ -351,6 +474,8 @@ target_link_libraries(hello_embree_host
   ${TBB_LIB}
   ${LUA_LIB}
   ${SDL2_LIB}
+  ${SPIRVCROSS_LIB}
+  ${GLSLANG_LIB}
   ${OPENGL_LIBRARIES}
   ${PLATFROM_LIBS}
 )
@@ -358,7 +483,7 @@ target_link_libraries(hello_embree_host
 if(MINGW)
   target_link_options(hello_embree_host PRIVATE "-static" "-lstdc++")
 elseif(EMSCRIPTEN)
-  target_link_options(hello_embree_host PRIVATE 
+  target_link_options(hello_embree_host PRIVATE
     "-sWASM=1"
     "-sMAX_WEBGL_VERSION=2"
     "-sMIN_WEBGL_VERSION=2"
@@ -383,7 +508,7 @@ include(CTest)
 enable_testing()
 
 file(GLOB_RECURSE TEST_SOURCES "src/tests/*.cpp" "src/tests/*.c")
-add_executable( hello_embree_host_test "${TEST_SOURCES}")
+add_executable(hello_embree_host_test "${TEST_SOURCES}")
 
 if(MSVC)
   set_target_properties(hello_embree_host_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
@@ -432,6 +557,8 @@ target_link_libraries(
   ${TBB_LIB}
   ${LUA_LIB}
   ${SDL2_LIB}
+  ${SPIRVCROSS_LIB}
+  ${GLSLANG_LIB}
   ${OPENGL_LIBRARIES}
   ${PLATFROM_LIBS}
 )
