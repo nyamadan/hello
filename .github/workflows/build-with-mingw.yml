@@ -23,6 +23,6 @@ jobs:
       - name: Run CMake (Configure)
         run: cmake -S packages/hello_embree_host -B packages/hello_embree_host/build -G "Ninja" -DCMAKE_BUILD_TYPE=Release
       - name: Run CMake (Build)
-        run: cmake --build packages/hello_embree_host/build --config Release --parallel
+        run: cmake --build packages/hello_embree_host/build --config Release --parallel -- -w dupbuild=warn
       - name: Run (CTest)
         run: ctest --test-dir packages/hello_embree_host/build -C Release --output-on-failure
