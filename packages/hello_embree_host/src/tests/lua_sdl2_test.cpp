@@ -336,6 +336,10 @@ TEST_F(LuaSDL2_Test, TestGL_SwapWindow) {
 }
 
 TEST_F(LuaSDL2_Test, TestglClearColor) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+
   initWindow();
   initRenderer();
   initOpenGL();
@@ -347,6 +351,10 @@ TEST_F(LuaSDL2_Test, TestglClearColor) {
 }
 
 TEST_F(LuaSDL2_Test, TestglClear) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+
   initWindow();
   initRenderer();
   initOpenGL();
