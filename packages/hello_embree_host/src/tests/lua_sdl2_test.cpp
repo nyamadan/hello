@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 
 #include <SDL2/SDL.h>
+#include <SDL2/SDL_opengl.h>
 
 #include "../core/lua/lua_common.hpp"
 #include "../core/lua/lua_utils.hpp"
@@ -107,6 +108,8 @@ TEST_F(LuaSDL2_Test, TestSDLConstants) {
                     SDL_GL_CONTEXT_MAJOR_VERSION);
   TEST_LUA_CONSTANT("sdl2", "GL_CONTEXT_MINOR_VERSION",
                     SDL_GL_CONTEXT_MINOR_VERSION);
+
+  TEST_LUA_CONSTANT("opengl", "COLOR_BUFFER_BIT", GL_COLOR_BUFFER_BIT);
 }
 
 TEST_F(LuaSDL2_Test, TestGetError) {
@@ -339,6 +342,17 @@ TEST_F(LuaSDL2_Test, TestglClearColor) {
 
   ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');"
                                "gl.ClearColor(1, 0, 1, 1);"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+}
+
+TEST_F(LuaSDL2_Test, TestglClear) {
+  initWindow();
+  initRenderer();
+  initOpenGL();
+
+  ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');"
+                               "gl.Clear(gl.COLOR_BUFFER_BIT);"),
             LUA_OK)
       << lua_tostring(L, -1);
 }

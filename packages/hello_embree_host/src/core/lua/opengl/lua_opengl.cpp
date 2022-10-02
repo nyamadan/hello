@@ -13,11 +13,23 @@ int L_glClearColor(lua_State *L) {
   return 0;
 }
 
+int L_glClear(lua_State *L) {
+  auto flags = static_cast<GLbitfield>(luaL_checknumber(L, 1));
+  glClear(flags);
+  return 0;
+}
+
 int L_require(lua_State *L) {
   lua_newtable(L);
 
+  lua_pushinteger(L, GL_COLOR_BUFFER_BIT);
+  lua_setfield(L, -2, "COLOR_BUFFER_BIT");
+
   lua_pushcfunction(L, L_glClearColor);
   lua_setfield(L, -2, "ClearColor");
+
+  lua_pushcfunction(L, L_glClear);
+  lua_setfield(L, -2, "Clear");
 
   return 1;
 }
