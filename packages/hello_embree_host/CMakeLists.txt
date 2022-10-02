@@ -26,10 +26,6 @@ endif()
 
 set(EXTERNALS_ROOT ${PROJECT_BINARY_DIR}/externals)
 
-if(CMAKE_GENERATOR MATCHES "Ninja")
-  set(BUILD_ARGS "-w" "dupbuild=warn")
-endif()
-
 if(NOT EMSCRIPTEN)
   find_package(OpenGL REQUIRED)
 else()
@@ -155,52 +151,44 @@ if(MSVC)
   if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
     set(GLSLANG_LIB
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/GenericCodeGend.lib
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/glslang-default-resource-limitsd.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/glslangd.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/HLSLd.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/MachineIndependentd.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/OGLCompilerd.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/OSDependentd.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SPIRVd.lib
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SPVRemapperd.lib
     )
   else()
     set(GLSLANG_LIB
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/GenericCodeGen.lib
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/glslang-default-resource-limits.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/glslang.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/HLSL.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/MachineIndependent.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/OGLCompiler.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/OSDependent.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SPIRV.lib
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SPVRemapper.lib
     )
   endif()
 else()
   if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
     set(GLSLANG_LIB
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libGenericCodeGend.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslang-default-resource-limitsd.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslangd.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libHLSLd.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libMachineIndependentd.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOGLCompilerd.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOSDependentd.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRVd.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPVRemapperd.a
     )
   else()
     set(GLSLANG_LIB
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libGenericCodeGen.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslang-default-resource-limits.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslang.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libHLSL.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libMachineIndependent.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOGLCompiler.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOSDependent.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRV.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPVRemapper.a
     )
   endif()
 endif()
