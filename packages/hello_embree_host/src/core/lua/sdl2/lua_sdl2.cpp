@@ -146,6 +146,9 @@ int L_require(lua_State *L) {
   lua_pushinteger(L, SDL_WINDOW_OPENGL);
   lua_setfield(L, -2, "WINDOW_OPENGL");
 
+  lua_pushinteger(L, SDL_WINDOW_HIDDEN);
+  lua_setfield(L, -2, "WINDOW_HIDDEN");
+
   lua_pushinteger(L, SDL_WINDOWPOS_UNDEFINED);
   lua_setfield(L, -2, "WINDOWPOS_UNDEFINED");
 

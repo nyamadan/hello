@@ -46,10 +46,9 @@ protected:
     SDL_GL_SetSwapInterval(1);
   }
 
-  void initWindow() {
-    this->window =
-        SDL_CreateWindow("Hello", SDL_WINDOWPOS_UNDEFINED,
-                         SDL_WINDOWPOS_UNDEFINED, 1280, 720, SDL_WINDOW_OPENGL);
+  void initWindow(Uint32 flags = SDL_WINDOW_OPENGL | SDL_WINDOW_HIDDEN) {
+    this->window = SDL_CreateWindow("Hello", SDL_WINDOWPOS_UNDEFINED,
+                                    SDL_WINDOWPOS_UNDEFINED, 1280, 720, flags);
   }
 
   void pushWindow() {
@@ -96,6 +95,7 @@ TEST_F(LuaSDL2_Test, TestSDLConstants) {
   TEST_LUA_CONSTANT("sdl2", "INIT_VIDEO", SDL_INIT_VIDEO);
   TEST_LUA_CONSTANT("sdl2", "INIT_TIMER", SDL_INIT_TIMER);
   TEST_LUA_CONSTANT("sdl2", "WINDOW_OPENGL", SDL_WINDOW_OPENGL);
+  TEST_LUA_CONSTANT("sdl2", "WINDOW_HIDDEN", SDL_WINDOW_HIDDEN);
   TEST_LUA_CONSTANT("sdl2", "WINDOWPOS_UNDEFINED", SDL_WINDOWPOS_UNDEFINED);
   TEST_LUA_CONSTANT("sdl2", "RENDERER_ACCELERATED", SDL_RENDERER_ACCELERATED);
   TEST_LUA_CONSTANT("sdl2", "QUIT", SDL_QUIT);
@@ -110,6 +110,7 @@ TEST_F(LuaSDL2_Test, TestSDLConstants) {
                     SDL_GL_CONTEXT_MINOR_VERSION);
 
   TEST_LUA_CONSTANT("opengl", "COLOR_BUFFER_BIT", GL_COLOR_BUFFER_BIT);
+  TEST_LUA_CONSTANT("opengl", "DEPTH_BUFFER_BIT", GL_DEPTH_BUFFER_BIT);
 }
 
 TEST_F(LuaSDL2_Test, TestGetError) {
@@ -128,7 +129,7 @@ TEST_F(LuaSDL2_Test, CreateWindow) {
   ASSERT_EQ(utils::dostring(
                 L, "local SDL = require('sdl2');"
                    "return SDL.CreateWindow('Hello', SDL.WINDOWPOS_UNDEFINED, "
-                   "SDL.WINDOWPOS_UNDEFINED, 1280, 720, 0);"),
+                   "SDL.WINDOWPOS_UNDEFINED, 1280, 720, SDL.WINDOW_HIDDEN);"),
             LUA_OK)
       << "Failed to create: " << lua_tostring(L, -1);
   auto w = *static_cast<SDL_Window **>(luaL_testudata(L, -1, "SDL_Window"));
@@ -204,7 +205,7 @@ TEST_F(LuaSDL2_Test, TestPollEvent) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
-  initWindow();
+  initWindow(SDL_WINDOW_OPENGL);
 
   ASSERT_EQ(LUA_OK, utils::dostring(L, "local SDL = require('sdl2');"
                                        "return SDL.PollEvent();"))
@@ -346,6 +347,21 @@ TEST_F(LuaSDL2_Test, TestglClearColor) {
 
   ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');"
                                "gl.ClearColor(1, 0, 1, 1);"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+}
+
+TEST_F(LuaSDL2_Test, TestglClearDepth) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+
+  initWindow();
+  initRenderer();
+  initOpenGL();
+
+  ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');"
+                               "gl.ClearDepth(1.0);"),
             LUA_OK)
       << lua_tostring(L, -1);
 }

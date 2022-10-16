@@ -2,7 +2,9 @@ print "This is main.lua"
 
 local ok, message = pcall(function()
     local utils = require("utils")
+    local buffer = require("buffer")
     local SDL = require("sdl2")
+    local gl = require("opengl")
 
     local function collectEvents()
         local events = {};
@@ -44,6 +46,9 @@ local ok, message = pcall(function()
 
                 print("ev: type = " .. ev.type)
             end
+
+            gl.ClearColor(1, 0, 1, 1)
+            gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
             SDL.GL_SwapWindow(window)
         end)
