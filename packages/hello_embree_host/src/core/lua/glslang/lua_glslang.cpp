@@ -1,5 +1,5 @@
-
 #include "./lua_glslang.hpp"
+#include "../buffer/lua_buffer.hpp"
 
 #include <cstdint>
 #include <cstdlib>
@@ -16,6 +16,22 @@
 #include <glslang/SPIRV/disassemble.h>
 
 namespace {
+const char *const SHADER_NAME = "glslang_Shader";
+const char *const PROGRAM_NAME = "glslang_Program";
+const char *const INTERMEDIATE_NAME = "glslang_Intermediate";
+
+struct Shader {
+  glslang::TShader *data;
+};
+
+struct Program {
+  glslang::TProgram *data;
+};
+
+struct Intermediate {
+  glslang::TIntermediate *data;
+};
+
 const TBuiltInResource DefaultTBuiltInResource = {
     /* .MaxLights = */ 32,
     /* .MaxClipPlanes = */ 6,
@@ -210,75 +226,159 @@ Includer *Includer_new(IncludeCallback includeLocal,
   return new Includer(includeLocal, includeSystem, release);
 }
 
-bool glalang_InitializeProcess() { return glslang::InitializeProcess(); }
-
-void glslang_FinalizeProcess() { glslang::FinalizeProcess(); }
-
-glslang::TProgram *glslang_TProgram_new() { return new glslang::TProgram(); }
-
-void glslang_TProgram_delete(glslang::TProgram *program) { delete program; }
-
-const char *glslang_TProgram_getInfoLog(glslang::TProgram *program) {
-  return program->getInfoLog();
+int L_InitializeProcess(lua_State *L) {
+  lua_pushboolean(L, glslang::InitializeProcess());
+  return 1;
 }
 
-void glslang_TProgram_addShader(glslang::TProgram *program,
-                                glslang::TShader *shader) {
-  program->addShader(shader);
+int L_FinalizeProcess(lua_State *) {
+  glslang::FinalizeProcess();
+  return 0;
 }
 
-bool glslang_TProgram_link(glslang::TProgram *program, EShMessages messages) {
-  return program->link(messages);
+int L_newProgram(lua_State *L) {
+  auto pProgram = static_cast<Program *>(lua_newuserdata(L, sizeof(Program)));
+  pProgram->data = new glslang::TProgram();
+  luaL_setmetatable(L, PROGRAM_NAME);
+  return 1;
 }
 
-glslang::TIntermediate *
-glslang_TProgram_getIntermediate(glslang::TProgram *program,
-                                 EShLanguage stage) {
-  return program->getIntermediate(stage);
+int L_Program___gc(lua_State *L) {
+  auto pProgram = static_cast<Program *>(luaL_checkudata(L, 1, PROGRAM_NAME));
+  delete pProgram->data;
+  pProgram->data = nullptr;
+  return 0;
 }
 
-unsigned int *glslang_GlslangToSpirv(glslang::TIntermediate *intermediate,
-                                     int *wordCount) {
+int L_Program_getInfoLog(lua_State *L) {
+  auto pProgram = static_cast<Program *>(luaL_checkudata(L, 1, PROGRAM_NAME));
+  luaL_argcheck(L, pProgram->data != nullptr, 1, "Program is null value.");
+  lua_pushstring(L, pProgram->data->getInfoLog());
+  return 1;
+}
+
+int L_Program_addShader(lua_State *L) {
+  auto pProgram = static_cast<Program *>(luaL_checkudata(L, 1, PROGRAM_NAME));
+  luaL_argcheck(L, pProgram->data != nullptr, 1, "Program is null value.");
+  auto pShader = static_cast<Shader *>(luaL_checkudata(L, 2, PROGRAM_NAME));
+  luaL_argcheck(L, pShader->data != nullptr, 2, "Shader is null value.");
+  pProgram->data->addShader(pShader->data);
+  return 0;
+}
+
+int L_Program_link(lua_State *L) {
+  auto pProgram = static_cast<Program *>(luaL_checkudata(L, 1, PROGRAM_NAME));
+  luaL_argcheck(L, pProgram->data != nullptr, 1, "Program is null value.");
+  auto messages = static_cast<EShMessages>(luaL_checkinteger(L, 2));
+  lua_pushboolean(L, pProgram->data->link(messages));
+  return 1;
+}
+
+int L_Program_getIntermediate(lua_State *L) {
+  auto pProgram = static_cast<Program *>(luaL_checkudata(L, 1, PROGRAM_NAME));
+  luaL_argcheck(L, pProgram->data != nullptr, 1, "Program is null value.");
+
+  auto stage = static_cast<EShLanguage>(luaL_checkinteger(L, 2));
+
+  auto pIntermediate =
+      static_cast<Intermediate *>(lua_newuserdata(L, sizeof(Intermediate)));
+  pIntermediate->data = pProgram->data->getIntermediate(stage);
+  luaL_setmetatable(L, INTERMEDIATE_NAME);
+  return 1;
+}
+
+int L_Intermedate___gc(lua_State *L) {
+  auto pIntermedate =
+      static_cast<Intermediate *>(luaL_checkudata(L, 1, INTERMEDIATE_NAME));
+  pIntermedate->data = nullptr;
+  return 0;
+}
+
+int L_GlslangToSpirv(lua_State *L) {
+  auto pProgram = static_cast<Program *>(luaL_checkudata(L, 1, PROGRAM_NAME));
+  luaL_argcheck(L, pProgram->data != nullptr, 1, "Program is null value.");
+
+  auto pIntermediate =
+      static_cast<Intermediate *>(luaL_checkudata(L, 2, INTERMEDIATE_NAME));
+  luaL_argcheck(L, pIntermediate->data != nullptr, 2,
+                "Intermediate is null value.");
+
   auto spirv = std::vector<unsigned int>();
-  glslang::GlslangToSpv(*intermediate, spirv);
-  auto pBuffer = reinterpret_cast<unsigned int *>(
-      malloc(sizeof(unsigned int) * spirv.size()));
+  glslang::GlslangToSpv(*(pIntermediate->data), spirv);
+  lua_pushinteger(
+      L, static_cast<lua_Integer>(sizeof(unsigned int) * spirv.size()));
+  hello::lua::buffer::alloc(L);
+  auto ppBuffer = static_cast<hello::lua::buffer::Buffer *>(
+      luaL_checkudata(L, -1, "Buffer"));
+  auto pBuffer = ppBuffer->p;
   memcpy(pBuffer, spirv.data(), spirv.size() * sizeof(unsigned int));
-  *wordCount = static_cast<int32_t>(spirv.size());
-  return pBuffer;
+  return 1;
 }
 
-glslang::TShader *glslang_TShader_new(EShLanguage stage) {
-  return new glslang::TShader(stage);
+int L_newShader(lua_State *L) {
+  auto stage = luaL_checkinteger(L, 1);
+  luaL_argcheck(L,
+                stage == EShLanguage::EShLangFragment ||
+                    stage == EShLanguage::EShLangVertex,
+                1, "only support for fragment or vertex");
+  auto pShader = static_cast<Shader *>(lua_newuserdata(L, sizeof(Shader)));
+  pShader->data = new glslang::TShader(static_cast<EShLanguage>(stage));
+  luaL_setmetatable(L, SHADER_NAME);
+  return 1;
 }
 
-void glslang_TShader_delete(glslang::TShader *shader) { delete shader; }
-
-const char *glslang_TShader_getInfoLog(glslang::TShader *shader) {
-  return shader->getInfoLog();
+int L_Shader___gc(lua_State *L) {
+  auto pShader = static_cast<Shader *>(luaL_checkudata(L, 1, SHADER_NAME));
+  delete pShader->data;
+  pShader->data = nullptr;
+  return 0;
 }
 
-void glslang_TShader_setString(glslang::TShader *shader, const char *s) {
+int L_Shader_getInfoLog(lua_State *L) {
+  auto pShader = static_cast<Shader *>(luaL_checkudata(L, 1, SHADER_NAME));
+  luaL_argcheck(L, pShader->data != nullptr, 1, "Shader is null value.");
+  lua_pushstring(L, pShader->data->getInfoLog());
+  return 1;
+}
+
+int L_Shader_setString(lua_State *L) {
+  auto pShader = static_cast<Shader *>(luaL_checkudata(L, 1, SHADER_NAME));
+  luaL_argcheck(L, pShader->data != nullptr, 1, "Shader is null value.");
+  const char *s = luaL_checkstring(L, 2);
   const char *const sources[] = {s};
-  shader->setStrings(sources, 1);
+  pShader->data->setStrings(sources, 1);
+  return 0;
 }
 
-void glslang_TShader_setEnvInput(glslang::TShader *shader,
-                                 glslang::EShSource lang, EShLanguage envStage,
-                                 glslang::EShClient client, int version) {
-  shader->setEnvInput(lang, envStage, client, version);
+int L_Shader_setEnvInput(lua_State *L) {
+  auto pShader = static_cast<Shader *>(luaL_checkudata(L, 1, SHADER_NAME));
+  luaL_argcheck(L, pShader->data != nullptr, 1, "Shader is null value.");
+  auto lang = static_cast<glslang::EShSource>(luaL_checkinteger(L, 2));
+  auto envStage = static_cast<EShLanguage>(luaL_checkinteger(L, 3));
+  auto client = static_cast<glslang::EShClient>(luaL_checkinteger(L, 4));
+  auto version = static_cast<int>(luaL_checkinteger(L, 5));
+  pShader->data->setEnvInput(lang, envStage, client, version);
+  return 0;
 }
 
-void glslang_TShader_setEnvClient(glslang::TShader *shader,
-                                  glslang::EShClient client,
-                                  glslang::EShTargetClientVersion version) {
-  shader->setEnvClient(client, version);
+int L_Shader_setEnvClient(lua_State *L) {
+  auto pShader = static_cast<Shader *>(luaL_checkudata(L, 1, SHADER_NAME));
+  luaL_argcheck(L, pShader->data != nullptr, 1, "Shader is null value.");
+  auto client = static_cast<glslang::EShClient>(luaL_checkinteger(L, 2));
+  auto version =
+      static_cast<glslang::EshTargetClientVersion>(luaL_checkinteger(L, 3));
+  pShader->data->setEnvClient(client, version);
+  return 0;
 }
 
-void glslang_TShader_setEnvTarget(glslang::TShader *shader,
-                                  glslang::EShTargetLanguage lang,
-                                  glslang::EShTargetLanguageVersion version) {
-  shader->setEnvTarget(lang, version);
+int L_Shader_setEnvTarget(lua_State *L) {
+  auto pShader = static_cast<Shader *>(luaL_checkudata(L, 1, SHADER_NAME));
+  luaL_argcheck(L, pShader->data != nullptr, 1, "Shader is null value.");
+  auto lang = static_cast<glslang::EShTargetLanguage>(luaL_checkinteger(L, 2));
+  auto version =
+      static_cast<glslang::EShTargetLanguageVersion>(luaL_checkinteger(L, 3));
+  pShader->data->setEnvTarget(lang, version);
+  return 0;
 }
 
 bool glslang_TShader_parse(glslang::TShader *shader, int defaultVersion,
@@ -292,16 +392,68 @@ bool glslang_TShader_parse(glslang::TShader *shader, int defaultVersion,
   return shader->parse(&DefaultTBuiltInResource, defaultVersion,
                        forwardCompatible, messages);
 }
+
 int L_require(lua_State *L) {
   lua_newtable(L);
+
+  lua_pushcfunction(L, L_InitializeProcess);
+  lua_setfield(L, -2, "initializeProcess");
+
+  lua_pushcfunction(L, L_FinalizeProcess);
+  lua_setfield(L, -2, "finalizeProcess");
+
+  lua_pushcfunction(L, L_newProgram);
+  lua_setfield(L, -2, "newProgram");
+
+  lua_pushcfunction(L, L_newShader);
+  lua_setfield(L, -2, "newShader");
+
+  lua_pushcfunction(L, L_GlslangToSpirv);
+  lua_setfield(L, -2, "glslangToSpirv");
+
   return 1;
 }
 } // namespace
 
 namespace hello::lua::glslang {
 void openlibs(lua_State *L) {
+  luaL_newmetatable(L, SHADER_NAME);
+  lua_pushcfunction(L, L_Shader___gc);
+  lua_setfield(L, -2, "__gc");
+  lua_newtable(L);
+  lua_pushcfunction(L, L_Shader_getInfoLog);
+  lua_setfield(L, -2, "getInfoLog");
+  lua_pushcfunction(L, L_Shader_setString);
+  lua_setfield(L, -2, "setString");
+  lua_pushcfunction(L, L_Shader_setEnvInput);
+  lua_setfield(L, -2, "setEnvInput");
+  lua_pushcfunction(L, L_Shader_setEnvClient);
+  lua_setfield(L, -2, "setEnvClient");
+  lua_pushcfunction(L, L_Shader_setEnvTarget);
+  lua_setfield(L, -2, "setEnvTarget");
+  lua_setfield(L, -2, "__index");
+
+  luaL_newmetatable(L, PROGRAM_NAME);
+  lua_pushcfunction(L, L_Program___gc);
+  lua_setfield(L, -2, "__gc");
+  lua_newtable(L);
+  lua_pushcfunction(L, L_Program_getInfoLog);
+  lua_setfield(L, -2, "getInfoLog");
+  lua_pushcfunction(L, L_Program_addShader);
+  lua_setfield(L, -2, "addShader");
+  lua_pushcfunction(L, L_Program_link);
+  lua_setfield(L, -2, "link");
+  lua_pushcfunction(L, L_Program_getIntermediate);
+  lua_setfield(L, -2, "getIntermediate");
+  lua_setfield(L, -2, "__index");
+
+  luaL_newmetatable(L, INTERMEDIATE_NAME);
+  lua_pushcfunction(L, L_Intermedate___gc);
+  lua_setfield(L, -2, "__gc");
+
   lua_newtable(L);
   luaL_requiref(L, "glslang", L_require, false);
-  lua_pop(L, 1);
+
+  lua_pop(L, 4);
 }
 } // namespace hello::lua::glslang
