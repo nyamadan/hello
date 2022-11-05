@@ -21,6 +21,7 @@ const char *const PROGRAM_NAME = "glslang_Program";
 const char *const INTERMEDIATE_NAME = "glslang_Intermediate";
 
 struct Shader {
+  char *sources[1] = {nullptr};
   glslang::TShader *data;
 };
 
@@ -323,6 +324,7 @@ int L_newShader(lua_State *L) {
                 1, "only support for fragment or vertex");
   auto pShader = static_cast<Shader *>(lua_newuserdata(L, sizeof(Shader)));
   pShader->data = new glslang::TShader(static_cast<EShLanguage>(stage));
+  pShader->sources[0] = nullptr;
   luaL_setmetatable(L, SHADER_NAME);
   return 1;
 }
@@ -331,6 +333,8 @@ int L_Shader___gc(lua_State *L) {
   auto pShader = static_cast<Shader *>(luaL_checkudata(L, 1, SHADER_NAME));
   delete pShader->data;
   pShader->data = nullptr;
+  free(pShader->sources[0]);
+  pShader->sources[0] = nullptr;
   return 0;
 }
 
@@ -344,9 +348,14 @@ int L_Shader_getInfoLog(lua_State *L) {
 int L_Shader_setString(lua_State *L) {
   auto pShader = static_cast<Shader *>(luaL_checkudata(L, 1, SHADER_NAME));
   luaL_argcheck(L, pShader->data != nullptr, 1, "Shader is null value.");
+
+  free(pShader->sources[0]);
+
   const char *s = luaL_checkstring(L, 2);
-  const char *const sources[] = {s};
-  pShader->data->setStrings(sources, 1);
+  auto len = strlen(s);
+  pShader->sources[0] = static_cast<char *>(malloc(len + 1));
+  memcpy(pShader->sources[0], s, len + 1);
+  pShader->data->setStrings(pShader->sources, 1);
   return 0;
 }
 
