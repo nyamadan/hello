@@ -80,3 +80,29 @@ TEST_F(LuaGlslang_Test, ShaderGetInfoLogTest) {
       << lua_tostring(L, -1);
   ASSERT_STREQ(luaL_checkstring(L, -1), "");
 }
+
+TEST_F(LuaGlslang_Test, ParseShaderTest) {
+  // WIP
+  ASSERT_EQ(hello::lua::utils::dostring(
+                L, "local glslang = require('glslang');\n"
+                   "local shader = glslang.newShader(4);\n"
+                   "local program = glslang.newProgram();\n"
+                   "local source = [[#version 310 es\n"
+                   "#extension GL_GOOGLE_include_directive : enable\n"
+                   "precision mediump float;\n"
+                   "precision highp int;\n"
+                   "#include \"color\"\n"
+                   "layout(location=0) out vec4 fragColor;\n"
+                   "void main()\n"
+                   "{\n"
+                   "  fragColor = getColor();\n"
+                   "}\n"
+                   "]];\n"
+                   "shader:setString(source);\n"
+                   "shader:setEnvInput(1, 4, 2, 100);\n"
+                   "shader:setEnvClient(2, 450);\n"
+                   "shader:setEnvTarget(1, 65536);\n"
+                   "return;\n"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+}
