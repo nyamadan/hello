@@ -10,6 +10,9 @@
       "name": "Debug",
       "runtimeExecutable": "${workspaceFolder}/build/hello_embree_host",
       "windows": {
+        "name": "Debug",
+        "type": "lua",
+        "request": "launch",
         "runtimeExecutable": "${workspaceFolder}/build/hello_embree_host.exe"
       },
       "runtimeArgs": ["-f", "main.lua"],

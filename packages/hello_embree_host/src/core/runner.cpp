@@ -3,6 +3,7 @@
 #include <iostream>
 
 #include "lua/buffer/lua_buffer.hpp"
+#include "lua/glslang/lua_glslang.hpp"
 #include "lua/lua_utils.hpp"
 #include "lua/opengl/lua_opengl.hpp"
 #include "lua/sdl2/lua_sdl2.hpp"
@@ -21,6 +22,7 @@ void initialize(lua_State *L) {
   lua::buffer::openlibs(L);
   lua::sdl2::openlibs(L);
   lua::opengl::openlibs(L);
+  lua::glslang::openlibs(L);
 }
 void finalize(lua_State *L) { lua_close(L); }
 void handleEvents(void *arg) {
