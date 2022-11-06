@@ -102,7 +102,19 @@ TEST_F(LuaGlslang_Test, ParseShaderTest) {
                    "shader:setEnvInput(1, 4, 2, 100);\n"
                    "shader:setEnvClient(2, 450);\n"
                    "shader:setEnvTarget(1, 65536);\n"
-                   "return;\n"),
+                   "local parseResult = shader:parse(100, true, 0, function "
+                   "(header, includer, depth)\n"
+                   "  local color = [[//module\n"
+                   "vec4 getColor()\n"
+                   "{\n"
+                   "  return vec4(1.0, 0.5, 1.0, 1.0);\n"
+                   "}\n"
+                   "]];\n"
+                   "  return header, color;\n"
+                   "end);\n"
+                   "return parseResult;\n"),
             LUA_OK)
       << lua_tostring(L, -1);
+
+  ASSERT_TRUE(lua_toboolean(L, -1));
 }

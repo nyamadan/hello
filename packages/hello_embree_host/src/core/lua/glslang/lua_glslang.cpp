@@ -156,29 +156,69 @@ Includer::Includer(lua_State *L, int includeLocal, int includeSystem,
 glslang::TShader::Includer::IncludeResult *
 Includer::includeLocal(const char *headerName, const char *includerName,
                        size_t inclusionDepth) {
+  if (lua_isnil(L, this->includeLocal_)) {
+    return nullptr;
+  }
+
   lua_pushvalue(L, this->includeLocal_);
   lua_pushstring(L, headerName);
   lua_pushstring(L, includerName);
   lua_pushinteger(L, static_cast<int32_t>(inclusionDepth));
-  hello::lua::utils::docall(L, 3);
-  return nullptr;
+
+  if (hello::lua::utils::docall(L, 3, 2) != LUA_OK) {
+    lua_writestringerror("Includer:includeLocal: %s\n", lua_tostring(L, -1));
+    return nullptr;
+  }
+
+  if (!lua_isstring(L, -2) || !lua_isstring(L, -1)) {
+    return nullptr;
+  }
+
+  const auto resultName = std::string(lua_tostring(L, -2));
+  const auto resultDataSrc = lua_tostring(L, -1);
+  const auto resultDataLen = strlen(resultDataSrc);
+  auto resultData = static_cast<char *>(malloc(resultDataLen + 1));
+  memcpy(resultData, resultDataSrc, resultDataLen + 1);
+  return new IncludeResult(headerName, resultData, resultDataLen, resultData);
 }
 
 glslang::TShader::Includer::IncludeResult *
 Includer::includeSystem(const char *headerName, const char *includerName,
                         size_t inclusionDepth) {
+  if (lua_isnil(L, this->includeSystem_)) {
+    return nullptr;
+  }
+
   lua_pushvalue(L, this->includeSystem_);
   lua_pushstring(L, headerName);
   lua_pushstring(L, includerName);
   lua_pushinteger(L, static_cast<int32_t>(inclusionDepth));
-  hello::lua::utils::docall(L, 3);
-  return nullptr;
+
+  if (hello::lua::utils::docall(L, 3, 2) != LUA_OK) {
+    lua_writestringerror("Includer:includeSystem: %s\n", lua_tostring(L, -1));
+    return nullptr;
+  }
+
+  if (!lua_isstring(L, -2) || !lua_isstring(L, -1)) {
+    return nullptr;
+  }
+  const auto resultName = std::string(lua_tostring(L, -2));
+  const auto resultDataSrc = lua_tostring(L, -1);
+  const auto resultDataLen = strlen(resultDataSrc);
+  auto resultData = static_cast<char *>(malloc(resultDataLen + 1));
+  memcpy(resultData, resultDataSrc, resultDataLen + 1);
+  return new IncludeResult(headerName, resultData, resultDataLen, resultData);
 }
 
 void Includer::releaseInclude(IncludeResult *result) {
   if (result != nullptr) {
-    lua_pushvalue(L, this->release);
-    hello::lua::utils::docall(L, 0);
+    if (!lua_isnil(L, this->release)) {
+      lua_pushvalue(L, this->release);
+      if (hello::lua::utils::docall(L, 0) != LUA_OK) {
+        lua_writestringerror("Includer:release: %s\n", lua_tostring(L, -1));
+      }
+    }
+    free(result->userData);
     delete result;
   }
 }
@@ -374,23 +414,12 @@ int L_Shader_parse(lua_State *L) {
   auto defaultVersion = static_cast<int>(luaL_checkinteger(L, 2));
   auto forwardCompatible = !!lua_toboolean(L, 3);
   auto messages = static_cast<EShMessages>(luaL_checkinteger(L, 4));
+  lua_settop(L, 7);
   auto includer = Includer(L, 5, 6, 7);
   auto result = pShader->parse(&DefaultTBuiltInResource, defaultVersion,
                                forwardCompatible, messages, includer);
   lua_pushboolean(L, static_cast<int>(result));
   return 1;
-}
-
-bool glslang_TShader_parse(glslang::TShader *shader, int defaultVersion,
-                           bool forwardCompatible, EShMessages messages,
-                           Includer *includer) {
-  if (includer != nullptr) {
-    return shader->parse(&DefaultTBuiltInResource, defaultVersion,
-                         forwardCompatible, messages, *includer);
-  }
-
-  return shader->parse(&DefaultTBuiltInResource, defaultVersion,
-                       forwardCompatible, messages);
 }
 
 int L_require(lua_State *L) {
@@ -431,6 +460,8 @@ void openlibs(lua_State *L) {
   lua_setfield(L, -2, "setEnvClient");
   lua_pushcfunction(L, L_Shader_setEnvTarget);
   lua_setfield(L, -2, "setEnvTarget");
+  lua_pushcfunction(L, L_Shader_parse);
+  lua_setfield(L, -2, "parse");
   lua_setfield(L, -2, "__index");
 
   luaL_newmetatable(L, PROGRAM_NAME);
