@@ -35,8 +35,8 @@ endif()
 # args
 ExternalProject_Add(args
   PREFIX "${EXTERNALS_ROOT}"
-  URL "https://github.com/Taywee/args/archive/refs/tags/6.2.7.tar.gz"
-  URL_HASH SHA256=3600e0a82a547d230d193683316c5cedfc9a59adf59ce89b3b5c95ce478a12b3
+  URL "https://github.com/Taywee/args/archive/refs/tags/6.4.1.tar.gz"
+  URL_HASH SHA256=9b3f78208c9cfb06ccbeb7c44903018c8b036b6592a2d9a7d8695d1944060b35
   CMAKE_ARGS
   -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
@@ -74,8 +74,8 @@ endif()
 if(NOT EMSCRIPTEN)
   ExternalProject_Add(sdl2
     PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.24.0.tar.gz"
-    URL_HASH SHA256=8cff760c78ca76777e9069a63690005f45ddffffb496f2d7e9a42b2d48ef7009
+    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.24.2.tar.gz"
+    URL_HASH SHA256=be08ca66d11b1743996cb69a9b6c44771e16084a2dbcb4b61e52d9ac4983f4fc
     BUILD_BYPRODUCTS ${SDL2_LIB} ${SDL2MAIN_LIB}
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
@@ -87,8 +87,8 @@ if(NOT EMSCRIPTEN)
 else()
   ExternalProject_Add(sdl2
     PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.24.0.tar.gz"
-    URL_HASH SHA256=8cff760c78ca76777e9069a63690005f45ddffffb496f2d7e9a42b2d48ef7009
+    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.24.2.tar.gz"
+    URL_HASH SHA256=be08ca66d11b1743996cb69a9b6c44771e16084a2dbcb4b61e52d9ac4983f4fc
     BUILD_BYPRODUCTS ${SDL2_LIB} ${SDL2MAIN_LIB}
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
@@ -136,8 +136,8 @@ endif()
 
 ExternalProject_Add(spirvcross
   PREFIX "${EXTERNALS_ROOT}"
-  URL "https://github.com/KhronosGroup/SPIRV-Cross/archive/refs/tags/2021-01-15.tar.gz"
-  URL_HASH SHA256=d700863b548cbc7f27a678cee305f561669a126eb2cc11d36a7023dfc462b9c4
+  URL "https://github.com/KhronosGroup/SPIRV-Cross/archive/refs/tags/sdk-1.3.231.1.tar.gz"
+  URL_HASH SHA256=3b42f5b6e46b45600e09fd55234f59edb7cfca803e49d7830dc6fb5a086143b1
   BUILD_BYPRODUCTS ${SPIRVCROSS_LIB}
   CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
@@ -195,8 +195,8 @@ endif()
 
 ExternalProject_Add(glslang
   PREFIX "${EXTERNALS_ROOT}"
-  URL "https://github.com/KhronosGroup/glslang/archive/refs/tags/11.11.0.tar.gz"
-  URL_HASH SHA256=26c216c3062512c018cbdd752224b8dad703b7e5bb90bf338ba2dbb5d4f11438
+  URL "https://github.com/KhronosGroup/glslang/archive/refs/tags/11.12.0.tar.gz"
+  URL_HASH SHA256=7795a97450fecd9779f3d821858fbc2d1a3bf1dd602617d95b685ccbcabc302f
   BUILD_BYPRODUCTS ${GLSLANG_LIB}
   CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}

@@ -39,7 +39,7 @@ void main(void) {
     vsShader:setEnvInput(glslang.EShSourceGlsl, glslang.EShLangVertex, glslang.EShClientOpenGL, 100);
     vsShader:setEnvClient(glslang.EShClientOpenGL, glslang.EShTargetOpenGL_450);
     vsShader:setEnvTarget(glslang.EShTargetSpv, glslang.EShTargetSpv_1_0);
-    if(not vsShader:parse(100, true, 0)) then
+    if not vsShader:parse(100, true, 0) then
         error(vsShader:getInfoLog())
     end
     program:addShader(vsShader);
@@ -49,7 +49,7 @@ void main(void) {
     fsShader:setEnvInput(glslang.EShSourceGlsl, glslang.EShLangFragment, glslang.EShClientOpenGL, 100);
     fsShader:setEnvClient(glslang.EShClientOpenGL, glslang.EShTargetOpenGL_450);
     fsShader:setEnvTarget(glslang.EShTargetSpv, glslang.EShTargetSpv_1_0);
-    if(not fsShader:parse(100, true, 0)) then
+    if not fsShader:parse(100, true, 0) then
         error(fsShader:getInfoLog())
     end
     program:addShader(fsShader);
