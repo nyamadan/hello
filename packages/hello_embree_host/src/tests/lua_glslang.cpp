@@ -5,6 +5,16 @@
 #include <glslang/Public/ShaderLang.h>
 #include <gtest/gtest.h>
 
+#define TEST_LUA_CONSTANT(m, val1, val2)                                       \
+  do {                                                                         \
+    EXPECT_EQ(luaL_dostring(L, "return require('" m "')." val1), LUA_OK)       \
+        << lua_tostring(L, -1);                                                \
+    EXPECT_TRUE(lua_isinteger(L, -1))                                          \
+        << val1 << " is not integer <type is "                                 \
+        << lua_typename(L, lua_type(L, -1)) << ">";                            \
+    EXPECT_EQ(lua_tointeger(L, -1), val2);                                     \
+  } while (0)
+
 class LuaGlslang_Test : public ::testing::Test {
 public:
   static void SetUpTestSuite() { glslang::InitializeProcess(); }
@@ -27,6 +37,17 @@ protected:
     }
   }
 };
+
+TEST_F(LuaGlslang_Test, Constant) {
+  TEST_LUA_CONSTANT("glslang", "EShSourceGlsl", glslang::EShSourceGlsl);
+  TEST_LUA_CONSTANT("glslang", "EShClientOpenGL", glslang::EShClientOpenGL);
+  TEST_LUA_CONSTANT("glslang", "EShTargetOpenGL_450",
+                    glslang::EShTargetOpenGL_450);
+  TEST_LUA_CONSTANT("glslang", "EShTargetSpv", glslang::EShTargetSpv);
+  TEST_LUA_CONSTANT("glslang", "EShTargetSpv_1_0", glslang::EShTargetSpv_1_0);
+  TEST_LUA_CONSTANT("glslang", "EShLangFragment", EShLanguage::EShLangFragment);
+  TEST_LUA_CONSTANT("glslang", "EShLangVertex", EShLanguage::EShLangVertex);
+}
 
 TEST_F(LuaGlslang_Test, Require) {
   ASSERT_EQ(hello::lua::utils::dostring(L, "local glslang = require('glslang');"

@@ -127,9 +127,9 @@ const TBuiltInResource DefaultTBuiltInResource = {
 
 class Includer : public glslang::TShader::Includer {
 private:
-  lua_State *L;
-  int include;
-  int release;
+  lua_State *L = nullptr;
+  int include = 0;
+  int release = 0;
 
 public:
   Includer(lua_State *L, int include, int release);
@@ -420,6 +420,27 @@ int L_Shader_parse(lua_State *L) {
 
 int L_require(lua_State *L) {
   lua_newtable(L);
+
+  lua_pushinteger(L, glslang::EShSourceGlsl);
+  lua_setfield(L, -2, "EShSourceGlsl");
+
+  lua_pushinteger(L, glslang::EShClientOpenGL);
+  lua_setfield(L, -2, "EShClientOpenGL");
+
+  lua_pushinteger(L, glslang::EShTargetOpenGL_450);
+  lua_setfield(L, -2, "EShTargetOpenGL_450");
+
+  lua_pushinteger(L, glslang::EShTargetSpv);
+  lua_setfield(L, -2, "EShTargetSpv");
+
+  lua_pushinteger(L, glslang::EShTargetSpv_1_0);
+  lua_setfield(L, -2, "EShTargetSpv_1_0");
+
+  lua_pushinteger(L, EShLanguage::EShLangFragment);
+  lua_setfield(L, -2, "EShLangFragment");
+
+  lua_pushinteger(L, EShLanguage::EShLangVertex);
+  lua_setfield(L, -2, "EShLangVertex");
 
   lua_pushcfunction(L, L_InitializeProcess);
   lua_setfield(L, -2, "initializeProcess");

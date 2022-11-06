@@ -12,10 +12,12 @@ using namespace hello::lua;
 
 #define TEST_LUA_CONSTANT(m, val1, val2)                                       \
   do {                                                                         \
-    ASSERT_EQ(LUA_OK, luaL_dostring(L, "return require('" m "')." val1))       \
+    EXPECT_EQ(luaL_dostring(L, "return require('" m "')." val1), LUA_OK)       \
         << lua_tostring(L, -1);                                                \
-    ASSERT_TRUE(lua_isinteger(L, -1)) << val1 << " is not integer";            \
-    ASSERT_EQ(val2, luaL_checkinteger(L, -1));                                 \
+    EXPECT_TRUE(lua_isinteger(L, -1))                                          \
+        << val1 << " is not integer <type is "                                 \
+        << lua_typename(L, lua_type(L, -1)) << ">";                            \
+    EXPECT_EQ(lua_tointeger(L, -1), val2);                                     \
   } while (0)
 
 class LuaSDL2_Test : public ::testing::Test {
