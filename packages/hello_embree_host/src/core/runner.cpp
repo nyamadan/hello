@@ -1,13 +1,12 @@
 #include "runner.hpp"
-
-#include <iostream>
-
 #include "lua/buffer/lua_buffer.hpp"
 #include "lua/glslang/lua_glslang.hpp"
 #include "lua/lua_utils.hpp"
 #include "lua/opengl/lua_opengl.hpp"
 #include "lua/sdl2/lua_sdl2.hpp"
+#include "lua/spv_cross/lua_spv_cross.hpp"
 #include "utils/arguments.hpp"
+#include <iostream>
 
 #if defined(__EMSCRIPTEN__)
 #include <emscripten.h>
@@ -23,6 +22,7 @@ void initialize(lua_State *L) {
   lua::sdl2::openlibs(L);
   lua::opengl::openlibs(L);
   lua::glslang::openlibs(L);
+  lua::spv_cross::openlibs(L);
 }
 void finalize(lua_State *L) { lua_close(L); }
 void handleEvents(void *arg) {
