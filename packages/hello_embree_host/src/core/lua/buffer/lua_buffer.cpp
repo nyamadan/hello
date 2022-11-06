@@ -9,7 +9,7 @@ const char *const BUFFER_NAME = "Buffer";
 int L_alloc(lua_State *L) { return alloc(L); }
 
 int L_setUint8(lua_State *L) {
-  auto pBuffer = static_cast<Buffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
   auto idx = luaL_checkinteger(L, 2);
   auto n = static_cast<uint8_t>(luaL_checkinteger(L, 3));
   luaL_argcheck(L, idx >= 0 && idx < pBuffer->size, 2,
@@ -19,7 +19,7 @@ int L_setUint8(lua_State *L) {
 }
 
 int L_getUint8(lua_State *L) {
-  auto pBuffer = static_cast<Buffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
   auto idx = luaL_checkinteger(L, 2);
   luaL_argcheck(L, idx >= 0 && idx < pBuffer->size, 2,
                 "setUint8: Out of range.");
@@ -28,7 +28,7 @@ int L_getUint8(lua_State *L) {
 }
 
 int L___gc(lua_State *L) {
-  auto pBuffer = static_cast<Buffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
 
   free(pBuffer->p);
 
@@ -38,7 +38,7 @@ int L___gc(lua_State *L) {
 }
 
 int L___len(lua_State *L) {
-  auto pBuffer = static_cast<Buffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
   lua_pushinteger(L, pBuffer->size);
   return 1;
 }
@@ -58,7 +58,7 @@ int alloc(lua_State *L) {
   auto size = static_cast<int32_t>(luaL_checknumber(L, 1));
   luaL_argcheck(L, size >= 0, 1, "Invalid buffer size");
 
-  auto pBuffer = static_cast<Buffer *>(lua_newuserdata(L, sizeof(Buffer)));
+  auto pBuffer = static_cast<UDBuffer *>(lua_newuserdata(L, sizeof(UDBuffer)));
 
   if (size == 0) {
     pBuffer->p = nullptr;

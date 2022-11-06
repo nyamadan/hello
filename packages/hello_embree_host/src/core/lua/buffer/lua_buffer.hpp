@@ -5,7 +5,7 @@
 #include <cstdint>
 
 namespace hello::lua::buffer {
-struct Buffer {
+struct UDBuffer {
   int32_t size;
   uint8_t *p;
 };

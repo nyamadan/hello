@@ -102,8 +102,8 @@ TEST_F(LuaGlslang_Test, ParseShaderTest) {
                    "shader:setEnvInput(1, 4, 2, 100);\n"
                    "shader:setEnvClient(2, 450);\n"
                    "shader:setEnvTarget(1, 65536);\n"
-                   "local parseResult = shader:parse(100, true, 0, function "
-                   "(header, includer, depth)\n"
+                   "local parseResult = shader:parse(100, true, 0, function"
+                   "(module, header, includer, depth)\n"
                    "  local color = [[//module\n"
                    "vec4 getColor()\n"
                    "{\n"
@@ -112,7 +112,9 @@ TEST_F(LuaGlslang_Test, ParseShaderTest) {
                    "]];\n"
                    "  return header, color;\n"
                    "end);\n"
-                   "return parseResult;\n"),
+                   "program:addShader(shader);\n"
+                   "local linkResult = program:link(0);\n"
+                   "return linkResult;\n"),
             LUA_OK)
       << lua_tostring(L, -1);
 

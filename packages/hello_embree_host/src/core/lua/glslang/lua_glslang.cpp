@@ -128,12 +128,11 @@ const TBuiltInResource DefaultTBuiltInResource = {
 class Includer : public glslang::TShader::Includer {
 private:
   lua_State *L;
-  int includeLocal_;
-  int includeSystem_;
+  int include;
   int release;
 
 public:
-  Includer(lua_State *L, int includeLocal, int includeSystem, int release);
+  Includer(lua_State *L, int include, int release);
 
   virtual IncludeResult *includeLocal(const char *headerName,
                                       const char *includerName,
@@ -145,27 +144,26 @@ public:
   virtual ~Includer() override;
 };
 
-Includer::Includer(lua_State *L, int includeLocal, int includeSystem,
-                   int release) {
+Includer::Includer(lua_State *L, int include, int release) {
   this->L = L;
-  this->includeLocal_ = includeLocal;
-  this->includeSystem_ = includeSystem;
+  this->include = include;
   this->release = release;
 }
 
 glslang::TShader::Includer::IncludeResult *
 Includer::includeLocal(const char *headerName, const char *includerName,
                        size_t inclusionDepth) {
-  if (lua_isnil(L, this->includeLocal_)) {
+  if (lua_isnil(L, this->include)) {
     return nullptr;
   }
 
-  lua_pushvalue(L, this->includeLocal_);
+  lua_pushvalue(L, this->include);
+  lua_pushstring(L, "local");
   lua_pushstring(L, headerName);
   lua_pushstring(L, includerName);
   lua_pushinteger(L, static_cast<int32_t>(inclusionDepth));
 
-  if (hello::lua::utils::docall(L, 3, 2) != LUA_OK) {
+  if (hello::lua::utils::docall(L, 4, 2) != LUA_OK) {
     lua_writestringerror("Includer:includeLocal: %s\n", lua_tostring(L, -1));
     return nullptr;
   }
@@ -185,16 +183,17 @@ Includer::includeLocal(const char *headerName, const char *includerName,
 glslang::TShader::Includer::IncludeResult *
 Includer::includeSystem(const char *headerName, const char *includerName,
                         size_t inclusionDepth) {
-  if (lua_isnil(L, this->includeSystem_)) {
+  if (lua_isnil(L, this->include)) {
     return nullptr;
   }
 
-  lua_pushvalue(L, this->includeSystem_);
+  lua_pushvalue(L, this->include);
+  lua_pushstring(L, "system");
   lua_pushstring(L, headerName);
   lua_pushstring(L, includerName);
   lua_pushinteger(L, static_cast<int32_t>(inclusionDepth));
 
-  if (hello::lua::utils::docall(L, 3, 2) != LUA_OK) {
+  if (hello::lua::utils::docall(L, 4, 2) != LUA_OK) {
     lua_writestringerror("Includer:includeSystem: %s\n", lua_tostring(L, -1));
     return nullptr;
   }
@@ -277,7 +276,7 @@ int L_Program_getInfoLog(lua_State *L) {
 int L_Program_addShader(lua_State *L) {
   auto pProgram = static_cast<UDProgram *>(luaL_checkudata(L, 1, PROGRAM_NAME));
   luaL_argcheck(L, pProgram->data != nullptr, 1, "Program is null value.");
-  auto pShader = static_cast<UDShader *>(luaL_checkudata(L, 2, PROGRAM_NAME));
+  auto pShader = static_cast<UDShader *>(luaL_checkudata(L, 2, SHADER_NAME));
   luaL_argcheck(L, pShader->data != nullptr, 2, "Shader is null value.");
   pProgram->data->addShader(pShader->data);
   return 0;
@@ -325,7 +324,7 @@ int L_GlslangToSpirv(lua_State *L) {
   lua_pushinteger(
       L, static_cast<lua_Integer>(sizeof(unsigned int) * spirv.size()));
   hello::lua::buffer::alloc(L);
-  auto ppBuffer = static_cast<hello::lua::buffer::Buffer *>(
+  auto ppBuffer = static_cast<hello::lua::buffer::UDBuffer *>(
       luaL_checkudata(L, -1, "Buffer"));
   auto pBuffer = ppBuffer->p;
   memcpy(pBuffer, spirv.data(), spirv.size() * sizeof(unsigned int));
@@ -414,8 +413,8 @@ int L_Shader_parse(lua_State *L) {
   auto defaultVersion = static_cast<int>(luaL_checkinteger(L, 2));
   auto forwardCompatible = !!lua_toboolean(L, 3);
   auto messages = static_cast<EShMessages>(luaL_checkinteger(L, 4));
-  lua_settop(L, 7);
-  auto includer = Includer(L, 5, 6, 7);
+  lua_settop(L, 6);
+  auto includer = Includer(L, 5, 6);
   auto result = pShader->parse(&DefaultTBuiltInResource, defaultVersion,
                                forwardCompatible, messages, includer);
   lua_pushboolean(L, static_cast<int>(result));
