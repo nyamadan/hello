@@ -5,6 +5,72 @@ local ok, message = pcall(function()
     local buffer = require("buffer")
     local SDL = require("sdl2")
     local gl = require("opengl")
+    local glslang = require("glslang")
+    local spv_cross = require("spv_cross")
+
+    local DefaultVertexShader = [[#version 310 es
+layout(location=0) in vec3 aPosition;
+void main(void) {
+    gl_Position = vec4(aPosition, 1.0);
+}
+]]
+
+local DefaultFragmentShader = [[#version 310 es
+precision mediump float;
+
+layout(location=0) uniform vec2 resolution;
+layout(location=1) uniform sampler2D backbuffer;
+
+layout(location=0) out vec4 fragColor;
+
+void main(void) {
+    vec2 uv = gl_FragCoord.xy / resolution;
+    vec3 color = texture(backbuffer, uv).rgb;
+    fragColor = vec4(color, 1.0);
+}
+]]
+
+    glslang.initializeProcess();
+
+    local program = glslang.newProgram();
+
+    local vsShader = glslang.newShader(glslang.EShLangVertex);
+    vsShader:setString(DefaultVertexShader);
+    vsShader:setEnvInput(glslang.EShSourceGlsl, glslang.EShLangVertex, glslang.EShClientOpenGL, 100);
+    vsShader:setEnvClient(glslang.EShClientOpenGL, glslang.EShTargetOpenGL_450);
+    vsShader:setEnvTarget(glslang.EShTargetSpv, glslang.EShTargetSpv_1_0);
+    if(not vsShader:parse(100, true, 0)) then
+        error(vsShader:getInfoLog())
+    end
+    program:addShader(vsShader);
+
+    local fsShader = glslang.newShader(glslang.EShLangFragment);
+    fsShader:setString(DefaultFragmentShader);
+    fsShader:setEnvInput(glslang.EShSourceGlsl, glslang.EShLangFragment, glslang.EShClientOpenGL, 100);
+    fsShader:setEnvClient(glslang.EShClientOpenGL, glslang.EShTargetOpenGL_450);
+    fsShader:setEnvTarget(glslang.EShTargetSpv, glslang.EShTargetSpv_1_0);
+    if(not fsShader:parse(100, true, 0)) then
+        error(fsShader:getInfoLog())
+    end
+    program:addShader(fsShader);
+
+    if not program:link(0) then
+        error(program:getInfoLog())
+    end
+
+    local vsIntermediate = program:getIntermediate(glslang.EShLangVertex);
+    local vsSpv = glslang.glslangToSpv(program, vsIntermediate);
+
+    local fsIntermediate = program:getIntermediate(glslang.EShLangFragment);
+    local fsSpv = glslang.glslangToSpv(program, fsIntermediate);
+
+    if utils.isEmscripten() then
+        print(spv_cross.compile(vsSpv, {es = true, version = 300}));
+        print(spv_cross.compile(fsSpv, {es = true, version = 300}));
+    else
+        print(spv_cross.compile(vsSpv, {es = false, version = 420}));
+        print(spv_cross.compile(fsSpv, {es = false, version = 420}));
+    end
 
     local function collectEvents()
         local events = {};
