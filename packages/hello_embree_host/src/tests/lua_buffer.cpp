@@ -27,8 +27,16 @@ TEST_F(LuaBuffer_Test, NewBuffer) {
             LUA_OK)
       << lua_tostring(L, -1);
 
-  luaL_checkudata(L, -1, "Buffer");
+  auto udBuffer = hello::lua::buffer::get(L, -1);
+  ASSERT_NE(udBuffer, nullptr);
+  ASSERT_EQ(udBuffer->size, 4);
   ASSERT_EQ(luaL_checkinteger(L, -2), 4);
+}
+
+TEST_F(LuaBuffer_Test, AllocAndGet) {
+  auto udBuffer = hello::lua::buffer::alloc(L, 12);
+  ASSERT_EQ(udBuffer->size, 12);
+  ASSERT_EQ(hello::lua::buffer::get(L, -1), udBuffer);
 }
 
 TEST_F(LuaBuffer_Test, SetGetUint8) {

@@ -7,9 +7,10 @@
 namespace hello::lua::buffer {
 struct UDBuffer {
   int32_t size;
-  uint8_t *p;
+  uint8_t *data;
 };
-int alloc(lua_State *L);
+UDBuffer *alloc(lua_State *L, int size);
+UDBuffer *get(lua_State *L, int idx);
 void openlibs(lua_State *L);
 } // namespace hello::lua::buffer
 #endif

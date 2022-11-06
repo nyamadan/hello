@@ -310,7 +310,7 @@ int L_Intermedate___gc(lua_State *L) {
   return 0;
 }
 
-int L_GlslangToSpirv(lua_State *L) {
+int L_GlslangToSpv(lua_State *L) {
   auto pProgram = static_cast<UDProgram *>(luaL_checkudata(L, 1, PROGRAM_NAME));
   luaL_argcheck(L, pProgram->data != nullptr, 1, "Program is null value.");
 
@@ -321,13 +321,10 @@ int L_GlslangToSpirv(lua_State *L) {
 
   auto spirv = std::vector<unsigned int>();
   glslang::GlslangToSpv(*(pIntermediate->data), spirv);
-  lua_pushinteger(
-      L, static_cast<lua_Integer>(sizeof(unsigned int) * spirv.size()));
-  hello::lua::buffer::alloc(L);
-  auto ppBuffer = static_cast<hello::lua::buffer::UDBuffer *>(
-      luaL_checkudata(L, -1, "Buffer"));
-  auto pBuffer = ppBuffer->p;
-  memcpy(pBuffer, spirv.data(), spirv.size() * sizeof(unsigned int));
+  auto size = static_cast<int>(sizeof(unsigned int) * spirv.size());
+  auto udBuffer = hello::lua::buffer::alloc(L, size);
+  auto pBuffer = udBuffer->data;
+  memcpy(pBuffer, spirv.data(), size);
   return 1;
 }
 
@@ -436,8 +433,8 @@ int L_require(lua_State *L) {
   lua_pushcfunction(L, L_newShader);
   lua_setfield(L, -2, "newShader");
 
-  lua_pushcfunction(L, L_GlslangToSpirv);
-  lua_setfield(L, -2, "glslangToSpirv");
+  lua_pushcfunction(L, L_GlslangToSpv);
+  lua_setfield(L, -2, "glslangToSpv");
 
   return 1;
 }

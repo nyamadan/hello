@@ -114,7 +114,9 @@ TEST_F(LuaGlslang_Test, ParseShaderTest) {
                    "end);\n"
                    "program:addShader(shader);\n"
                    "local linkResult = program:link(0);\n"
-                   "return linkResult;\n"),
+                   "local intermediate = program:getIntermediate(4);\n"
+                   "local spv = glslang.glslangToSpv(program, intermediate);\n"
+                   "return linkResult, spv;\n"),
             LUA_OK)
       << lua_tostring(L, -1);
 
