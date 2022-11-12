@@ -9,7 +9,7 @@ jobs:
         with:
           node-version: 18
       - name: Install Emscripten
-        run: git clone https://github.com/emscripten-core/emsdk.git && cd emsdk && ./emsdk install 2.0.27 && ./emsdk activate 2.0.27
+        run: git clone https://github.com/emscripten-core/emsdk.git && cd emsdk && ./emsdk install 2.0.32 && ./emsdk activate 2.0.32
       - name: Run CMake (Configure)
         run:  NODE=$(which node) && EMSDK_QUIET=1 source ./emsdk/emsdk_env.sh && emcmake cmake -S packages/hello_embree_host -B packages/hello_embree_host/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CROSSCOMPILING_EMULATOR=$NODE
       - name: Run CMake (Build)
