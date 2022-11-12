@@ -160,6 +160,9 @@ TEST_F(LuaSDL2_Test, TestVAO) {
                    "-0.5, -0.5, 0.0, 0.0, 0.0, 1.0\n"
                    "};\n"
                    "local data = buffer.alloc(72);\n"
+                   "for i, v in ipairs(points) do\n"
+                   "data:setFloat32(4 * (i - 1), v);\n"
+                   "end\n"
                    "local vbo = gl.genBuffer();\n"
                    "gl.bindBuffer(gl.ARRAY_BUFFER, vbo);\n"
                    "gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);"),

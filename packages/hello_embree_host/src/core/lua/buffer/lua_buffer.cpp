@@ -1,5 +1,7 @@
 #include "./lua_buffer.hpp"
 #include "../lua_utils.hpp"
+#include <cfloat>
+#include <cstdint>
 #include <cstdlib>
 #include <cstring>
 
@@ -53,6 +55,33 @@ int L_getUint8(lua_State *L) {
   luaL_argcheck(L, idx >= 0 && idx < pBuffer->size, 2,
                 "setUint8: Out of range.");
   lua_pushinteger(L, pBuffer->data[idx]);
+  return 1;
+}
+
+int L_setFloat32(lua_State *L) {
+  auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  if (pBuffer->usage != nullptr) {
+    luaL_error(L, "This operations is not permitted.");
+  }
+  auto idx = luaL_checkinteger(L, 2);
+  auto n = static_cast<float>(luaL_checknumber(L, 3));
+  luaL_argcheck(
+      L, idx >= 0 && idx + static_cast<int32_t>(sizeof(float)) <= pBuffer->size,
+      2, "setFloat32: Out of range.");
+  *reinterpret_cast<float *>(pBuffer->data + idx) = n;
+  return 0;
+}
+
+int L_getFloat32(lua_State *L) {
+  auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  if (pBuffer->usage != nullptr) {
+    luaL_error(L, "This operations is not permitted.");
+  }
+  auto idx = luaL_checkinteger(L, 2);
+  luaL_argcheck(
+      L, idx >= 0 && idx + static_cast<int32_t>(sizeof(float)) <= pBuffer->size,
+      2, "getFloat32: Out of range.");
+  lua_pushnumber(L, *reinterpret_cast<float *>(pBuffer->data + idx));
   return 1;
 }
 
@@ -118,6 +147,10 @@ void openlibs(lua_State *L) {
   lua_setfield(L, -2, "setUint8");
   lua_pushcfunction(L, L_getUint8);
   lua_setfield(L, -2, "getUint8");
+  lua_pushcfunction(L, L_setFloat32);
+  lua_setfield(L, -2, "setFloat32");
+  lua_pushcfunction(L, L_getFloat32);
+  lua_setfield(L, -2, "getFloat32");
   lua_setfield(L, -2, "__index");
 
   luaL_requiref(L, "buffer", L_require, false);

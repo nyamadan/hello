@@ -66,3 +66,31 @@ TEST_F(LuaBuffer_Test, SetGetUint8) {
                                            "b:getUint8(-1);"),
             LUA_OK);
 }
+
+TEST_F(LuaBuffer_Test, SetGetFloat32) {
+  ASSERT_EQ(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
+                                           "local b = buffer.alloc(4);"
+                                           "b:setFloat32(0, 10.0);"
+                                           "return b:getFloat32(0)"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+  ASSERT_EQ(luaL_checknumber(L, -1), 10.0);
+
+  ASSERT_NE(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
+                                           "local b = buffer.alloc(4);"
+                                           "b:setFloat32(1, 10.0);"),
+            LUA_OK);
+  ASSERT_NE(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
+                                           "local b = buffer.alloc(4);"
+                                           "b:setFloat32(-1, 10.0);"),
+            LUA_OK);
+
+  ASSERT_NE(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
+                                           "local b = buffer.alloc(4);"
+                                           "b:getFloat32(1);"),
+            LUA_OK);
+  ASSERT_NE(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
+                                           "local b = buffer.alloc(4);"
+                                           "b:getFloat32(-1);"),
+            LUA_OK);
+}
