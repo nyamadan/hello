@@ -1,4 +1,5 @@
 #include "./lua_sdl2_test.hpp"
+#include <glad/glad.h>
 
 using namespace hello::lua;
 
@@ -11,6 +12,7 @@ void LuaSDL2_Test::initLuaState() {
   luaL_openlibs(L);
   sdl2::openlibs(L);
   opengl::openlibs(L);
+  buffer::openlibs(L);
 }
 
 void LuaSDL2_Test::initOpenGL() {
@@ -20,6 +22,9 @@ void LuaSDL2_Test::initOpenGL() {
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
   SDL_GL_CreateContext(this->window);
   SDL_GL_SetSwapInterval(1);
+#ifndef __EMSCRIPTEN__
+  gladLoadGLLoader(SDL_GL_GetProcAddress);
+#endif
 }
 
 void LuaSDL2_Test::initWindow(Uint32 flags) {

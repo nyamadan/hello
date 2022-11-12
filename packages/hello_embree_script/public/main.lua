@@ -24,8 +24,9 @@ layout(location=1) uniform sampler2D backbuffer;
 layout(location=0) out vec4 fragColor;
 
 void main(void) {
-    vec2 uv = gl_FragCoord.xy / resolution;
-    vec3 color = texture(backbuffer, uv).rgb;
+    // vec2 uv = gl_FragCoord.xy / resolution;
+    // vec3 color = texture(backbuffer, uv).rgb;
+    vec3 color = vec3(1.0, 0.0, 1.0);
     fragColor = vec4(color, 1.0);
 }
 ]]
@@ -92,13 +93,16 @@ void main(void) {
     local window = SDL.CreateWindow("Hello World!!", SDL.WINDOWPOS_UNDEFINED, SDL.WINDOWPOS_UNDEFINED, 1280, 720, SDL.WINDOW_OPENGL)
     local renderer = SDL.CreateRenderer(window, -1, SDL.RENDERER_ACCELERATED)
 
-    local GLSL_VERSION = "#version 130"
     SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0)
     SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, SDL.GL_CONTEXT_PROFILE_CORE)
     SDL.GL_SetAttribute(SDL.GL_CONTEXT_MAJOR_VERSION, 3)
     SDL.GL_SetAttribute(SDL.GL_CONTEXT_MINOR_VERSION, 0)
     SDL.GL_CreateContext(window);
     SDL.GL_SetSwapInterval(1)
+
+    if not utils.isEmscripten() then
+        gl.loadGLLoader()
+    end
 
     utils.registerFunction("update", function()
         local ok, message = pcall(function()
@@ -113,8 +117,8 @@ void main(void) {
                 print("ev: type = " .. ev.type)
             end
 
-            gl.ClearColor(1, 0, 1, 1)
-            gl.Clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+            gl.clearColor(1, 0, 1, 1)
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
             SDL.GL_SwapWindow(window)
         end)

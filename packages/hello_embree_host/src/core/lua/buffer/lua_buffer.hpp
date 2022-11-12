@@ -5,11 +5,13 @@
 #include <cstdint>
 
 namespace hello::lua::buffer {
+
 struct UDBuffer {
   int32_t size;
   uint8_t *data;
+  char *usage;
 };
-UDBuffer *alloc(lua_State *L, int size);
+UDBuffer *alloc(lua_State *L, int size, const char *usage = nullptr);
 UDBuffer *get(lua_State *L, int idx);
 void openlibs(lua_State *L);
 } // namespace hello::lua::buffer

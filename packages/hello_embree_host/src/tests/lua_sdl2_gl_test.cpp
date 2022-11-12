@@ -107,7 +107,7 @@ TEST_F(LuaSDL2_Test, TestglClearColor) {
   initOpenGL();
 
   ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');"
-                               "gl.ClearColor(1, 0, 1, 1);"),
+                               "gl.clearColor(1, 0, 1, 1);"),
             LUA_OK)
       << lua_tostring(L, -1);
 }
@@ -122,7 +122,7 @@ TEST_F(LuaSDL2_Test, TestglClearDepth) {
   initOpenGL();
 
   ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');"
-                               "gl.ClearDepth(1.0);"),
+                               "gl.clearDepth(1.0);"),
             LUA_OK)
       << lua_tostring(L, -1);
 }
@@ -137,7 +137,32 @@ TEST_F(LuaSDL2_Test, TestglClear) {
   initOpenGL();
 
   ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');"
-                               "gl.Clear(gl.COLOR_BUFFER_BIT);"),
+                               "gl.clear(gl.COLOR_BUFFER_BIT);"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+}
+
+TEST_F(LuaSDL2_Test, TestVAO) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+
+  initWindow();
+  initRenderer();
+  initOpenGL();
+
+  ASSERT_EQ(utils::dostring(
+                L, "local gl = require('opengl');\n"
+                   "local buffer = require('buffer');\n"
+                   "local points = {\n"
+                   "0.0, 0.5, 0.0,  1.0, 0.0, 0.0,\n"
+                   "0.5, -0.5, 0.0, 0.0, 1.0, 0.0,\n"
+                   "-0.5, -0.5, 0.0, 0.0, 0.0, 1.0\n"
+                   "};\n"
+                   "local data = buffer.alloc(72);\n"
+                   "local vbo = gl.genBuffer();\n"
+                   "gl.bindBuffer(gl.ARRAY_BUFFER, vbo);\n"
+                   "gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);"),
             LUA_OK)
       << lua_tostring(L, -1);
 }

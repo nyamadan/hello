@@ -362,7 +362,7 @@ ExternalProject_Add(lua
 )
 link_directories(${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR})
 
-file(GLOB_RECURSE CORE_SOURCES "src/core/*.cpp" "src/core/*.c")
+file(GLOB_RECURSE CORE_SOURCES "src/core/*.cpp" "src/core/*.c" "externals/src/*.cpp" "externals/src/*.c")
 
 # core library
 add_library(hello_embree_host_lib "${CORE_SOURCES}")
@@ -378,9 +378,9 @@ target_compile_options(hello_embree_host_lib PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
-
 target_include_directories(hello_embree_host_lib
   PRIVATE
+  "externals/include"
   $<BUILD_INTERFACE:${EXTERNALS_ROOT}/${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
@@ -427,9 +427,9 @@ target_compile_options(hello_embree_host PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
-
 target_include_directories(hello_embree_host
   PRIVATE
+  "externals/include"
   $<BUILD_INTERFACE:${EXTERNALS_ROOT}/${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
@@ -522,9 +522,9 @@ target_compile_options(hello_embree_host_test PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
-
 target_include_directories(hello_embree_host_test
   PRIVATE
+  "externals/include"
   $<BUILD_INTERFACE:${EXTERNALS_ROOT}/${CMAKE_INSTALL_INCLUDEDIR}>
 )
 

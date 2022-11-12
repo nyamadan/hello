@@ -1,6 +1,7 @@
 #include "./lua_buffer.hpp"
 #include "../lua_utils.hpp"
 #include <cstdlib>
+#include <cstring>
 
 using namespace hello::lua::buffer;
 
@@ -23,6 +24,7 @@ int L_alloc(lua_State *L) {
     }
     pBuffer->size = size;
     pBuffer->data = p;
+    pBuffer->usage = nullptr;
   }
 
   luaL_setmetatable(L, BUFFER_NAME);
@@ -31,6 +33,9 @@ int L_alloc(lua_State *L) {
 
 int L_setUint8(lua_State *L) {
   auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  if (pBuffer->usage != nullptr) {
+    luaL_error(L, "This operations is not permitted.");
+  }
   auto idx = luaL_checkinteger(L, 2);
   auto n = static_cast<uint8_t>(luaL_checkinteger(L, 3));
   luaL_argcheck(L, idx >= 0 && idx < pBuffer->size, 2,
@@ -41,6 +46,9 @@ int L_setUint8(lua_State *L) {
 
 int L_getUint8(lua_State *L) {
   auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  if (pBuffer->usage != nullptr) {
+    luaL_error(L, "This operations is not permitted.");
+  }
   auto idx = luaL_checkinteger(L, 2);
   luaL_argcheck(L, idx >= 0 && idx < pBuffer->size, 2,
                 "setUint8: Out of range.");
@@ -51,8 +59,10 @@ int L_getUint8(lua_State *L) {
 int L___gc(lua_State *L) {
   auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
 
+  free(pBuffer->usage);
   free(pBuffer->data);
 
+  pBuffer->usage = nullptr;
   pBuffer->data = nullptr;
   pBuffer->size = 0;
   return 0;
@@ -75,7 +85,7 @@ int L_require(lua_State *L) {
 } // namespace
 
 namespace hello::lua::buffer {
-UDBuffer *alloc(lua_State *L, int size) {
+UDBuffer *alloc(lua_State *L, int size, const char *usage) {
   lua_pushcfunction(L, L_alloc);
   lua_pushinteger(L, size);
 
@@ -83,7 +93,14 @@ UDBuffer *alloc(lua_State *L, int size) {
     return nullptr;
   }
 
-  return hello::lua::buffer::get(L, -1);
+  auto result = hello::lua::buffer::get(L, -1);
+  if (usage != nullptr) {
+    auto len = static_cast<size_t>(strlen(usage));
+    auto dstUsage = static_cast<char *>(malloc(len + 1));
+    memcpy(dstUsage, usage, len);
+    result->usage = dstUsage;
+  }
+  return result;
 }
 
 UDBuffer *get(lua_State *L, int idx) {

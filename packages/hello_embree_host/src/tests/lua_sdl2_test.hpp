@@ -3,8 +3,14 @@
 #include <gtest/gtest.h>
 
 #include <SDL2/SDL.h>
-#include <SDL2/SDL_opengl.h>
+#ifdef EMSCRIPTEN
+#include "emscripten.h"
+#include <GLES2/gl2.h>
+#else
+#include <glad/glad.h>
+#endif
 
+#include "../core/lua/buffer/lua_buffer.hpp"
 #include "../core/lua/lua_common.hpp"
 #include "../core/lua/lua_utils.hpp"
 #include "../core/lua/opengl/lua_opengl.hpp"
