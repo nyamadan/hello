@@ -28,7 +28,7 @@ int L_glClearColor(lua_State *L) {
 
 int L_glClearDepth(lua_State *L) {
 #ifdef __EMSCRIPTEN__
-  auto depth = static_cast<GLclampf>(luaL_checknumber(L, 1));
+  auto depth = static_cast<GLfloat>(luaL_checknumber(L, 1));
   glClearDepthf(depth);
 #else
   auto depth = static_cast<GLclampd>(luaL_checknumber(L, 1));

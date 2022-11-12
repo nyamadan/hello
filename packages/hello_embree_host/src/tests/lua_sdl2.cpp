@@ -20,7 +20,10 @@ void LuaSDL2_Test::initOpenGL() {
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MINOR_VERSION, 0);
-  SDL_GL_CreateContext(this->window);
+  auto context = SDL_GL_CreateContext(this->window);
+  if (context == nullptr) {
+    throw std::runtime_error("Could not initialize OpenGL");
+  }
   SDL_GL_SetSwapInterval(1);
 #ifndef __EMSCRIPTEN__
   gladLoadGLLoader(SDL_GL_GetProcAddress);
