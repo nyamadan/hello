@@ -362,7 +362,15 @@ ExternalProject_Add(lua
 )
 link_directories(${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR})
 
-file(GLOB_RECURSE CORE_SOURCES "src/core/*.cpp" "src/core/*.c" "externals/src/*.cpp" "externals/src/*.c")
+# glad library
+file(GLOB_RECURSE EXTERNALS_SOURCES "externals/*.cpp" "externals/*.c")
+add_library(glad "${EXTERNALS_SOURCES}")
+target_include_directories(glad
+  PRIVATE
+  "externals/include"
+)
+
+file(GLOB_RECURSE CORE_SOURCES "src/core/*.cpp" "src/core/*.c")
 
 # core library
 add_library(hello_embree_host_lib "${CORE_SOURCES}")
@@ -462,6 +470,7 @@ endif()
 target_link_libraries(hello_embree_host
   ${SDL2MAIN_LIB}
   hello_embree_host_lib
+  glad
   ${EMBREE3_LIB}
   ${TBB_LIB}
   ${LUA_LIB}
@@ -545,6 +554,7 @@ target_link_libraries(
   hello_embree_host_test
   GTest::gtest_main
   hello_embree_host_lib
+  glad
   ${EMBREE3_LIB}
   ${TBB_LIB}
   ${LUA_LIB}
