@@ -157,10 +157,10 @@ TEST_F(LuaSDL2_Test, TestglViewport) {
       << lua_tostring(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestVAO) {
-#if defined(RUN_ON_GITHUB_ACTIONS)
-  GTEST_SKIP() << "Not work for GitHub Actions";
-#endif
+TEST_F(LuaSDL2_Test, TestDrawArrays) {
+  // #if defined(RUN_ON_GITHUB_ACTIONS)
+  //   GTEST_SKIP() << "Not work for GitHub Actions";
+  // #endif
 
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";

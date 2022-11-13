@@ -24,6 +24,7 @@ void LuaSDL2_Test::initOpenGL() {
   if (context == nullptr) {
     throw std::runtime_error("Could not initialize OpenGL");
   }
+  SDL_GL_MakeCurrent(this->window, context);
   SDL_GL_SetSwapInterval(1);
 #ifndef __EMSCRIPTEN__
   gladLoadGLLoader(SDL_GL_GetProcAddress);

@@ -94,7 +94,7 @@ int L_glVertexAttribPointer(lua_State *L) {
   auto normalized = static_cast<GLboolean>(lua_toboolean(L, 4));
   auto stride = static_cast<GLsizei>(luaL_checkinteger(L, 5));
   auto pointer = reinterpret_cast<const void *>(
-      lua_isnil(L, 6) ? 0 : luaL_checkinteger(L, 6));
+      lua_isnoneornil(L, 6) ? 0 : luaL_checkinteger(L, 6));
   glVertexAttribPointer(index, size, type, normalized, stride, pointer);
   return 0;
 }
