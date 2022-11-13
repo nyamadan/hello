@@ -96,13 +96,16 @@ void main(void) {
         SDL.WINDOW_OPENGL)
     local renderer = SDL.CreateRenderer(window, -1, SDL.RENDERER_ACCELERATED)
 
-    SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0)
-    SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, SDL.GL_CONTEXT_PROFILE_CORE)
-    SDL.GL_SetAttribute(SDL.GL_CONTEXT_MAJOR_VERSION, 3)
-    SDL.GL_SetAttribute(SDL.GL_CONTEXT_MINOR_VERSION, 0)
+    if not utils.isEmscripten() then
+        SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0)
+        SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, SDL.GL_CONTEXT_PROFILE_CORE)
+        SDL.GL_SetAttribute(SDL.GL_CONTEXT_MAJOR_VERSION, 3)
+        SDL.GL_SetAttribute(SDL.GL_CONTEXT_MINOR_VERSION, 0)
+    end
+
     local context = SDL.GL_CreateContext(window)
     if context == nil then
-        error("Failed: SDL.GL_CreateContext")
+        error("SDL.GL_CreateContext: " .. SDL.GetError())
     end
     SDL.GL_MakeCurrent(window, context)
     SDL.GL_SetSwapInterval(1)
@@ -143,6 +146,7 @@ void main(void) {
         gl.clearColor(1, 0, 1, 1)
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
+        print("vao: " .. vao)
         gl.bindVertexArray(gl.ARRAY_BUFFER, vao)
         gl.drawArrays(gl.TRIANGLES, 0, 3)
         gl.bindVertexArray(gl.ARRAY_BUFFER, 0)
