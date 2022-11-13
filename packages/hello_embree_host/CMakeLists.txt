@@ -391,22 +391,18 @@ target_include_directories(hello_embree_host_lib
   "externals/include"
   $<BUILD_INTERFACE:${EXTERNALS_ROOT}/${CMAKE_INSTALL_INCLUDEDIR}>
 )
-
 if(MSVC OR MINGW)
-  target_compile_definitions(hello_embree_host_lib
-    PUBLIC
-    LUA_BUILD_AS_DLL
-  )
+  target_compile_definitions(hello_embree_host_lib PUBLIC LUA_BUILD_AS_DLL)
 endif()
-
-#
+if($RUN_ON_GITHUB_ACTIONS)
+  target_compile_definitions(hello_embree_host_lib PRIVATE RUN_ON_GITHUB_ACTIONS)
+endif()
 if(MSVC OR MINGW)
   add_custom_command(TARGET hello_embree_host_lib POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${EXTERNALS_ROOT}/bin ${PROJECT_BINARY_DIR}
   )
 endif()
-
-add_dependencies(hello_embree_host_lib args lua sdl2 embree3 glslang spirvcross)
+add_dependencies(hello_embree_host_lib glad args lua sdl2 embree3 glslang spirvcross)
 
 # core executable
 if(MSVC OR MINGW)
@@ -440,12 +436,14 @@ target_include_directories(hello_embree_host
   "externals/include"
   $<BUILD_INTERFACE:${EXTERNALS_ROOT}/${CMAKE_INSTALL_INCLUDEDIR}>
 )
-
 if(MSVC OR MINGW)
   target_compile_definitions(hello_embree_host
     PUBLIC
     LUA_BUILD_AS_DLL
   )
+endif()
+if($RUN_ON_GITHUB_ACTIONS)
+  target_compile_definitions(hello_embree_host PRIVATE RUN_ON_GITHUB_ACTIONS)
 endif()
 
 # link option
@@ -519,18 +517,20 @@ elseif(EMSCRIPTEN)
   set_target_properties(hello_embree_host_test PROPERTIES OUTPUT_NAME "hello_embree_host_test" SUFFIX ".cjs")
 endif()
 
-# compile option
+# compile options
 if(MSVC OR MINGW)
   target_compile_definitions(hello_embree_host_test
     PUBLIC
     LUA_BUILD_AS_DLL
   )
 endif()
-
 target_compile_options(hello_embree_host_test PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
+if($RUN_ON_GITHUB_ACTIONS)
+  target_compile_definitions(hello_embree_host_test PRIVATE RUN_ON_GITHUB_ACTIONS)
+endif()
 target_include_directories(hello_embree_host_test
   PRIVATE
   "externals/include"

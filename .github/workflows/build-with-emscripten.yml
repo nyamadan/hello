@@ -11,7 +11,7 @@ jobs:
       - name: Install Emscripten
         run: git clone https://github.com/emscripten-core/emsdk.git && cd emsdk && ./emsdk install 2.0.32 && ./emsdk activate 2.0.32
       - name: Run CMake (Configure)
-        run:  NODE=$(which node) && EMSDK_QUIET=1 source ./emsdk/emsdk_env.sh && emcmake cmake -S packages/hello_embree_host -B packages/hello_embree_host/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CROSSCOMPILING_EMULATOR=$NODE
+        run:  NODE=$(which node) && EMSDK_QUIET=1 source ./emsdk/emsdk_env.sh && emcmake cmake -S packages/hello_embree_host -B packages/hello_embree_host/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CROSSCOMPILING_EMULATOR=$NODE -DRUN_ON_GITHUB_ACTIONS
       - name: Run CMake (Build)
         run: cmake --build packages/hello_embree_host/build --config Release --parallel
       - name: Run (CTest)
