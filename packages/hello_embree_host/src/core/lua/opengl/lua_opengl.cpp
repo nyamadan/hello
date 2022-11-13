@@ -68,6 +68,37 @@ int L_glBufferData(lua_State *L) {
   return 0;
 }
 
+int L_glGenVertexArray(lua_State *L) {
+  GLuint buffers[] = {0};
+  glGenVertexArrays(1, buffers);
+  lua_pushinteger(L, buffers[0]);
+  return 1;
+}
+
+int L_glBindVertexArray(lua_State *L) {
+  auto array = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  glBindVertexArray(array);
+  return 0;
+}
+
+int L_glEnableVertexAttribArray(lua_State *L) {
+  auto index = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  glEnableVertexAttribArray(index);
+  return 0;
+}
+
+int L_glVertexAttribPointer(lua_State *L) {
+  GLuint index = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  GLint size = static_cast<GLint>(luaL_checkinteger(L, 2));
+  GLenum type = static_cast<GLenum>(luaL_checkinteger(L, 3));
+  GLboolean normalized = static_cast<GLboolean>(lua_toboolean(L, 4));
+  GLsizei stride = static_cast<GLsizei>(luaL_checkinteger(L, 5));
+  const void *pointer = reinterpret_cast<const void *>(
+      lua_isnil(L, 6) ? 0 : luaL_checkinteger(L, 6));
+  glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+  return 0;
+}
+
 int L_require(lua_State *L) {
   lua_newtable(L);
 
@@ -82,6 +113,15 @@ int L_require(lua_State *L) {
 
   lua_pushinteger(L, GL_STATIC_DRAW);
   lua_setfield(L, -2, "STATIC_DRAW");
+
+  lua_pushinteger(L, GL_TRUE);
+  lua_setfield(L, -2, "TRUE");
+
+  lua_pushinteger(L, GL_FALSE);
+  lua_setfield(L, -2, "FALSE");
+
+  lua_pushinteger(L, GL_FLOAT);
+  lua_setfield(L, -2, "FLOAT");
 
   lua_pushcfunction(L, L_loadGLLoader);
   lua_setfield(L, -2, "loadGLLoader");
@@ -103,6 +143,18 @@ int L_require(lua_State *L) {
 
   lua_pushcfunction(L, L_glBufferData);
   lua_setfield(L, -2, "bufferData");
+
+  lua_pushcfunction(L, L_glGenVertexArray);
+  lua_setfield(L, -2, "genVertexArray");
+
+  lua_pushcfunction(L, L_glBindVertexArray);
+  lua_setfield(L, -2, "bindVertexArray");
+
+  lua_pushcfunction(L, L_glEnableVertexAttribArray);
+  lua_setfield(L, -2, "enableVertexAttribArray");
+
+  lua_pushcfunction(L, L_glVertexAttribPointer);
+  lua_setfield(L, -2, "vertexAttribPointer");
 
   return 1;
 }
