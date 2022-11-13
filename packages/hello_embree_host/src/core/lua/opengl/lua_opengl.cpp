@@ -88,14 +88,31 @@ int L_glEnableVertexAttribArray(lua_State *L) {
 }
 
 int L_glVertexAttribPointer(lua_State *L) {
-  GLuint index = static_cast<GLuint>(luaL_checkinteger(L, 1));
-  GLint size = static_cast<GLint>(luaL_checkinteger(L, 2));
-  GLenum type = static_cast<GLenum>(luaL_checkinteger(L, 3));
-  GLboolean normalized = static_cast<GLboolean>(lua_toboolean(L, 4));
-  GLsizei stride = static_cast<GLsizei>(luaL_checkinteger(L, 5));
-  const void *pointer = reinterpret_cast<const void *>(
+  auto index = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  auto size = static_cast<GLint>(luaL_checkinteger(L, 2));
+  auto type = static_cast<GLenum>(luaL_checkinteger(L, 3));
+  auto normalized = static_cast<GLboolean>(lua_toboolean(L, 4));
+  auto stride = static_cast<GLsizei>(luaL_checkinteger(L, 5));
+  auto pointer = reinterpret_cast<const void *>(
       lua_isnil(L, 6) ? 0 : luaL_checkinteger(L, 6));
   glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+  return 0;
+}
+
+int L_glViewport(lua_State *L) {
+  auto x = static_cast<GLint>(luaL_checkinteger(L, 1));
+  auto y = static_cast<GLint>(luaL_checkinteger(L, 2));
+  auto width = static_cast<GLsizei>(luaL_checkinteger(L, 3));
+  auto height = static_cast<GLsizei>(luaL_checkinteger(L, 4));
+  glViewport(x, y, width, height);
+  return 0;
+}
+
+int L_glDrawArrays(lua_State *L) {
+  auto mode = static_cast<GLenum>(luaL_checkinteger(L, 1));
+  auto first = static_cast<GLint>(luaL_checkinteger(L, 2));
+  auto count = static_cast<GLsizei>(luaL_checkinteger(L, 3));
+  glDrawArrays(mode, first, count);
   return 0;
 }
 
@@ -123,6 +140,9 @@ int L_require(lua_State *L) {
   lua_pushinteger(L, GL_FLOAT);
   lua_setfield(L, -2, "FLOAT");
 
+  lua_pushinteger(L, GL_TRIANGLES);
+  lua_setfield(L, -2, "TRIANGLES");
+
   lua_pushcfunction(L, L_loadGLLoader);
   lua_setfield(L, -2, "loadGLLoader");
 
@@ -134,6 +154,12 @@ int L_require(lua_State *L) {
 
   lua_pushcfunction(L, L_glClear);
   lua_setfield(L, -2, "clear");
+
+  lua_pushcfunction(L, L_glViewport);
+  lua_setfield(L, -2, "viewport");
+
+  lua_pushcfunction(L, L_glDrawArrays);
+  lua_setfield(L, -2, "drawArrays");
 
   lua_pushcfunction(L, L_glGenBuffer);
   lua_setfield(L, -2, "genBuffer");

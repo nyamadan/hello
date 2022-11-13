@@ -142,6 +142,21 @@ TEST_F(LuaSDL2_Test, TestglClear) {
       << lua_tostring(L, -1);
 }
 
+TEST_F(LuaSDL2_Test, TestglViewport) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+
+  initWindow();
+  initRenderer();
+  initOpenGL();
+
+  ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');"
+                               "gl.viewport(0, 0, 100, 100);"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+}
+
 TEST_F(LuaSDL2_Test, TestVAO) {
 #if defined(RUN_ON_GITHUB_ACTIONS)
   GTEST_SKIP() << "Not work for GitHub Actions";
@@ -157,28 +172,28 @@ TEST_F(LuaSDL2_Test, TestVAO) {
 
   ASSERT_EQ(
       utils::dostring(
-          L,
-          "local gl = require('opengl');\n"
-          "local buffer = require('buffer');\n"
-          "local points = {\n"
-          "0.0, 0.5, 0.0,  1.0, 0.0, 0.0,\n"
-          "0.5, -0.5, 0.0, 0.0, 1.0, 0.0,\n"
-          "-0.5, -0.5, 0.0, 0.0, 0.0, 1.0\n"
-          "};\n"
-          "local data = buffer.alloc(72);\n"
-          "for i, v in ipairs(points) do\n"
-          "data:setFloat32(4 * (i - 1), v);\n"
-          "end\n"
-          "local vbo = gl.genBuffer();\n"
-          "gl.bindBuffer(gl.ARRAY_BUFFER, vbo);\n"
-          "gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);\n"
-          "local vao = gl.genVertexArray();\n"
-          "gl.bindVertexArray(vao);\n"
-          "gl.enableVertexAttribArray(0);\n"
-          "gl.enableVertexAttribArray(1);\n"
-          "gl.bindBuffer(gl.ARRAY_BUFFER, vbo);\n"
-          "gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 6 * 4, nil);\n"
-          "gl.vertexAttribPointer(1, 3, gl.FLOAT, gl.FALSE, 6 * 4, 3 * 4);\n"),
+          L, "local gl = require('opengl');\n"
+             "local buffer = require('buffer');\n"
+             "local points = {\n"
+             "0.0, 0.5, 0.0,  1.0, 0.0, 0.0,\n"
+             "0.5, -0.5, 0.0, 0.0, 1.0, 0.0,\n"
+             "-0.5, -0.5, 0.0, 0.0, 0.0, 1.0\n"
+             "};\n"
+             "local data = buffer.alloc(72);\n"
+             "for i, v in ipairs(points) do\n"
+             "data:setFloat32(4 * (i - 1), v);\n"
+             "end\n"
+             "local vbo = gl.genBuffer();\n"
+             "gl.bindBuffer(gl.ARRAY_BUFFER, vbo);\n"
+             "gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);\n"
+             "local vao = gl.genVertexArray();\n"
+             "gl.bindVertexArray(vao);\n"
+             "gl.enableVertexAttribArray(0);\n"
+             "gl.enableVertexAttribArray(1);\n"
+             "gl.bindBuffer(gl.ARRAY_BUFFER, vbo);\n"
+             "gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 6 * 4, nil);\n"
+             "gl.vertexAttribPointer(1, 3, gl.FLOAT, gl.FALSE, 6 * 4, 3 * 4);\n"
+             "gl.drawArrays(gl.TRIANGLES, 0, 3);\n"),
       LUA_OK)
       << lua_tostring(L, -1);
 }

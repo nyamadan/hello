@@ -28,6 +28,7 @@ TEST_F(LuaSDL2_Test, TestSDLConstants) {
   TEST_LUA_CONSTANT("opengl", "FLOAT", GL_FLOAT);
   TEST_LUA_CONSTANT("opengl", "TRUE", GL_TRUE);
   TEST_LUA_CONSTANT("opengl", "FALSE", GL_FALSE);
+  TEST_LUA_CONSTANT("opengl", "TRIANGLES", GL_TRIANGLES);
 }
 
 TEST_F(LuaSDL2_Test, TestGetError) {
