@@ -158,9 +158,9 @@ TEST_F(LuaSDL2_Test, TestglViewport) {
 }
 
 TEST_F(LuaSDL2_Test, TestDrawArrays) {
-  // #if defined(RUN_ON_GITHUB_ACTIONS)
-  //   GTEST_SKIP() << "Not work for GitHub Actions";
-  // #endif
+#if defined(RUN_ON_GITHUB_ACTIONS)
+  GTEST_SKIP() << "Not work for GitHub Actions";
+#endif
 
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
