@@ -4,6 +4,9 @@
     "args": ["-f", "main.lua"]
   },
   "cmake.ctestArgs": ["--output-on-failure"],
+  "cmake.installPrefix": "",
+  "cmake.configureSettings": {},
+  "cmake.generator": "Unix Makefiles",
   "files.associations": {
     "stdexcept": "cpp",
     "chrono": "cpp",
