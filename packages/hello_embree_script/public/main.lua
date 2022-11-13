@@ -146,10 +146,9 @@ void main(void) {
         gl.clearColor(1, 0, 1, 1)
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
-        print("vao: " .. vao)
-        gl.bindVertexArray(gl.ARRAY_BUFFER, vao)
+        gl.bindVertexArray(vao);
         gl.drawArrays(gl.TRIANGLES, 0, 3)
-        gl.bindVertexArray(gl.ARRAY_BUFFER, 0)
+        gl.bindVertexArray(0);
 
         SDL.GL_SwapWindow(window)
     end
