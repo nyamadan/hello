@@ -13,9 +13,9 @@ jobs:
           install: >-
             base-devel
             git
-            ucrt64/mingw-w64-x86_64-ninja
-            ucrt64/mingw-w64-x86_64-cmake
-            ucrt64/mingw-w64-x86_64-clang
+            ucrt64/mingw-w64-ucrt-x86_64-ninja
+            ucrt64/mingw-w64-ucrt-x86_64-cmake
+            ucrt64/mingw-w64-ucrt-x86_64-clang
       - name: git(config)
         run: git config --global core.autocrlf false
         shell: bash
