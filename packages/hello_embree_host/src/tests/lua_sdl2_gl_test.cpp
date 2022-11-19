@@ -269,6 +269,7 @@ TEST_F(LuaSDL2_Test, TestFailToLinkProgram) {
                             "gl.attachShader(p, vs);\n"
                             "gl.attachShader(p, fs);\n"
                             "gl.linkProgram(p);\n"
+                            "gl.useProgram(p);\n"
                             "local a = gl.getProgramiv(p, gl.LINK_STATUS);\n"
                             "local b = gl.getProgramInfoLog(p);\n"
                             "gl.deleteShader(vs);\n"

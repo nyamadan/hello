@@ -15,6 +15,9 @@ local function handleError(f)
     end
 end
 
+---Transpile Shaders
+---@return string VertexShader
+---@return string FragmentShader
 local function transpileShaders()
     local DefaultVertexShader = [[#version 310 es
 layout(location=0) in vec3 aPosition;
@@ -26,8 +29,8 @@ void main(void) {
     local DefaultFragmentShader = [[#version 310 es
 precision mediump float;
 
-layout(location=0) uniform vec2 resolution;
-layout(location=1) uniform sampler2D backbuffer;
+// layout(location=0) uniform vec2 resolution;
+// layout(location=1) uniform sampler2D backbuffer;
 
 layout(location=0) out vec4 fragColor;
 
@@ -70,16 +73,13 @@ void main(void) {
     local fsSpv = glslang.glslangToSpv(program, fsIntermediate)
 
     if utils.isEmscripten() then
-        return {
-            fs = spv_cross.compile(vsSpv, { es = true, version = 300 });
-            vs = spv_cross.compile(fsSpv, { es = true, version = 300 });
-        }
+        return spv_cross.compile(vsSpv, { es = true, version = 300 }),
+            spv_cross.compile(fsSpv, { es = true, version = 300 })
+
     end
 
-    return {
-        fs = spv_cross.compile(vsSpv, { es = false, version = 420 });
-        vs = spv_cross.compile(fsSpv, { es = false, version = 420 });
-    }
+    return spv_cross.compile(vsSpv, { es = false, version = 420 }),
+        spv_cross.compile(fsSpv, { es = false, version = 420 });
 end
 
 local function collectEvents()
@@ -141,20 +141,28 @@ gl.enableVertexAttribArray(0)
 gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 0)
 gl.bindVertexArray(0)
 
-local shaders = transpileShaders()
+local vsSource, fsSource = transpileShaders()
 
 local vs = gl.createShader(gl.VERTEX_SHADER)
-gl.shaderSource(vs, shaders.vs)
+gl.shaderSource(vs, vsSource)
 gl.compileShader(vs)
 if gl.getShaderiv(vs, gl.COMPILE_STATUS) ~= gl.TRUE then
-    error()
+    error(gl.getShaderInfoLog(vs))
 end
 
 local fs = gl.createShader(gl.FRAGMENT_SHADER)
-gl.shaderSource(fs, shaders.fs)
+gl.shaderSource(fs, fsSource)
 gl.compileShader(fs)
 if gl.getShaderiv(fs, gl.COMPILE_STATUS) ~= gl.TRUE then
-    error()
+    error(gl.getShaderInfoLog(fs))
+end
+
+local program = gl.createProgram()
+gl.attachShader(program, vs)
+gl.attachShader(program, fs)
+gl.linkProgram(program)
+if gl.getProgramiv(program, gl.LINK_STATUS) ~= gl.TRUE then
+    error(gl.getProgramInfoLog(program))
 end
 
 local function update()
@@ -169,9 +177,10 @@ local function update()
         print("ev: type = " .. ev.type)
     end
 
-    gl.clearColor(1, 0, 1, 1)
+    gl.clearColor(0.5, 0.5, 0.5, 1)
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
 
+    gl.useProgram(program)
     gl.bindVertexArray(vao);
     gl.drawArrays(gl.TRIANGLES, 0, 3)
     gl.bindVertexArray(0);

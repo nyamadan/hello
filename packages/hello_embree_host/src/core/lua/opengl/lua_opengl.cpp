@@ -224,6 +224,12 @@ int L_glGetProgramInfoLog(lua_State *L) {
   return 1;
 }
 
+int L_glUseProgram(lua_State *L) {
+  auto program = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  glUseProgram(program);
+  return 0;
+}
+
 int L_require(lua_State *L) {
   lua_newtable(L);
 
@@ -337,6 +343,9 @@ int L_require(lua_State *L) {
 
   lua_pushcfunction(L, L_glGetProgramInfoLog);
   lua_setfield(L, -2, "getProgramInfoLog");
+
+  lua_pushcfunction(L, L_glUseProgram);
+  lua_setfield(L, -2, "useProgram");
   return 1;
 }
 } // namespace
