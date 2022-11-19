@@ -197,3 +197,86 @@ TEST_F(LuaSDL2_Test, TestDrawArrays) {
       LUA_OK)
       << lua_tostring(L, -1);
 }
+
+TEST_F(LuaSDL2_Test, TestCompileShader) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+
+  initWindow();
+  initRenderer();
+  initOpenGL();
+
+  ASSERT_EQ(utils::dostring(
+                L, "local gl = require('opengl');\n"
+                   "local shader = gl.createShader(gl.VERTEX_SHADER);\n"
+                   "gl.shaderSource(shader, '');\n"
+                   "gl.compileShader(shader);\n"
+                   "local a = gl.getShaderiv(shader, gl.COMPILE_STATUS);\n"
+                   "local b = gl.getShaderInfoLog(shader);\n"
+                   "gl.deleteShader(shader);\n"
+                   "return b, a;\n"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+
+  ASSERT_EQ(luaL_checkinteger(L, -1), GL_TRUE);
+  ASSERT_STREQ(luaL_checkstring(L, -2), "");
+}
+
+TEST_F(LuaSDL2_Test, TestFailToCompileShader) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+
+  initWindow();
+  initRenderer();
+  initOpenGL();
+
+  ASSERT_EQ(utils::dostring(
+                L, "local gl = require('opengl');\n"
+                   "local shader = gl.createShader(gl.VERTEX_SHADER);\n"
+                   "gl.shaderSource(shader, 'error input');\n"
+                   "gl.compileShader(shader);\n"
+                   "local a = gl.getShaderiv(shader, gl.COMPILE_STATUS);\n"
+                   "local b = gl.getShaderInfoLog(shader);\n"
+                   "gl.deleteShader(shader);\n"
+                   "return b, a;\n"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+
+  ASSERT_EQ(luaL_checkinteger(L, -1), GL_FALSE);
+  ASSERT_STRNE(luaL_checkstring(L, -2), "");
+}
+
+TEST_F(LuaSDL2_Test, TestFailToLinkProgram) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+
+  initWindow();
+  initRenderer();
+  initOpenGL();
+
+  ASSERT_EQ(utils::dostring(L,
+                            "local gl = require('opengl');\n"
+                            "local vs = gl.createShader(gl.VERTEX_SHADER);\n"
+                            "gl.shaderSource(vs, 'error input');\n"
+                            "gl.compileShader(vs);\n"
+                            "local fs = gl.createShader(gl.FRAGMENT_SHADER);\n"
+                            "gl.shaderSource(fs, 'error input');\n"
+                            "gl.compileShader(fs);\n"
+                            "local p = gl.createProgram();\n"
+                            "gl.attachShader(p, vs);\n"
+                            "gl.attachShader(p, fs);\n"
+                            "gl.linkProgram(p);\n"
+                            "local a = gl.getProgramiv(p, gl.LINK_STATUS);\n"
+                            "local b = gl.getProgramInfoLog(p);\n"
+                            "gl.deleteShader(vs);\n"
+                            "gl.deleteShader(fs);\n"
+                            "gl.deleteProgram(p);\n"
+                            "return b, a;\n"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+  ASSERT_EQ(luaL_checkinteger(L, -1), GL_FALSE);
+  ASSERT_STRNE(luaL_checkstring(L, -2), "");
+}

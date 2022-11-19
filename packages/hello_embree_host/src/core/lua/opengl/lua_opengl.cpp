@@ -2,6 +2,7 @@
 #include "../buffer/lua_buffer.hpp"
 #include <SDL2/SDL.h>
 #include <cfloat>
+#include <cstring>
 #ifdef __EMSCRIPTEN__
 #include "emscripten.h"
 #include <GLES3/gl3.h>
@@ -116,6 +117,113 @@ int L_glDrawArrays(lua_State *L) {
   return 0;
 }
 
+int L_glCreateShader(lua_State *L) {
+  auto type = static_cast<GLenum>(luaL_checkinteger(L, 1));
+  auto result = glCreateShader(type);
+  lua_pushinteger(L, static_cast<lua_Integer>(result));
+  return 1;
+}
+
+int L_glDeleteShader(lua_State *L) {
+  auto shader = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  glDeleteShader(shader);
+  return 0;
+}
+
+int L_glShaderSource(lua_State *L) {
+  auto shader = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  auto source = static_cast<const char *>(luaL_checkstring(L, 2));
+  const char *const sources[] = {source};
+  const GLint lengths[] = {static_cast<GLint>(strlen(source))};
+  glShaderSource(shader, 1, sources, lengths);
+  return 0;
+}
+
+int L_glCompileShader(lua_State *L) {
+  auto shader = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  glCompileShader(shader);
+  return 0;
+}
+
+int L_glGetShaderiv(lua_State *L) {
+  auto shader = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  auto pname = static_cast<GLenum>(luaL_checkinteger(L, 2));
+  GLint params[] = {0};
+  glGetShaderiv(shader, pname, params);
+  lua_pushinteger(L, params[0]);
+  return 1;
+}
+
+int L_glGetShaderInfoLog(lua_State *L) {
+  auto shader = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  GLint maxLength = 0;
+  glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+  if (maxLength == 0) {
+    lua_pushstring(L, "");
+    return 1;
+  }
+  if (maxLength < 0) {
+    luaL_error(L, "Invalid Length: %d", maxLength);
+  }
+  auto errorLog = static_cast<GLchar *>(malloc(sizeof(GLchar) * maxLength));
+  glGetShaderInfoLog(shader, maxLength, &maxLength, errorLog);
+  lua_pushstring(L, errorLog);
+  free(errorLog);
+  return 1;
+}
+
+int L_glCreateProgram(lua_State *L) {
+  auto program = glCreateProgram();
+  lua_pushinteger(L, program);
+  return 1;
+}
+
+int L_glAttachShader(lua_State *L) {
+  auto program = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  auto shader = static_cast<GLuint>(luaL_checkinteger(L, 2));
+  glAttachShader(program, shader);
+  return 0;
+}
+
+int L_glLinkProgram(lua_State *L) {
+  auto program = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  glLinkProgram(program);
+  return 0;
+}
+
+int L_glDeleteProgram(lua_State *L) {
+  auto program = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  glDeleteProgram(program);
+  return 0;
+}
+
+int L_glGetProgramiv(lua_State *L) {
+  auto program = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  auto pname = static_cast<GLenum>(luaL_checkinteger(L, 2));
+  GLint params[] = {0};
+  glGetProgramiv(program, pname, params);
+  lua_pushinteger(L, params[0]);
+  return 1;
+}
+
+int L_glGetProgramInfoLog(lua_State *L) {
+  auto program = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  GLint maxLength = 0;
+  glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
+  if (maxLength == 0) {
+    lua_pushstring(L, "");
+    return 1;
+  }
+  if (maxLength < 0) {
+    luaL_error(L, "Invalid Length: %d", maxLength);
+  }
+  auto errorLog = static_cast<GLchar *>(malloc(sizeof(GLchar) * maxLength));
+  glGetProgramInfoLog(program, maxLength, &maxLength, errorLog);
+  lua_pushstring(L, errorLog);
+  free(errorLog);
+  return 1;
+}
+
 int L_require(lua_State *L) {
   lua_newtable(L);
 
@@ -130,6 +238,18 @@ int L_require(lua_State *L) {
 
   lua_pushinteger(L, GL_STATIC_DRAW);
   lua_setfield(L, -2, "STATIC_DRAW");
+
+  lua_pushinteger(L, GL_VERTEX_SHADER);
+  lua_setfield(L, -2, "VERTEX_SHADER");
+
+  lua_pushinteger(L, GL_FRAGMENT_SHADER);
+  lua_setfield(L, -2, "FRAGMENT_SHADER");
+
+  lua_pushinteger(L, GL_COMPILE_STATUS);
+  lua_setfield(L, -2, "COMPILE_STATUS");
+
+  lua_pushinteger(L, GL_LINK_STATUS);
+  lua_setfield(L, -2, "LINK_STATUS");
 
   lua_pushinteger(L, GL_TRUE);
   lua_setfield(L, -2, "TRUE");
@@ -182,6 +302,41 @@ int L_require(lua_State *L) {
   lua_pushcfunction(L, L_glVertexAttribPointer);
   lua_setfield(L, -2, "vertexAttribPointer");
 
+  lua_pushcfunction(L, L_glCreateShader);
+  lua_setfield(L, -2, "createShader");
+
+  lua_pushcfunction(L, L_glDeleteShader);
+  lua_setfield(L, -2, "deleteShader");
+
+  lua_pushcfunction(L, L_glShaderSource);
+  lua_setfield(L, -2, "shaderSource");
+
+  lua_pushcfunction(L, L_glCompileShader);
+  lua_setfield(L, -2, "compileShader");
+
+  lua_pushcfunction(L, L_glGetShaderiv);
+  lua_setfield(L, -2, "getShaderiv");
+
+  lua_pushcfunction(L, L_glGetShaderInfoLog);
+  lua_setfield(L, -2, "getShaderInfoLog");
+
+  lua_pushcfunction(L, L_glCreateProgram);
+  lua_setfield(L, -2, "createProgram");
+
+  lua_pushcfunction(L, L_glAttachShader);
+  lua_setfield(L, -2, "attachShader");
+
+  lua_pushcfunction(L, L_glLinkProgram);
+  lua_setfield(L, -2, "linkProgram");
+
+  lua_pushcfunction(L, L_glDeleteProgram);
+  lua_setfield(L, -2, "deleteProgram");
+
+  lua_pushcfunction(L, L_glGetProgramiv);
+  lua_setfield(L, -2, "getProgramiv");
+
+  lua_pushcfunction(L, L_glGetProgramInfoLog);
+  lua_setfield(L, -2, "getProgramInfoLog");
   return 1;
 }
 } // namespace

@@ -1,9 +1,9 @@
-local function run(f, err)
+local function handleError(f, err)
     if err ~= nil then
-        local message = "Error: " .. err
-        print(message)
-        error(message)
+        print(err)
+        error("Runtime error occured.")
     end
     return f
 end
-run(pcall(run(loadfile("./main.lua"))))
+
+handleError(pcall(handleError(loadfile("./main.lua"))))

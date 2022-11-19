@@ -5,6 +5,16 @@ local gl = require("opengl")
 local glslang = require("glslang")
 local spv_cross = require("spv_cross")
 
+local function handleError(f)
+    return function()
+        local ok, message = pcall(f)
+        if not ok then
+            print(message)
+            error("Runtime error occured.")
+        end
+    end
+end
+
 local function transpileShaders()
     local DefaultVertexShader = [[#version 310 es
 layout(location=0) in vec3 aPosition;
@@ -60,12 +70,16 @@ void main(void) {
     local fsSpv = glslang.glslangToSpv(program, fsIntermediate)
 
     if utils.isEmscripten() then
-        print(spv_cross.compile(vsSpv, { es = true, version = 300 }))
-        print(spv_cross.compile(fsSpv, { es = true, version = 300 }))
-    else
-        print(spv_cross.compile(vsSpv, { es = false, version = 420 }))
-        print(spv_cross.compile(fsSpv, { es = false, version = 420 }))
+        return {
+            fs = spv_cross.compile(vsSpv, { es = true, version = 300 });
+            vs = spv_cross.compile(fsSpv, { es = true, version = 300 });
+        }
     end
+
+    return {
+        fs = spv_cross.compile(vsSpv, { es = false, version = 420 });
+        vs = spv_cross.compile(fsSpv, { es = false, version = 420 });
+    }
 end
 
 local function collectEvents()
@@ -82,8 +96,6 @@ local function collectEvents()
 end
 
 glslang.initializeProcess()
-
-transpileShaders()
 
 if SDL.Init(SDL.INIT_VIDEO | SDL.INIT_TIMER) ~= 0 then
     error(SDL.GetError())
@@ -129,6 +141,22 @@ gl.enableVertexAttribArray(0)
 gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 0)
 gl.bindVertexArray(0)
 
+local shaders = transpileShaders()
+
+local vs = gl.createShader(gl.VERTEX_SHADER)
+gl.shaderSource(vs, shaders.vs)
+gl.compileShader(vs)
+if gl.getShaderiv(vs, gl.COMPILE_STATUS) ~= gl.TRUE then
+    error()
+end
+
+local fs = gl.createShader(gl.FRAGMENT_SHADER)
+gl.shaderSource(fs, shaders.fs)
+gl.compileShader(fs)
+if gl.getShaderiv(fs, gl.COMPILE_STATUS) ~= gl.TRUE then
+    error()
+end
+
 local function update()
     local events = collectEvents()
     for _, ev in ipairs(events) do
@@ -151,9 +179,4 @@ local function update()
     SDL.GL_SwapWindow(window)
 end
 
-utils.registerFunction("update", function()
-    local ok, message = pcall(update)
-    if not ok then
-        print(message)
-    end
-end)
+utils.registerFunction("update", handleError(update))
