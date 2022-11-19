@@ -15,7 +15,7 @@ jobs:
             git
             mingw64/mingw-w64-x86_64-ninja
             mingw64/mingw-w64-x86_64-cmake
-            ucrt64/mingw-w64-ucrt-x86_64-clang
+            mingw64/mingw-w64-x86_64-clang
       - name: git(config)
         run: git config --global core.autocrlf false
         shell: bash

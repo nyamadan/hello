@@ -19,10 +19,16 @@ async function main() {
   );
   Module["canvas"] = canvas;
 
-  const response = await fetch("/main.lua");
-  const text = await response.text();
-  FS.createDataFile("/", "main.lua", text, true, true, false);
-  callMain(["-f", "/main.lua"]);
+  const files: readonly string[] = ["index.lua", "main.lua"] as const;
+
+  async function load(file: string): Promise<void> {
+    const response = await fetch(file);
+    const text = await response.text();
+    FS.createDataFile("/", file, text, true, true, false);
+  }
+
+  await Promise.all(files.map(load));
+  callMain(["-f", files[0]]);
 }
 
 main();
