@@ -463,6 +463,7 @@ if(MINGW)
 elseif(EMSCRIPTEN)
   target_link_options(hello_embree_host PRIVATE
     "-sWASM=1"
+    "-sFETCH=1"
     "-sMAX_WEBGL_VERSION=2"
     "-sMIN_WEBGL_VERSION=2"
     "-sALLOW_MEMORY_GROWTH=1"
@@ -522,6 +523,7 @@ if(MINGW)
 elseif(EMSCRIPTEN)
   target_link_options(hello_embree_host_test PRIVATE
     "-sWASM=1"
+    "-sFETCH=1"
     "-sALLOW_MEMORY_GROWTH=1"
     "-sENVIRONMENT=node"
     "-sSINGLE_FILE=1"

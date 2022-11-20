@@ -4,6 +4,7 @@ local SDL = require("sdl2")
 local gl = require("opengl")
 local glslang = require("glslang")
 local spv_cross = require("spv_cross")
+local inspect = require("inspect")
 
 local function handleError(f)
     return function()
@@ -95,6 +96,11 @@ local function collectEvents()
     return events
 end
 
+local request = nil
+if utils.isEmscripten() then
+    request  = utils.fetch("/index.lua")
+end
+
 glslang.initializeProcess()
 
 if SDL.Init(SDL.INIT_VIDEO | SDL.INIT_TIMER) ~= 0 then
@@ -175,6 +181,16 @@ local function update()
         end
 
         print("ev: type = " .. ev.type)
+    end
+
+    if request ~= nil then
+        local result = utils.getFetchRequest(request);
+        print(inspect(result))
+
+        if result.finished and result.data ~= nil and result.readyState == 4 then
+            utils.freeFetchRequest(request)
+            request = nil
+        end
     end
 
     gl.clearColor(0.5, 0.5, 0.5, 1)
