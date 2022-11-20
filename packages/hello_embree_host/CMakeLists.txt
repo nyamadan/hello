@@ -108,9 +108,9 @@ if(MSVC)
   endif()
 else()
   if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-    set(SDL2_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2image-staticd.a)
+    set(SDL2_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2imaged.a)
   else()
-    set(SDL2_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2image-static.a)
+    set(SDL2_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2image.a)
   endif()
 endif()
 
@@ -126,7 +126,10 @@ ExternalProject_Add(sdl2_image
   -DBUILD_SHARED_LIBS:BOOL=Off
   -DSDL2IMAGE_SAMPLES:BOOL=Off
   -DSDL2IMAGE_TESTS:BOOL=Off
+  -DSDL2_LIBRARY:PATH=${SDL2_LIB}
+  -DSDL2_INCLUDE_DIR:PATH=${EXTERNALS_ROOT}/include/SDL2
 )
+add_dependencies(sdl2_image sdl2)
 
 # SPIRVCROSS
 if(MSVC)
