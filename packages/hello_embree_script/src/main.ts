@@ -19,11 +19,7 @@ async function main() {
   );
   Module["canvas"] = canvas;
 
-  const files: readonly string[] = [
-    "index.lua",
-    "inspect.lua",
-    "main.lua",
-  ] as const;
+  const files: readonly string[] = ["index.lua"] as const;
 
   async function load(file: string): Promise<void> {
     const response = await fetch(file);
