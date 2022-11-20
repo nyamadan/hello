@@ -11,7 +11,7 @@ namespace {
 const char *const BUFFER_NAME = "Buffer";
 
 int L_alloc(lua_State *L) {
-  auto size = static_cast<int32_t>(luaL_checknumber(L, 1));
+  auto size = static_cast<int32_t>(luaL_checkinteger(L, 1));
   luaL_argcheck(L, size >= 0, 1, "Invalid buffer size");
 
   auto pBuffer = static_cast<UDBuffer *>(lua_newuserdata(L, sizeof(UDBuffer)));
@@ -26,6 +26,28 @@ int L_alloc(lua_State *L) {
     }
     pBuffer->size = size;
     pBuffer->data = p;
+    pBuffer->usage = nullptr;
+  }
+
+  luaL_setmetatable(L, BUFFER_NAME);
+  return 1;
+}
+
+int L_fromString(lua_State *L) {
+  auto str = luaL_checkstring(L, 1);
+  auto size = static_cast<int32_t>(strlen(str));
+  auto pBuffer = static_cast<UDBuffer *>(lua_newuserdata(L, sizeof(UDBuffer)));
+  if (size == 0) {
+    pBuffer->data = nullptr;
+    pBuffer->size = 0;
+  } else {
+    auto p = static_cast<uint8_t *>(malloc(size));
+    if (p == nullptr) {
+      luaL_error(L, "Could not allocate buffer!");
+    }
+    pBuffer->size = size;
+    pBuffer->data = p;
+    memcpy(pBuffer->data, str, size);
     pBuffer->usage = nullptr;
   }
 
@@ -118,6 +140,9 @@ int L_require(lua_State *L) {
 
   lua_pushcfunction(L, L_alloc);
   lua_setfield(L, -2, "alloc");
+
+  lua_pushcfunction(L, L_fromString);
+  lua_setfield(L, -2, "fromString");
 
   return 1;
 }

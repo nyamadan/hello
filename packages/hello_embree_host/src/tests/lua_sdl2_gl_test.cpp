@@ -199,6 +199,10 @@ TEST_F(LuaSDL2_Test, TestDrawArrays) {
 }
 
 TEST_F(LuaSDL2_Test, TestCompileShader) {
+#if defined(RUN_ON_GITHUB_ACTIONS)
+  GTEST_SKIP() << "Not work for GitHub Actions";
+#endif
+
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
@@ -224,6 +228,10 @@ TEST_F(LuaSDL2_Test, TestCompileShader) {
 }
 
 TEST_F(LuaSDL2_Test, TestFailToCompileShader) {
+#if defined(RUN_ON_GITHUB_ACTIONS)
+  GTEST_SKIP() << "Not work for GitHub Actions";
+#endif
+
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
@@ -249,6 +257,10 @@ TEST_F(LuaSDL2_Test, TestFailToCompileShader) {
 }
 
 TEST_F(LuaSDL2_Test, TestFailToLinkProgram) {
+#if defined(RUN_ON_GITHUB_ACTIONS)
+  GTEST_SKIP() << "Not work for GitHub Actions";
+#endif
+
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif

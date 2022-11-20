@@ -33,6 +33,27 @@ TEST_F(LuaBuffer_Test, NewBuffer) {
   ASSERT_EQ(luaL_checkinteger(L, -2), 4);
 }
 
+TEST_F(LuaBuffer_Test, NewBufferFromString) {
+  ASSERT_EQ(
+      hello::lua::utils::dostring(L, "local buffer = require('buffer');\n"
+                                     "local b = buffer.fromString('Hello');\n"
+                                     "return #b, b\n"),
+      LUA_OK)
+      << lua_tostring(L, -1);
+
+  auto udBuffer = hello::lua::buffer::get(L, -1);
+  ASSERT_NE(udBuffer, nullptr);
+  ASSERT_EQ(udBuffer->size, 5);
+  ASSERT_EQ(luaL_checkinteger(L, -2), 5);
+
+  auto str = static_cast<char *>(malloc(udBuffer->size + 1));
+  memcpy(str, udBuffer->data, udBuffer->size);
+  str[udBuffer->size] = '\0';
+  EXPECT_STREQ(str, "Hello");
+  free(str);
+  str = nullptr;
+}
+
 TEST_F(LuaBuffer_Test, AllocAndGet) {
   auto udBuffer = hello::lua::buffer::alloc(L, 12);
   ASSERT_EQ(udBuffer->size, 12);
