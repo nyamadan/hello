@@ -528,6 +528,7 @@ elseif(EMSCRIPTEN)
     "-sENVIRONMENT=node"
     "-sSINGLE_FILE=1"
     "-sHEADLESS=1"
+    "-sERROR_ON_UNDEFINED_SYMBOLS=0"
   )
 endif()
 
