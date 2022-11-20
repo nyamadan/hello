@@ -7,8 +7,9 @@
 ---@return any
 local function handleError(result, message, ...)
     if not result then
-        print("Error: " .. message)
-        error(message)
+        local err = debug.traceback(message, 2)
+        print("Error: " .. err)
+        error(err)
     end
     return result, message, ...
 end

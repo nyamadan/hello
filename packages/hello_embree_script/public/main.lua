@@ -5,8 +5,8 @@ local gl = require("opengl")
 local glslang = require("glslang")
 local spv_cross = require("spv_cross")
 
-local handleError = require("./handle_error")
-local inspect = require("./inspect")
+local handleError = require("handle_error")
+local inspect = require("inspect")
 
 ---Transpile Shaders
 ---@return string VertexShader
@@ -94,7 +94,10 @@ if SDL.Init(SDL.INIT_VIDEO | SDL.INIT_TIMER) ~= 0 then
     error(SDL.GetError())
 end
 
-local window = SDL.CreateWindow("Hello World!!", SDL.WINDOWPOS_UNDEFINED, SDL.WINDOWPOS_UNDEFINED, 1280, 720,
+local window = SDL.CreateWindow("hello embree",
+    SDL.WINDOWPOS_UNDEFINED,
+    SDL.WINDOWPOS_UNDEFINED,
+    1280, 720,
     SDL.WINDOW_OPENGL)
 local renderer = SDL.CreateRenderer(window, -1, SDL.RENDERER_ACCELERATED)
 
@@ -116,6 +119,7 @@ if not utils.isEmscripten() then
     gl.loadGLLoader()
 end
 
+---@type number[]
 local points = { -1.0, -1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0, 0.0 }
 local buffer = buffer.alloc(#points * 4)
 for i, v in ipairs(points) do
@@ -181,8 +185,6 @@ local function update()
     SDL.GL_SwapWindow(window)
 end
 
-utils.registerFunction("update",
-    function(...)
-        return handleError(pcall(update, ...))
-    end
-)
+utils.registerFunction("update", function(...)
+    return handleError(pcall(update, ...))
+end)
