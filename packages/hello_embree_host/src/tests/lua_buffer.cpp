@@ -94,3 +94,15 @@ TEST_F(LuaBuffer_Test, SetGetFloat32) {
                                            "b:getFloat32(-1);"),
             LUA_OK);
 }
+
+TEST_F(LuaBuffer_Test, GetString) {
+  ASSERT_EQ(hello::lua::utils::dostring(L, "local buffer = require('buffer');\n"
+                                           "local b = buffer.alloc(3);\n"
+                                           "b:setUint8(0, 65);\n"
+                                           "b:setUint8(1, 66);\n"
+                                           "b:setUint8(2, 67);\n"
+                                           "return b:getString()"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+  ASSERT_STREQ(luaL_checkstring(L, -1), "ABC");
+}

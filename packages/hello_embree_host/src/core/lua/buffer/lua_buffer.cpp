@@ -85,6 +85,16 @@ int L_getFloat32(lua_State *L) {
   return 1;
 }
 
+int L_getString(lua_State *L) {
+  auto udBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  if (udBuffer->usage != nullptr) {
+    luaL_error(L, "This operations is not permitted.");
+  }
+  lua_pushlstring(L, reinterpret_cast<char *>(udBuffer->data),
+                  static_cast<size_t>(udBuffer->size));
+  return 1;
+}
+
 int L___gc(lua_State *L) {
   auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
 
@@ -151,6 +161,8 @@ void openlibs(lua_State *L) {
   lua_setfield(L, -2, "setFloat32");
   lua_pushcfunction(L, L_getFloat32);
   lua_setfield(L, -2, "getFloat32");
+  lua_pushcfunction(L, L_getString);
+  lua_setfield(L, -2, "getString");
   lua_setfield(L, -2, "__index");
 
   luaL_requiref(L, "buffer", L_require, false);
