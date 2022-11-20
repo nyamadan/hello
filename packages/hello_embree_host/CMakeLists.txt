@@ -117,21 +117,12 @@ if(MSVC)
     )
   endif()
 else()
-  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-    set(SPIRVCROSS_LIB
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-cored.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-glsld.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-hlsld.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRVd.a
-    )
-  else()
-    set(SPIRVCROSS_LIB
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-core.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-glsl.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-hlsl.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRV.a
-    )
-  endif()
+  set(SPIRVCROSS_LIB
+    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-core.a
+    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-glsl.a
+    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libspirv-cross-hlsl.a
+    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRV.a
+  )
 endif()
 
 ExternalProject_Add(spirvcross
@@ -170,27 +161,15 @@ if(MSVC)
     )
   endif()
 else()
-  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-    set(GLSLANG_LIB
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libGenericCodeGend.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslangd.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libHLSLd.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libMachineIndependentd.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOGLCompilerd.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOSDependentd.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRVd.a
-    )
-  else()
-    set(GLSLANG_LIB
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libGenericCodeGen.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslang.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libHLSL.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libMachineIndependent.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOGLCompiler.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOSDependent.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRV.a
-    )
-  endif()
+  set(GLSLANG_LIB
+    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libGenericCodeGen.a
+    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslang.a
+    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libHLSL.a
+    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libMachineIndependent.a
+    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOGLCompiler.a
+    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOSDependent.a
+    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRV.a
+  )
 endif()
 
 ExternalProject_Add(glslang
