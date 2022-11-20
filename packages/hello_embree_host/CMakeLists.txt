@@ -99,6 +99,35 @@ else()
   )
 endif()
 
+# SDL2_image
+if(MSVC)
+  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+    set(SDL2_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SDL2_imaged.lib)
+  else()
+    set(SDL2_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SDL2_image.lib)
+  endif()
+else()
+  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
+    set(SDL2_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2imaged.a)
+  else()
+    set(SDL2_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2image.a)
+  endif()
+endif()
+
+ExternalProject_Add(sdl2_image
+  PREFIX "${EXTERNALS_ROOT}"
+  URL "https://github.com/libsdl-org/SDL2_image/archive/refs/tags/release-2.6.2.tar.gz"
+  URL_HASH SHA256=5d91ea72b449a161821ef51464d0767efb6fedf7a773f923c43e483dc137e362
+  BUILD_BYPRODUCTS ${SDL2_image_LIB}
+  CMAKE_ARGS
+  -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
+  -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
+  -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
+  -DBUILD_SHARED_LIBS:BOOL=Off
+  -DSDL2IMAGE_SAMPLES:BOOL=Off
+  -DSDL2IMAGE_TESTS:BOOL=Off
+)
+
 # SPIRVCROSS
 if(MSVC)
   if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
@@ -381,7 +410,7 @@ if(MSVC OR MINGW)
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${EXTERNALS_ROOT}/bin ${PROJECT_BINARY_DIR}
   )
 endif()
-add_dependencies(hello_embree_host_lib glad args lua sdl2 embree3 glslang spirvcross)
+add_dependencies(hello_embree_host_lib glad args lua sdl2 sdl2_image embree3 glslang spirvcross)
 
 # core executable
 if(MSVC OR MINGW)
@@ -452,6 +481,7 @@ target_link_libraries(hello_embree_host
   ${TBB_LIB}
   ${LUA_LIB}
   ${SDL2_LIB}
+  ${SDL2_image_LIB}
   ${SPIRVCROSS_LIB}
   ${GLSLANG_LIB}
   ${OPENGL_LIBRARIES}
@@ -541,6 +571,7 @@ target_link_libraries(
   ${TBB_LIB}
   ${LUA_LIB}
   ${SDL2_LIB}
+  ${SDL2_image_LIB}
   ${SPIRVCROSS_LIB}
   ${GLSLANG_LIB}
   ${OPENGL_LIBRARIES}
