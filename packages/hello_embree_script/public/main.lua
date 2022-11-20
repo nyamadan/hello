@@ -98,7 +98,7 @@ end
 
 local request = nil
 if utils.isEmscripten() then
-    request  = utils.fetch("/index.lua")
+    request  = utils.fetch("main.lua")
 end
 
 glslang.initializeProcess()
@@ -172,6 +172,19 @@ if gl.getProgramiv(program, gl.LINK_STATUS) ~= gl.TRUE then
 end
 
 local function update()
+    if request ~= nil then
+        local result = utils.getFetchRequest(request);
+        if result.finished and result.succeeded and result.data ~= nil and result.readyState == 4 then
+            print(inspect(result))
+            utils.freeFetchRequest(request)
+            request = nil
+        elseif result.finished and not result.succeeded then
+            print(inspect(result))
+            utils.freeFetchRequest(request)
+            request = nil
+        end
+    end
+
     local events = collectEvents()
     for _, ev in ipairs(events) do
         if ev.type == SDL.QUIT then
@@ -181,16 +194,6 @@ local function update()
         end
 
         print("ev: type = " .. ev.type)
-    end
-
-    if request ~= nil then
-        local result = utils.getFetchRequest(request);
-        print(inspect(result))
-
-        if result.finished and result.data ~= nil and result.readyState == 4 then
-            utils.freeFetchRequest(request)
-            request = nil
-        end
     end
 
     gl.clearColor(0.5, 0.5, 0.5, 1)
