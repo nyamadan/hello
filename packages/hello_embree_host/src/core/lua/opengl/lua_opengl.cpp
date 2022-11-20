@@ -230,6 +230,27 @@ int L_glUseProgram(lua_State *L) {
   return 0;
 }
 
+int L_glGenTexture(lua_State *L) {
+  GLuint textures[] = {0};
+  glGenTextures(1, textures);
+  lua_pushinteger(L, textures[0]);
+  return 1;
+}
+
+int L_glBindTexture(lua_State *L) {
+  auto target = static_cast<GLenum>(luaL_checkinteger(L, 1));
+  auto texture = static_cast<GLuint>(luaL_checkinteger(L, 2));
+  glBindTexture(target, texture);
+  return 0;
+}
+
+int L_glDeleteTexture(lua_State *L) {
+  auto texture = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  GLuint textures[] = {texture};
+  glDeleteTextures(1, textures);
+  return 0;
+}
+
 int L_require(lua_State *L) {
   lua_newtable(L);
 
@@ -268,6 +289,9 @@ int L_require(lua_State *L) {
 
   lua_pushinteger(L, GL_TRIANGLES);
   lua_setfield(L, -2, "TRIANGLES");
+
+  lua_pushinteger(L, GL_TEXTURE_2D);
+  lua_setfield(L, -2, "TEXTURE_2D");
 
   lua_pushcfunction(L, L_loadGLLoader);
   lua_setfield(L, -2, "loadGLLoader");
@@ -346,6 +370,16 @@ int L_require(lua_State *L) {
 
   lua_pushcfunction(L, L_glUseProgram);
   lua_setfield(L, -2, "useProgram");
+
+  lua_pushcfunction(L, L_glGenTexture);
+  lua_setfield(L, -2, "genTexture");
+
+  lua_pushcfunction(L, L_glDeleteTexture);
+  lua_setfield(L, -2, "deleteTexture");
+
+  lua_pushcfunction(L, L_glBindTexture);
+  lua_setfield(L, -2, "bindTexture");
+
   return 1;
 }
 } // namespace

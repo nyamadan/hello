@@ -293,3 +293,22 @@ TEST_F(LuaSDL2_Test, TestFailToLinkProgram) {
   ASSERT_EQ(luaL_checkinteger(L, -1), GL_FALSE);
   ASSERT_STRNE(luaL_checkstring(L, -2), "");
 }
+
+TEST_F(LuaSDL2_Test, TestGenTexture) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+
+  initWindow();
+  initRenderer();
+  initOpenGL();
+
+  ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');\n"
+                               "local tex = gl.genTexture();\n"
+                               "gl.bindTexture(gl.TEXTURE_2D, tex);\n"
+                               "gl.deleteTexture(tex);\n"
+                               "return tex;\n"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+  luaL_checkinteger(L, -1);
+}
