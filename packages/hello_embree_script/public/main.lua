@@ -96,11 +96,6 @@ local function collectEvents()
     return events
 end
 
-local request = nil
-if utils.isEmscripten() then
-    request  = utils.fetch("main.lua")
-end
-
 glslang.initializeProcess()
 
 if SDL.Init(SDL.INIT_VIDEO | SDL.INIT_TIMER) ~= 0 then
@@ -172,19 +167,6 @@ if gl.getProgramiv(program, gl.LINK_STATUS) ~= gl.TRUE then
 end
 
 local function update()
-    if request ~= nil then
-        local result = utils.getFetchRequest(request);
-        if result.finished and result.succeeded and result.data ~= nil and result.readyState == 4 then
-            print(inspect(result))
-            utils.freeFetchRequest(request)
-            request = nil
-        elseif result.finished and not result.succeeded then
-            print(inspect(result))
-            utils.freeFetchRequest(request)
-            request = nil
-        end
-    end
-
     local events = collectEvents()
     for _, ev in ipairs(events) do
         if ev.type == SDL.QUIT then
