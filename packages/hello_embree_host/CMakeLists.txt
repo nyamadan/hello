@@ -116,7 +116,7 @@ endif()
 
 ExternalProject_Add(sdl2_image
   PREFIX "${EXTERNALS_ROOT}"
-  URL "https://github.com/libsdl-org/SDL2_image/archive/refs/tags/release-2.6.2.tar.gz"
+  URL "https://github.com/libsdl-org/SDL_image/archive/refs/tags/release-2.6.2.tar.gz"
   URL_HASH SHA256=5d91ea72b449a161821ef51464d0767efb6fedf7a773f923c43e483dc137e362
   BUILD_BYPRODUCTS ${SDL2_image_LIB}
   CMAKE_ARGS
