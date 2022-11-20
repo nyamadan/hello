@@ -22,6 +22,7 @@ async function main() {
   const files: readonly string[] = [
     "index.lua",
     "inspect.lua",
+    "handle_error.lua",
     "main.lua",
   ] as const;
 

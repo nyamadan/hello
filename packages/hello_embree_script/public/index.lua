@@ -1,9 +1,3 @@
-local function handleError(f, err)
-    if err ~= nil then
-        print(err)
-        error("Runtime error occured.")
-    end
-    return f
-end
-
-handleError(pcall(handleError(loadfile("./main.lua"))))
+local handleError = require("./handle_error")
+local main = handleError(loadfile("./main.lua"))
+handleError(pcall(main))

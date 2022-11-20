@@ -4,17 +4,9 @@ local SDL = require("sdl2")
 local gl = require("opengl")
 local glslang = require("glslang")
 local spv_cross = require("spv_cross")
-local inspect = require("inspect")
 
-local function handleError(f)
-    return function()
-        local ok, message = pcall(f)
-        if not ok then
-            print(message)
-            error("Runtime error occured.")
-        end
-    end
-end
+local handleError = require("./handle_error")
+local inspect = require("./inspect")
 
 ---Transpile Shaders
 ---@return string VertexShader
@@ -189,4 +181,8 @@ local function update()
     SDL.GL_SwapWindow(window)
 end
 
-utils.registerFunction("update", handleError(update))
+utils.registerFunction("update",
+    function(...)
+        return handleError(pcall(update, ...))
+    end
+)
