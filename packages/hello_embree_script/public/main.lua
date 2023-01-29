@@ -1,9 +1,9 @@
 local utils = require("utils")
-local buffer = require("buffer")
+local Buffer = require("buffer")
 local SDL = require("sdl2")
-local gl = require("opengl")
-local glslang = require("glslang")
-local spv_cross = require("spv_cross")
+local GL = require("opengl")
+local GLSLANG = require("glslang")
+local SPV_CROSS = require("spv_cross")
 
 local handleError = require("handle_error")
 local inspect = require("inspect")
@@ -34,22 +34,22 @@ void main(void) {
     fragColor = vec4(color, 1.0);
 }
 ]]
-    local program = glslang.newProgram()
-    local vsShader = glslang.newShader(glslang.EShLangVertex)
+    local program = GLSLANG.newProgram()
+    local vsShader = GLSLANG.newShader(GLSLANG.EShLangVertex)
     vsShader:setString(DefaultVertexShader)
-    vsShader:setEnvInput(glslang.EShSourceGlsl, glslang.EShLangVertex, glslang.EShClientOpenGL, 100)
-    vsShader:setEnvClient(glslang.EShClientOpenGL, glslang.EShTargetOpenGL_450)
-    vsShader:setEnvTarget(glslang.EShTargetSpv, glslang.EShTargetSpv_1_0)
+    vsShader:setEnvInput(GLSLANG.EShSourceGlsl, GLSLANG.EShLangVertex, GLSLANG.EShClientOpenGL, 100)
+    vsShader:setEnvClient(GLSLANG.EShClientOpenGL, GLSLANG.EShTargetOpenGL_450)
+    vsShader:setEnvTarget(GLSLANG.EShTargetSpv, GLSLANG.EShTargetSpv_1_0)
     if not vsShader:parse(100, true, 0) then
         error(vsShader:getInfoLog())
     end
     program:addShader(vsShader)
 
-    local fsShader = glslang.newShader(glslang.EShLangFragment)
+    local fsShader = GLSLANG.newShader(GLSLANG.EShLangFragment)
     fsShader:setString(DefaultFragmentShader)
-    fsShader:setEnvInput(glslang.EShSourceGlsl, glslang.EShLangFragment, glslang.EShClientOpenGL, 100)
-    fsShader:setEnvClient(glslang.EShClientOpenGL, glslang.EShTargetOpenGL_450)
-    fsShader:setEnvTarget(glslang.EShTargetSpv, glslang.EShTargetSpv_1_0)
+    fsShader:setEnvInput(GLSLANG.EShSourceGlsl, GLSLANG.EShLangFragment, GLSLANG.EShClientOpenGL, 100)
+    fsShader:setEnvClient(GLSLANG.EShClientOpenGL, GLSLANG.EShTargetOpenGL_450)
+    fsShader:setEnvTarget(GLSLANG.EShTargetSpv, GLSLANG.EShTargetSpv_1_0)
     if not fsShader:parse(100, true, 0) then
         error(fsShader:getInfoLog())
     end
@@ -59,20 +59,20 @@ void main(void) {
         error(program:getInfoLog())
     end
 
-    local vsIntermediate = program:getIntermediate(glslang.EShLangVertex)
-    local vsSpv = glslang.glslangToSpv(program, vsIntermediate)
+    local vsIntermediate = program:getIntermediate(GLSLANG.EShLangVertex)
+    local vsSpv = GLSLANG.glslangToSpv(program, vsIntermediate)
 
-    local fsIntermediate = program:getIntermediate(glslang.EShLangFragment)
-    local fsSpv = glslang.glslangToSpv(program, fsIntermediate)
+    local fsIntermediate = program:getIntermediate(GLSLANG.EShLangFragment)
+    local fsSpv = GLSLANG.glslangToSpv(program, fsIntermediate)
 
     if utils.isEmscripten() then
-        return spv_cross.compile(vsSpv, { es = true, version = 300 }),
-            spv_cross.compile(fsSpv, { es = true, version = 300 })
+        return SPV_CROSS.compile(vsSpv, { es = true, version = 300 }),
+            SPV_CROSS.compile(fsSpv, { es = true, version = 300 })
 
     end
 
-    return spv_cross.compile(vsSpv, { es = false, version = 420 }),
-        spv_cross.compile(fsSpv, { es = false, version = 420 });
+    return SPV_CROSS.compile(vsSpv, { es = false, version = 420 }),
+        SPV_CROSS.compile(fsSpv, { es = false, version = 420 });
 end
 
 local function collectEvents()
@@ -88,7 +88,7 @@ local function collectEvents()
     return events
 end
 
-glslang.initializeProcess()
+GLSLANG.initializeProcess()
 
 if SDL.Init(SDL.INIT_VIDEO | SDL.INIT_TIMER) ~= 0 then
     error(SDL.GetError())
@@ -116,51 +116,75 @@ SDL.GL_MakeCurrent(window, context)
 SDL.GL_SetSwapInterval(1)
 
 if not utils.isEmscripten() then
-    gl.loadGLLoader()
+    GL.loadGLLoader()
 end
 
 ---@type number[]
 local points = { -1.0, -1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0, 0.0 }
-local buffer = buffer.alloc(#points * 4)
+local buffer = Buffer.alloc(#points * 4)
 for i, v in ipairs(points) do
     buffer:setFloat32(4 * (i - 1), v)
 end
 
-local vbo = gl.genBuffer()
-gl.bindBuffer(gl.ARRAY_BUFFER, vbo)
-gl.bufferData(gl.ARRAY_BUFFER, buffer, gl.STATIC_DRAW)
-gl.bindBuffer(gl.ARRAY_BUFFER, 0)
+local vbo = GL.genBuffer()
+GL.bindBuffer(GL.ARRAY_BUFFER, vbo)
+GL.bufferData(GL.ARRAY_BUFFER, buffer, GL.STATIC_DRAW)
+GL.bindBuffer(GL.ARRAY_BUFFER, 0)
 
-local vao = gl.genVertexArray()
-gl.bindVertexArray(vao)
-gl.bindBuffer(gl.ARRAY_BUFFER, vbo)
-gl.enableVertexAttribArray(0)
-gl.vertexAttribPointer(0, 3, gl.FLOAT, gl.FALSE, 0)
-gl.bindVertexArray(0)
+local vao = GL.genVertexArray()
+GL.bindVertexArray(vao)
+GL.bindBuffer(GL.ARRAY_BUFFER, vbo)
+GL.enableVertexAttribArray(0)
+GL.vertexAttribPointer(0, 3, GL.FLOAT, GL.FALSE, 0)
+GL.bindVertexArray(0)
 
 local vsSource, fsSource = transpileShaders()
 
-local vs = gl.createShader(gl.VERTEX_SHADER)
-gl.shaderSource(vs, vsSource)
-gl.compileShader(vs)
-if gl.getShaderiv(vs, gl.COMPILE_STATUS) ~= gl.TRUE then
-    error(gl.getShaderInfoLog(vs))
+local vs = GL.createShader(GL.VERTEX_SHADER)
+GL.shaderSource(vs, vsSource)
+GL.compileShader(vs)
+if GL.getShaderiv(vs, GL.COMPILE_STATUS) ~= GL.TRUE then
+    error(GL.getShaderInfoLog(vs))
 end
 
-local fs = gl.createShader(gl.FRAGMENT_SHADER)
-gl.shaderSource(fs, fsSource)
-gl.compileShader(fs)
-if gl.getShaderiv(fs, gl.COMPILE_STATUS) ~= gl.TRUE then
-    error(gl.getShaderInfoLog(fs))
+local fs = GL.createShader(GL.FRAGMENT_SHADER)
+GL.shaderSource(fs, fsSource)
+GL.compileShader(fs)
+if GL.getShaderiv(fs, GL.COMPILE_STATUS) ~= GL.TRUE then
+    error(GL.getShaderInfoLog(fs))
 end
 
-local program = gl.createProgram()
-gl.attachShader(program, vs)
-gl.attachShader(program, fs)
-gl.linkProgram(program)
-if gl.getProgramiv(program, gl.LINK_STATUS) ~= gl.TRUE then
-    error(gl.getProgramInfoLog(program))
+local program = GL.createProgram()
+GL.attachShader(program, vs)
+GL.attachShader(program, fs)
+GL.linkProgram(program)
+if GL.getProgramiv(program, GL.LINK_STATUS) ~= GL.TRUE then
+    error(GL.getProgramInfoLog(program))
 end
+
+local color = Buffer.alloc(512 * 512 * 4)
+for y = 0, 0x1ff do
+    for x = 0, 0x1ff do
+        local offset = 4 * (x + y * 0x200)
+        color:setUint8(offset + 0, 0xff)
+        color:setUint8(offset + 1, 0xff)
+        color:setUint8(offset + 2, 0xff)
+        color:setUint8(offset + 3, 0xff)
+    end
+end
+
+local texColor = GL.genTexture()
+GL.bindTexture(GL.TEXTURE_2D, texColor)
+GL.pixelStorei(GL.UNPACK_ALIGNMENT, 1)
+GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, 512, 512, 0, GL.RGBA, GL.UNSIGNED_BYTE, color);
+GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
+GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
+GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
+GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
+GL.bindTexture(GL.TEXTURE_2D, 0);
+
+local fbo = GL.genFramebuffer();
+GL.deleteFramebuffer(fbo);
 
 local function update()
     local events = collectEvents()
@@ -174,13 +198,13 @@ local function update()
         print("ev: type = " .. ev.type)
     end
 
-    gl.clearColor(0.5, 0.5, 0.5, 1)
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT)
+    GL.clearColor(0.5, 0.5, 0.5, 1)
+    GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT)
 
-    gl.useProgram(program)
-    gl.bindVertexArray(vao);
-    gl.drawArrays(gl.TRIANGLES, 0, 3)
-    gl.bindVertexArray(0);
+    GL.useProgram(program)
+    GL.bindVertexArray(vao);
+    GL.drawArrays(GL.TRIANGLES, 0, 3)
+    GL.bindVertexArray(0);
 
     SDL.GL_SwapWindow(window)
 end

@@ -303,11 +303,41 @@ TEST_F(LuaSDL2_Test, TestGenTexture) {
   initRenderer();
   initOpenGL();
 
+  ASSERT_EQ(
+      utils::dostring(
+          L,
+          "local gl = require('opengl');\n"
+          "local tex = gl.genTexture();\n"
+          "gl.bindTexture(gl.TEXTURE_2D, tex);\n"
+          "gl.pixelStorei(gl.UNPACK_ALIGNMENT, 1);\n"
+          "gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 512, "
+          "512, 0, gl.RGBA, gl.UNSIGNED_BYTE, nil);\n"
+          "gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, "
+          "gl.CLAMP_TO_EDGE);\n"
+          "gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, "
+          "gl.CLAMP_TO_EDGE);\n"
+          "gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);\n"
+          "gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);\n"
+          "gl.deleteTexture(tex);\n"
+          "return tex;\n"),
+      LUA_OK)
+      << lua_tostring(L, -1);
+  luaL_checkinteger(L, -1);
+}
+
+TEST_F(LuaSDL2_Test, TestGenFramebuffer) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+
+  initWindow();
+  initRenderer();
+  initOpenGL();
+
   ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');\n"
-                               "local tex = gl.genTexture();\n"
-                               "gl.bindTexture(gl.TEXTURE_2D, tex);\n"
-                               "gl.deleteTexture(tex);\n"
-                               "return tex;\n"),
+                               "local fbo = gl.genFramebuffer();\n"
+                               "gl.deleteFramebuffer(fbo);\n"
+                               "return fbo;\n"),
             LUA_OK)
       << lua_tostring(L, -1);
   luaL_checkinteger(L, -1);

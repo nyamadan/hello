@@ -237,6 +237,45 @@ int L_glGenTexture(lua_State *L) {
   return 1;
 }
 
+int L_glTexImage2D(lua_State *L) {
+  auto target = static_cast<GLenum>(luaL_checkinteger(L, 1));
+  auto level = static_cast<GLint>(luaL_checkinteger(L, 2));
+  auto internalformat = static_cast<GLint>(luaL_checkinteger(L, 3));
+  auto width = static_cast<GLsizei>(luaL_checkinteger(L, 4));
+  auto height = static_cast<GLsizei>(luaL_checkinteger(L, 5));
+  auto border = static_cast<GLint>(luaL_checkinteger(L, 6));
+  auto format = static_cast<GLenum>(luaL_checkinteger(L, 7));
+  auto type = static_cast<GLenum>(luaL_checkinteger(L, 8));
+
+  void *pixels = nullptr;
+  if (!lua_isnoneornil(L, 9)) {
+    auto buffer = hello::lua::buffer::get(L, 9);
+    luaL_argcheck(L, buffer != nullptr, 9, "Expected buffer");
+    luaL_argcheck(L, buffer->usage == nullptr, 9,
+                  "operation is not permitted.");
+    luaL_argcheck(L, buffer->size > 0, 9, "size must be breater than 0");
+    pixels = buffer->data;
+  }
+  glTexImage2D(target, level, internalformat, width, height, border, format,
+               type, pixels);
+  return 0;
+}
+
+int L_glTexParameteri(lua_State *L) {
+  auto target = static_cast<GLenum>(luaL_checkinteger(L, 1));
+  auto pname = static_cast<GLenum>(luaL_checkinteger(L, 2));
+  auto param = static_cast<GLint>(luaL_checkinteger(L, 3));
+  glTexParameteri(target, pname, param);
+  return 0;
+}
+
+int L_glPixelStorei(lua_State *L) {
+  auto pname = static_cast<GLenum>(luaL_checkinteger(L, 1));
+  auto param = static_cast<GLint>(luaL_checkinteger(L, 2));
+  glPixelStorei(pname, param);
+  return 0;
+}
+
 int L_glBindTexture(lua_State *L) {
   auto target = static_cast<GLenum>(luaL_checkinteger(L, 1));
   auto texture = static_cast<GLuint>(luaL_checkinteger(L, 2));
@@ -248,6 +287,20 @@ int L_glDeleteTexture(lua_State *L) {
   auto texture = static_cast<GLuint>(luaL_checkinteger(L, 1));
   GLuint textures[] = {texture};
   glDeleteTextures(1, textures);
+  return 0;
+}
+
+int L_glGenFramebuffer(lua_State *L) {
+  GLuint fbos[] = {0};
+  glGenFramebuffers(1, fbos);
+  lua_pushinteger(L, fbos[0]);
+  return 1;
+}
+
+int L_glDeleteFramebuffers(lua_State *L) {
+  auto fbo = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  GLuint framebuffers[] = {fbo};
+  glDeleteFramebuffers(1, framebuffers);
   return 0;
 }
 
@@ -284,14 +337,47 @@ int L_require(lua_State *L) {
   lua_pushinteger(L, GL_FALSE);
   lua_setfield(L, -2, "FALSE");
 
+  lua_pushinteger(L, GL_RGBA);
+  lua_setfield(L, -2, "RGBA");
+
+  lua_pushinteger(L, GL_RGB);
+  lua_setfield(L, -2, "RGB");
+
   lua_pushinteger(L, GL_FLOAT);
   lua_setfield(L, -2, "FLOAT");
+
+  lua_pushinteger(L, GL_UNSIGNED_BYTE);
+  lua_setfield(L, -2, "UNSIGNED_BYTE");
 
   lua_pushinteger(L, GL_TRIANGLES);
   lua_setfield(L, -2, "TRIANGLES");
 
   lua_pushinteger(L, GL_TEXTURE_2D);
   lua_setfield(L, -2, "TEXTURE_2D");
+
+  lua_pushinteger(L, GL_UNPACK_ALIGNMENT);
+  lua_setfield(L, -2, "UNPACK_ALIGNMENT");
+
+  lua_pushinteger(L, GL_TEXTURE_WRAP_S);
+  lua_setfield(L, -2, "TEXTURE_WRAP_S");
+
+  lua_pushinteger(L, GL_TEXTURE_WRAP_T);
+  lua_setfield(L, -2, "TEXTURE_WRAP_T");
+
+  lua_pushinteger(L, GL_CLAMP_TO_EDGE);
+  lua_setfield(L, -2, "CLAMP_TO_EDGE");
+
+  lua_pushinteger(L, GL_TEXTURE_MIN_FILTER);
+  lua_setfield(L, -2, "TEXTURE_MIN_FILTER");
+
+  lua_pushinteger(L, GL_TEXTURE_MAG_FILTER);
+  lua_setfield(L, -2, "TEXTURE_MAG_FILTER");
+
+  lua_pushinteger(L, GL_NEAREST);
+  lua_setfield(L, -2, "NEAREST");
+
+  lua_pushinteger(L, GL_LINEAR);
+  lua_setfield(L, -2, "LINEAR");
 
   lua_pushcfunction(L, L_loadGLLoader);
   lua_setfield(L, -2, "loadGLLoader");
@@ -374,11 +460,26 @@ int L_require(lua_State *L) {
   lua_pushcfunction(L, L_glGenTexture);
   lua_setfield(L, -2, "genTexture");
 
+  lua_pushcfunction(L, L_glTexImage2D);
+  lua_setfield(L, -2, "texImage2D");
+
+  lua_pushcfunction(L, L_glPixelStorei);
+  lua_setfield(L, -2, "pixelStorei");
+
+  lua_pushcfunction(L, L_glTexParameteri);
+  lua_setfield(L, -2, "texParameteri");
+
   lua_pushcfunction(L, L_glDeleteTexture);
   lua_setfield(L, -2, "deleteTexture");
 
   lua_pushcfunction(L, L_glBindTexture);
   lua_setfield(L, -2, "bindTexture");
+
+  lua_pushcfunction(L, L_glGenFramebuffer);
+  lua_setfield(L, -2, "genFramebuffer");
+
+  lua_pushcfunction(L, L_glDeleteFramebuffers);
+  lua_setfield(L, -2, "deleteFramebuffer");
 
   return 1;
 }

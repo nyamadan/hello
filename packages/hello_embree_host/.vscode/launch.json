@@ -17,7 +17,8 @@
       },
       "runtimeArgs": ["-f", "index.lua"],
       "cwd": "${workspaceFolder}/../hello_embree_script/public",
-      "console": "internalConsole"
+      "console": "internalConsole",
+      "stopOnEntry": false
     }
   ]
 }
