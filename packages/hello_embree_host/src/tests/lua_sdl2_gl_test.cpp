@@ -295,6 +295,10 @@ TEST_F(LuaSDL2_Test, TestFailToLinkProgram) {
 }
 
 TEST_F(LuaSDL2_Test, TestGenTexture) {
+#if defined(RUN_ON_GITHUB_ACTIONS)
+  GTEST_SKIP() << "Not work for GitHub Actions";
+#endif
+
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
