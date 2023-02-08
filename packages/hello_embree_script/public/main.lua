@@ -186,6 +186,9 @@ GL.bindTexture(GL.TEXTURE_2D, 0);
 local fbo = GL.genFramebuffer();
 GL.deleteFramebuffer(fbo);
 
+local rbo = GL.genRenderbuffer();
+GL.deleteRenderbuffer(rbo);
+
 local function update()
     local events = collectEvents()
     for _, ev in ipairs(events) do

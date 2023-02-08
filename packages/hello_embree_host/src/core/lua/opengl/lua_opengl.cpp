@@ -297,10 +297,24 @@ int L_glGenFramebuffer(lua_State *L) {
   return 1;
 }
 
-int L_glDeleteFramebuffers(lua_State *L) {
+int L_glDeleteFramebuffer(lua_State *L) {
   auto fbo = static_cast<GLuint>(luaL_checkinteger(L, 1));
   GLuint framebuffers[] = {fbo};
   glDeleteFramebuffers(1, framebuffers);
+  return 0;
+}
+
+int L_glGenRenderbuffer(lua_State *L) {
+  GLuint rbos[] = {0};
+  glGenRenderbuffers(1, rbos);
+  lua_pushinteger(L, rbos[0]);
+  return 1;
+}
+
+int L_glDeleteRenderbuffer(lua_State *L) {
+  auto rbo = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  GLuint rbos[] = {rbo};
+  glDeleteRenderbuffers(1, rbos);
   return 0;
 }
 
@@ -478,8 +492,14 @@ int L_require(lua_State *L) {
   lua_pushcfunction(L, L_glGenFramebuffer);
   lua_setfield(L, -2, "genFramebuffer");
 
-  lua_pushcfunction(L, L_glDeleteFramebuffers);
+  lua_pushcfunction(L, L_glDeleteFramebuffer);
   lua_setfield(L, -2, "deleteFramebuffer");
+
+  lua_pushcfunction(L, L_glGenRenderbuffer);
+  lua_setfield(L, -2, "genRenderbuffer");
+
+  lua_pushcfunction(L, L_glDeleteRenderbuffer);
+  lua_setfield(L, -2, "deleteRenderbuffer");
 
   return 1;
 }

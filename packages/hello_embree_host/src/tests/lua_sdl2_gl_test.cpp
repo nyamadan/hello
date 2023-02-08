@@ -334,6 +334,10 @@ TEST_F(LuaSDL2_Test, TestGenFramebuffer) {
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
 
+#if defined(RUN_ON_GITHUB_ACTIONS)
+  GTEST_SKIP() << "Not work for GitHub Actions";
+#endif
+
   initWindow();
   initRenderer();
   initOpenGL();
@@ -342,6 +346,28 @@ TEST_F(LuaSDL2_Test, TestGenFramebuffer) {
                                "local fbo = gl.genFramebuffer();\n"
                                "gl.deleteFramebuffer(fbo);\n"
                                "return fbo;\n"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+  luaL_checkinteger(L, -1);
+}
+
+TEST_F(LuaSDL2_Test, TestGenRenderbuffer) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+
+#if defined(RUN_ON_GITHUB_ACTIONS)
+  GTEST_SKIP() << "Not work for GitHub Actions";
+#endif
+
+  initWindow();
+  initRenderer();
+  initOpenGL();
+
+  ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');\n"
+                               "local rbo = gl.genRenderbuffer();\n"
+                               "gl.deleteRenderbuffer(rbo);\n"
+                               "return rbo;\n"),
             LUA_OK)
       << lua_tostring(L, -1);
   luaL_checkinteger(L, -1);
