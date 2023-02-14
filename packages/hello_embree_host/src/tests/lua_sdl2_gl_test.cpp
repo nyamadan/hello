@@ -366,6 +366,10 @@ TEST_F(LuaSDL2_Test, TestGenRenderbuffer) {
 
   ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');\n"
                                "local rbo = gl.genRenderbuffer();\n"
+                               "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);\n"
+                               "gl.renderbufferStorage(gl.RENDERBUFFER, "
+                               "gl.DEPTH_COMPONENT, 512, 512);\n"
+                               "gl.bindRenderbuffer(gl.RENDERBUFFER, 0);\n"
                                "gl.deleteRenderbuffer(rbo);\n"
                                "return rbo;\n"),
             LUA_OK)

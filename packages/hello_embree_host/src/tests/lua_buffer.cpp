@@ -88,6 +88,20 @@ TEST_F(LuaBuffer_Test, SetGetUint8) {
             LUA_OK);
 }
 
+TEST_F(LuaBuffer_Test, FillUint8) {
+  ASSERT_EQ(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
+                                           "local b = buffer.alloc(2);"
+                                           "b:fillUint8(1);"
+                                           "return b"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+
+  auto buffer = hello::lua::buffer::get(L, -1);
+  ASSERT_NE(buffer, nullptr);
+  ASSERT_EQ(reinterpret_cast<uint8_t *>(buffer->data)[0], 1);
+  ASSERT_EQ(reinterpret_cast<uint8_t *>(buffer->data)[1], 1);
+}
+
 TEST_F(LuaBuffer_Test, SetGetFloat32) {
   ASSERT_EQ(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
                                            "local b = buffer.alloc(4);"
@@ -114,6 +128,36 @@ TEST_F(LuaBuffer_Test, SetGetFloat32) {
                                            "local b = buffer.alloc(4);"
                                            "b:getFloat32(-1);"),
             LUA_OK);
+}
+
+TEST_F(LuaBuffer_Test, FillFloat32FromArray) {
+  ASSERT_EQ(hello::lua::utils::dostring(L,
+                                        "local buffer = require('buffer');\n"
+                                        "local b = buffer.alloc(12);\n"
+                                        "b:setFloat32FromArray(0, {1, 2, 3});\n"
+                                        "return b\n"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+  auto buf = hello::lua::buffer::get(L, -1);
+  ASSERT_NE(buf, nullptr);
+  auto data = reinterpret_cast<float *>(buf->data);
+  ASSERT_EQ(data[0], 1.0);
+  ASSERT_EQ(data[1], 2.0);
+  ASSERT_EQ(data[2], 3.0);
+}
+
+TEST_F(LuaBuffer_Test, FillFloat32) {
+  ASSERT_EQ(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
+                                           "local b = buffer.alloc(8);"
+                                           "b:fillFloat32(1.0);"
+                                           "return b"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+
+  auto buffer = hello::lua::buffer::get(L, -1);
+  ASSERT_NE(buffer, nullptr);
+  ASSERT_EQ(reinterpret_cast<float *>(buffer->data)[0], 1.0);
+  ASSERT_EQ(reinterpret_cast<float *>(buffer->data)[1], 1.0);
 }
 
 TEST_F(LuaBuffer_Test, GetString) {

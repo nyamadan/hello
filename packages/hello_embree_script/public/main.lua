@@ -1,7 +1,9 @@
 local utils = require("utils")
+--- @type buffer
 local Buffer = require("buffer")
-local SDL = require("sdl2")
+--- @type gl
 local GL = require("opengl")
+local SDL = require("sdl2")
 local GLSLANG = require("glslang")
 local SPV_CROSS = require("spv_cross")
 
@@ -68,7 +70,6 @@ void main(void) {
     if utils.isEmscripten() then
         return SPV_CROSS.compile(vsSpv, { es = true, version = 300 }),
             SPV_CROSS.compile(fsSpv, { es = true, version = 300 })
-
     end
 
     return SPV_CROSS.compile(vsSpv, { es = false, version = 420 }),
@@ -163,15 +164,7 @@ if GL.getProgramiv(program, GL.LINK_STATUS) ~= GL.TRUE then
 end
 
 local color = Buffer.alloc(512 * 512 * 4)
-for y = 0, 0x1ff do
-    for x = 0, 0x1ff do
-        local offset = 4 * (x + y * 0x200)
-        color:setUint8(offset + 0, 0xff)
-        color:setUint8(offset + 1, 0xff)
-        color:setUint8(offset + 2, 0xff)
-        color:setUint8(offset + 3, 0xff)
-    end
-end
+color:fillUint8(0xff)
 
 local texColor = GL.genTexture()
 GL.bindTexture(GL.TEXTURE_2D, texColor)
@@ -183,11 +176,14 @@ GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
 GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
 GL.bindTexture(GL.TEXTURE_2D, 0);
 
+local rbo = GL.genRenderbuffer();
+GL.bindRenderbuffer(GL.RENDERBUFFER, rbo);
+GL.renderbufferStorage(GL.RENDERBUFFER, GL.DEPTH_COMPONENT, 512, 512);
+GL.bindRenderbuffer(GL.RENDERBUFFER, 0);
+GL.deleteRenderbuffer(rbo);
+
 local fbo = GL.genFramebuffer();
 GL.deleteFramebuffer(fbo);
-
-local rbo = GL.genRenderbuffer();
-GL.deleteRenderbuffer(rbo);
 
 local function update()
     local events = collectEvents()

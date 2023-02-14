@@ -68,6 +68,22 @@ int L_setUint8(lua_State *L) {
   return 0;
 }
 
+int L_fillUint8(lua_State *L) {
+  auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  if (pBuffer->usage != nullptr) {
+    luaL_error(L, "This operations is not permitted.");
+  }
+
+  auto value = static_cast<uint8_t>(luaL_checkinteger(L, 2));
+
+  auto bytesPerElement = static_cast<uint8_t>(sizeof(uint8_t));
+  auto end = pBuffer->size - bytesPerElement;
+  for (auto offset = 0; offset <= end; offset += bytesPerElement) {
+    *reinterpret_cast<uint8_t *>(pBuffer->data + offset) = value;
+  }
+  return 0;
+}
+
 int L_getUint8(lua_State *L) {
   auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
   if (pBuffer->usage != nullptr) {
@@ -91,6 +107,22 @@ int L_setFloat32(lua_State *L) {
       L, idx >= 0 && idx + static_cast<int32_t>(sizeof(float)) <= pBuffer->size,
       2, "setFloat32: Out of range.");
   *reinterpret_cast<float *>(pBuffer->data + idx) = n;
+  return 0;
+}
+
+int L_fillFloat32(lua_State *L) {
+  auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  if (pBuffer->usage != nullptr) {
+    luaL_error(L, "This operations is not permitted.");
+  }
+
+  auto value = static_cast<float>(luaL_checknumber(L, 2));
+
+  auto bytesPerElement = static_cast<int32_t>(sizeof(float));
+  auto end = pBuffer->size - bytesPerElement;
+  for (auto offset = 0; offset <= end; offset += bytesPerElement) {
+    *reinterpret_cast<float *>(pBuffer->data + offset) = value;
+  }
   return 0;
 }
 
@@ -180,10 +212,14 @@ void openlibs(lua_State *L) {
   lua_newtable(L);
   lua_pushcfunction(L, L_setUint8);
   lua_setfield(L, -2, "setUint8");
+  lua_pushcfunction(L, L_fillUint8);
+  lua_setfield(L, -2, "fillUint8");
   lua_pushcfunction(L, L_getUint8);
   lua_setfield(L, -2, "getUint8");
   lua_pushcfunction(L, L_setFloat32);
   lua_setfield(L, -2, "setFloat32");
+  lua_pushcfunction(L, L_fillFloat32);
+  lua_setfield(L, -2, "fillFloat32");
   lua_pushcfunction(L, L_getFloat32);
   lua_setfield(L, -2, "getFloat32");
   lua_pushcfunction(L, L_getString);
