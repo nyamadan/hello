@@ -540,21 +540,6 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_COLOR_WRITEMASK);
   lua_setfield(L, idx, "COLOR_WRITEMASK");
 
-  lua_pushinteger(L, GL_STEREO);
-  lua_setfield(L, idx, "STEREO");
-
-  lua_pushinteger(L, GL_LINE_SMOOTH_HINT);
-  lua_setfield(L, idx, "LINE_SMOOTH_HINT");
-
-  lua_pushinteger(L, GL_POLYGON_SMOOTH_HINT);
-  lua_setfield(L, idx, "POLYGON_SMOOTH_HINT");
-
-  lua_pushinteger(L, GL_UNPACK_SWAP_BYTES);
-  lua_setfield(L, idx, "UNPACK_SWAP_BYTES");
-
-  lua_pushinteger(L, GL_UNPACK_LSB_FIRST);
-  lua_setfield(L, idx, "UNPACK_LSB_FIRST");
-
   lua_pushinteger(L, GL_UNPACK_ROW_LENGTH);
   lua_setfield(L, idx, "UNPACK_ROW_LENGTH");
 
@@ -566,12 +551,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_UNPACK_ALIGNMENT);
   lua_setfield(L, idx, "UNPACK_ALIGNMENT");
-
-  lua_pushinteger(L, GL_PACK_SWAP_BYTES);
-  lua_setfield(L, idx, "PACK_SWAP_BYTES");
-
-  lua_pushinteger(L, GL_PACK_LSB_FIRST);
-  lua_setfield(L, idx, "PACK_LSB_FIRST");
 
   lua_pushinteger(L, GL_PACK_ROW_LENGTH);
   lua_setfield(L, idx, "PACK_ROW_LENGTH");
@@ -594,20 +573,8 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_SUBPIXEL_BITS);
   lua_setfield(L, idx, "SUBPIXEL_BITS");
 
-  lua_pushinteger(L, GL_TEXTURE_1D);
-  lua_setfield(L, idx, "TEXTURE_1D");
-
   lua_pushinteger(L, GL_TEXTURE_2D);
   lua_setfield(L, idx, "TEXTURE_2D");
-
-  lua_pushinteger(L, GL_TEXTURE_WIDTH);
-  lua_setfield(L, idx, "TEXTURE_WIDTH");
-
-  lua_pushinteger(L, GL_TEXTURE_HEIGHT);
-  lua_setfield(L, idx, "TEXTURE_HEIGHT");
-
-  lua_pushinteger(L, GL_TEXTURE_BORDER_COLOR);
-  lua_setfield(L, idx, "TEXTURE_BORDER_COLOR");
 
   lua_pushinteger(L, GL_DONT_CARE);
   lua_setfield(L, idx, "DONT_CARE");
@@ -639,53 +606,8 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_FLOAT);
   lua_setfield(L, idx, "FLOAT");
 
-  lua_pushinteger(L, GL_CLEAR);
-  lua_setfield(L, idx, "CLEAR");
-
-  lua_pushinteger(L, GL_AND);
-  lua_setfield(L, idx, "AND");
-
-  lua_pushinteger(L, GL_AND_REVERSE);
-  lua_setfield(L, idx, "AND_REVERSE");
-
-  lua_pushinteger(L, GL_COPY);
-  lua_setfield(L, idx, "COPY");
-
-  lua_pushinteger(L, GL_AND_INVERTED);
-  lua_setfield(L, idx, "AND_INVERTED");
-
-  lua_pushinteger(L, GL_NOOP);
-  lua_setfield(L, idx, "NOOP");
-
-  lua_pushinteger(L, GL_XOR);
-  lua_setfield(L, idx, "XOR");
-
-  lua_pushinteger(L, GL_OR);
-  lua_setfield(L, idx, "OR");
-
-  lua_pushinteger(L, GL_NOR);
-  lua_setfield(L, idx, "NOR");
-
-  lua_pushinteger(L, GL_EQUIV);
-  lua_setfield(L, idx, "EQUIV");
-
   lua_pushinteger(L, GL_INVERT);
   lua_setfield(L, idx, "INVERT");
-
-  lua_pushinteger(L, GL_OR_REVERSE);
-  lua_setfield(L, idx, "OR_REVERSE");
-
-  lua_pushinteger(L, GL_COPY_INVERTED);
-  lua_setfield(L, idx, "COPY_INVERTED");
-
-  lua_pushinteger(L, GL_OR_INVERTED);
-  lua_setfield(L, idx, "OR_INVERTED");
-
-  lua_pushinteger(L, GL_NAND);
-  lua_setfield(L, idx, "NAND");
-
-  lua_pushinteger(L, GL_SET);
-  lua_setfield(L, idx, "SET");
 
   lua_pushinteger(L, GL_TEXTURE);
   lua_setfield(L, idx, "TEXTURE");
@@ -698,9 +620,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_STENCIL);
   lua_setfield(L, idx, "STENCIL");
-
-  lua_pushinteger(L, GL_STENCIL_INDEX);
-  lua_setfield(L, idx, "STENCIL_INDEX");
 
   lua_pushinteger(L, GL_DEPTH_COMPONENT);
   lua_setfield(L, idx, "DEPTH_COMPONENT");
@@ -722,15 +641,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_RGBA);
   lua_setfield(L, idx, "RGBA");
-
-  lua_pushinteger(L, GL_POINT);
-  lua_setfield(L, idx, "POINT");
-
-  lua_pushinteger(L, GL_LINE);
-  lua_setfield(L, idx, "LINE");
-
-  lua_pushinteger(L, GL_FILL);
-  lua_setfield(L, idx, "FILL");
 
   lua_pushinteger(L, GL_KEEP);
   lua_setfield(L, idx, "KEEP");
@@ -789,17 +699,8 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_REPEAT);
   lua_setfield(L, idx, "REPEAT");
 
-  lua_pushinteger(L, GL_COLOR_LOGIC_OP);
-  lua_setfield(L, idx, "COLOR_LOGIC_OP");
-
   lua_pushinteger(L, GL_POLYGON_OFFSET_UNITS);
   lua_setfield(L, idx, "POLYGON_OFFSET_UNITS");
-
-  lua_pushinteger(L, GL_POLYGON_OFFSET_POINT);
-  lua_setfield(L, idx, "POLYGON_OFFSET_POINT");
-
-  lua_pushinteger(L, GL_POLYGON_OFFSET_LINE);
-  lua_setfield(L, idx, "POLYGON_OFFSET_LINE");
 
   lua_pushinteger(L, GL_POLYGON_OFFSET_FILL);
   lua_setfield(L, idx, "POLYGON_OFFSET_FILL");
@@ -807,59 +708,10 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_POLYGON_OFFSET_FACTOR);
   lua_setfield(L, idx, "POLYGON_OFFSET_FACTOR");
 
-  lua_pushinteger(L, GL_TEXTURE_BINDING_1D);
-  lua_setfield(L, idx, "TEXTURE_BINDING_1D");
-
   lua_pushinteger(L, GL_TEXTURE_BINDING_2D);
   lua_setfield(L, idx, "TEXTURE_BINDING_2D");
-
-  lua_pushinteger(L, GL_TEXTURE_INTERNAL_FORMAT);
-  lua_setfield(L, idx, "TEXTURE_INTERNAL_FORMAT");
-
-  lua_pushinteger(L, GL_TEXTURE_RED_SIZE);
-  lua_setfield(L, idx, "TEXTURE_RED_SIZE");
-
-  lua_pushinteger(L, GL_TEXTURE_GREEN_SIZE);
-  lua_setfield(L, idx, "TEXTURE_GREEN_SIZE");
-
-  lua_pushinteger(L, GL_TEXTURE_BLUE_SIZE);
-  lua_setfield(L, idx, "TEXTURE_BLUE_SIZE");
-
-  lua_pushinteger(L, GL_TEXTURE_ALPHA_SIZE);
-  lua_setfield(L, idx, "TEXTURE_ALPHA_SIZE");
-
-  lua_pushinteger(L, GL_DOUBLE);
-  lua_setfield(L, idx, "DOUBLE");
-
-  lua_pushinteger(L, GL_PROXY_TEXTURE_1D);
-  lua_setfield(L, idx, "PROXY_TEXTURE_1D");
-
-  lua_pushinteger(L, GL_PROXY_TEXTURE_2D);
-  lua_setfield(L, idx, "PROXY_TEXTURE_2D");
-
-  lua_pushinteger(L, GL_R3_G3_B2);
-  lua_setfield(L, idx, "R3_G3_B2");
-
-  lua_pushinteger(L, GL_RGB4);
-  lua_setfield(L, idx, "RGB4");
-
-  lua_pushinteger(L, GL_RGB5);
-  lua_setfield(L, idx, "RGB5");
-
   lua_pushinteger(L, GL_RGB8);
   lua_setfield(L, idx, "RGB8");
-
-  lua_pushinteger(L, GL_RGB10);
-  lua_setfield(L, idx, "RGB10");
-
-  lua_pushinteger(L, GL_RGB12);
-  lua_setfield(L, idx, "RGB12");
-
-  lua_pushinteger(L, GL_RGB16);
-  lua_setfield(L, idx, "RGB16");
-
-  lua_pushinteger(L, GL_RGBA2);
-  lua_setfield(L, idx, "RGBA2");
 
   lua_pushinteger(L, GL_RGBA4);
   lua_setfield(L, idx, "RGBA4");
@@ -873,35 +725,14 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_RGB10_A2);
   lua_setfield(L, idx, "RGB10_A2");
 
-  lua_pushinteger(L, GL_RGBA12);
-  lua_setfield(L, idx, "RGBA12");
-
-  lua_pushinteger(L, GL_RGBA16);
-  lua_setfield(L, idx, "RGBA16");
-
-  lua_pushinteger(L, GL_UNSIGNED_BYTE_3_3_2);
-  lua_setfield(L, idx, "UNSIGNED_BYTE_3_3_2");
-
   lua_pushinteger(L, GL_UNSIGNED_SHORT_4_4_4_4);
   lua_setfield(L, idx, "UNSIGNED_SHORT_4_4_4_4");
 
   lua_pushinteger(L, GL_UNSIGNED_SHORT_5_5_5_1);
   lua_setfield(L, idx, "UNSIGNED_SHORT_5_5_5_1");
 
-  lua_pushinteger(L, GL_UNSIGNED_INT_8_8_8_8);
-  lua_setfield(L, idx, "UNSIGNED_INT_8_8_8_8");
-
-  lua_pushinteger(L, GL_UNSIGNED_INT_10_10_10_2);
-  lua_setfield(L, idx, "UNSIGNED_INT_10_10_10_2");
-
   lua_pushinteger(L, GL_TEXTURE_BINDING_3D);
   lua_setfield(L, idx, "TEXTURE_BINDING_3D");
-
-  lua_pushinteger(L, GL_PACK_SKIP_IMAGES);
-  lua_setfield(L, idx, "PACK_SKIP_IMAGES");
-
-  lua_pushinteger(L, GL_PACK_IMAGE_HEIGHT);
-  lua_setfield(L, idx, "PACK_IMAGE_HEIGHT");
 
   lua_pushinteger(L, GL_UNPACK_SKIP_IMAGES);
   lua_setfield(L, idx, "UNPACK_SKIP_IMAGES");
@@ -912,44 +743,17 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_TEXTURE_3D);
   lua_setfield(L, idx, "TEXTURE_3D");
 
-  lua_pushinteger(L, GL_PROXY_TEXTURE_3D);
-  lua_setfield(L, idx, "PROXY_TEXTURE_3D");
-
-  lua_pushinteger(L, GL_TEXTURE_DEPTH);
-  lua_setfield(L, idx, "TEXTURE_DEPTH");
-
   lua_pushinteger(L, GL_TEXTURE_WRAP_R);
   lua_setfield(L, idx, "TEXTURE_WRAP_R");
 
   lua_pushinteger(L, GL_MAX_3D_TEXTURE_SIZE);
   lua_setfield(L, idx, "MAX_3D_TEXTURE_SIZE");
 
-  lua_pushinteger(L, GL_UNSIGNED_BYTE_2_3_3_REV);
-  lua_setfield(L, idx, "UNSIGNED_BYTE_2_3_3_REV");
-
   lua_pushinteger(L, GL_UNSIGNED_SHORT_5_6_5);
   lua_setfield(L, idx, "UNSIGNED_SHORT_5_6_5");
 
-  lua_pushinteger(L, GL_UNSIGNED_SHORT_5_6_5_REV);
-  lua_setfield(L, idx, "UNSIGNED_SHORT_5_6_5_REV");
-
-  lua_pushinteger(L, GL_UNSIGNED_SHORT_4_4_4_4_REV);
-  lua_setfield(L, idx, "UNSIGNED_SHORT_4_4_4_4_REV");
-
-  lua_pushinteger(L, GL_UNSIGNED_SHORT_1_5_5_5_REV);
-  lua_setfield(L, idx, "UNSIGNED_SHORT_1_5_5_5_REV");
-
-  lua_pushinteger(L, GL_UNSIGNED_INT_8_8_8_8_REV);
-  lua_setfield(L, idx, "UNSIGNED_INT_8_8_8_8_REV");
-
   lua_pushinteger(L, GL_UNSIGNED_INT_2_10_10_10_REV);
   lua_setfield(L, idx, "UNSIGNED_INT_2_10_10_10_REV");
-
-  lua_pushinteger(L, GL_BGR);
-  lua_setfield(L, idx, "BGR");
-
-  lua_pushinteger(L, GL_BGRA);
-  lua_setfield(L, idx, "BGRA");
 
   lua_pushinteger(L, GL_MAX_ELEMENTS_VERTICES);
   lua_setfield(L, idx, "MAX_ELEMENTS_VERTICES");
@@ -971,18 +775,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_TEXTURE_MAX_LEVEL);
   lua_setfield(L, idx, "TEXTURE_MAX_LEVEL");
-
-  lua_pushinteger(L, GL_SMOOTH_POINT_SIZE_RANGE);
-  lua_setfield(L, idx, "SMOOTH_POINT_SIZE_RANGE");
-
-  lua_pushinteger(L, GL_SMOOTH_POINT_SIZE_GRANULARITY);
-  lua_setfield(L, idx, "SMOOTH_POINT_SIZE_GRANULARITY");
-
-  lua_pushinteger(L, GL_SMOOTH_LINE_WIDTH_RANGE);
-  lua_setfield(L, idx, "SMOOTH_LINE_WIDTH_RANGE");
-
-  lua_pushinteger(L, GL_SMOOTH_LINE_WIDTH_GRANULARITY);
-  lua_setfield(L, idx, "SMOOTH_LINE_WIDTH_GRANULARITY");
 
   lua_pushinteger(L, GL_ALIASED_LINE_WIDTH_RANGE);
   lua_setfield(L, idx, "ALIASED_LINE_WIDTH_RANGE");
@@ -1086,14 +878,8 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_ACTIVE_TEXTURE);
   lua_setfield(L, idx, "ACTIVE_TEXTURE");
 
-  lua_pushinteger(L, GL_MULTISAMPLE);
-  lua_setfield(L, idx, "MULTISAMPLE");
-
   lua_pushinteger(L, GL_SAMPLE_ALPHA_TO_COVERAGE);
   lua_setfield(L, idx, "SAMPLE_ALPHA_TO_COVERAGE");
-
-  lua_pushinteger(L, GL_SAMPLE_ALPHA_TO_ONE);
-  lua_setfield(L, idx, "SAMPLE_ALPHA_TO_ONE");
 
   lua_pushinteger(L, GL_SAMPLE_COVERAGE);
   lua_setfield(L, idx, "SAMPLE_COVERAGE");
@@ -1134,35 +920,14 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_TEXTURE_CUBE_MAP_NEGATIVE_Z);
   lua_setfield(L, idx, "TEXTURE_CUBE_MAP_NEGATIVE_Z");
 
-  lua_pushinteger(L, GL_PROXY_TEXTURE_CUBE_MAP);
-  lua_setfield(L, idx, "PROXY_TEXTURE_CUBE_MAP");
-
   lua_pushinteger(L, GL_MAX_CUBE_MAP_TEXTURE_SIZE);
   lua_setfield(L, idx, "MAX_CUBE_MAP_TEXTURE_SIZE");
-
-  lua_pushinteger(L, GL_COMPRESSED_RGB);
-  lua_setfield(L, idx, "COMPRESSED_RGB");
-
-  lua_pushinteger(L, GL_COMPRESSED_RGBA);
-  lua_setfield(L, idx, "COMPRESSED_RGBA");
-
-  lua_pushinteger(L, GL_TEXTURE_COMPRESSION_HINT);
-  lua_setfield(L, idx, "TEXTURE_COMPRESSION_HINT");
-
-  lua_pushinteger(L, GL_TEXTURE_COMPRESSED_IMAGE_SIZE);
-  lua_setfield(L, idx, "TEXTURE_COMPRESSED_IMAGE_SIZE");
-
-  lua_pushinteger(L, GL_TEXTURE_COMPRESSED);
-  lua_setfield(L, idx, "TEXTURE_COMPRESSED");
 
   lua_pushinteger(L, GL_NUM_COMPRESSED_TEXTURE_FORMATS);
   lua_setfield(L, idx, "NUM_COMPRESSED_TEXTURE_FORMATS");
 
   lua_pushinteger(L, GL_COMPRESSED_TEXTURE_FORMATS);
   lua_setfield(L, idx, "COMPRESSED_TEXTURE_FORMATS");
-
-  lua_pushinteger(L, GL_CLAMP_TO_BORDER);
-  lua_setfield(L, idx, "CLAMP_TO_BORDER");
 
   lua_pushinteger(L, GL_BLEND_DST_RGB);
   lua_setfield(L, idx, "BLEND_DST_RGB");
@@ -1176,17 +941,11 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_BLEND_SRC_ALPHA);
   lua_setfield(L, idx, "BLEND_SRC_ALPHA");
 
-  lua_pushinteger(L, GL_POINT_FADE_THRESHOLD_SIZE);
-  lua_setfield(L, idx, "POINT_FADE_THRESHOLD_SIZE");
-
   lua_pushinteger(L, GL_DEPTH_COMPONENT16);
   lua_setfield(L, idx, "DEPTH_COMPONENT16");
 
   lua_pushinteger(L, GL_DEPTH_COMPONENT24);
   lua_setfield(L, idx, "DEPTH_COMPONENT24");
-
-  lua_pushinteger(L, GL_DEPTH_COMPONENT32);
-  lua_setfield(L, idx, "DEPTH_COMPONENT32");
 
   lua_pushinteger(L, GL_MIRRORED_REPEAT);
   lua_setfield(L, idx, "MIRRORED_REPEAT");
@@ -1194,17 +953,11 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_MAX_TEXTURE_LOD_BIAS);
   lua_setfield(L, idx, "MAX_TEXTURE_LOD_BIAS");
 
-  lua_pushinteger(L, GL_TEXTURE_LOD_BIAS);
-  lua_setfield(L, idx, "TEXTURE_LOD_BIAS");
-
   lua_pushinteger(L, GL_INCR_WRAP);
   lua_setfield(L, idx, "INCR_WRAP");
 
   lua_pushinteger(L, GL_DECR_WRAP);
   lua_setfield(L, idx, "DECR_WRAP");
-
-  lua_pushinteger(L, GL_TEXTURE_DEPTH_SIZE);
-  lua_setfield(L, idx, "TEXTURE_DEPTH_SIZE");
 
   lua_pushinteger(L, GL_TEXTURE_COMPARE_MODE);
   lua_setfield(L, idx, "TEXTURE_COMPARE_MODE");
@@ -1251,9 +1004,6 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_BUFFER_USAGE);
   lua_setfield(L, idx, "BUFFER_USAGE");
 
-  lua_pushinteger(L, GL_QUERY_COUNTER_BITS);
-  lua_setfield(L, idx, "QUERY_COUNTER_BITS");
-
   lua_pushinteger(L, GL_CURRENT_QUERY);
   lua_setfield(L, idx, "CURRENT_QUERY");
 
@@ -1277,18 +1027,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING);
   lua_setfield(L, idx, "VERTEX_ATTRIB_ARRAY_BUFFER_BINDING");
-
-  lua_pushinteger(L, GL_READ_ONLY);
-  lua_setfield(L, idx, "READ_ONLY");
-
-  lua_pushinteger(L, GL_WRITE_ONLY);
-  lua_setfield(L, idx, "WRITE_ONLY");
-
-  lua_pushinteger(L, GL_READ_WRITE);
-  lua_setfield(L, idx, "READ_WRITE");
-
-  lua_pushinteger(L, GL_BUFFER_ACCESS);
-  lua_setfield(L, idx, "BUFFER_ACCESS");
 
   lua_pushinteger(L, GL_BUFFER_MAPPED);
   lua_setfield(L, idx, "BUFFER_MAPPED");
@@ -1323,12 +1061,6 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_DYNAMIC_COPY);
   lua_setfield(L, idx, "DYNAMIC_COPY");
 
-  lua_pushinteger(L, GL_SAMPLES_PASSED);
-  lua_setfield(L, idx, "SAMPLES_PASSED");
-
-  lua_pushinteger(L, GL_SRC1_ALPHA);
-  lua_setfield(L, idx, "SRC1_ALPHA");
-
   lua_pushinteger(L, GL_BLEND_EQUATION_RGB);
   lua_setfield(L, idx, "BLEND_EQUATION_RGB");
 
@@ -1346,9 +1078,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_CURRENT_VERTEX_ATTRIB);
   lua_setfield(L, idx, "CURRENT_VERTEX_ATTRIB");
-
-  lua_pushinteger(L, GL_VERTEX_PROGRAM_POINT_SIZE);
-  lua_setfield(L, idx, "VERTEX_PROGRAM_POINT_SIZE");
 
   lua_pushinteger(L, GL_VERTEX_ATTRIB_ARRAY_POINTER);
   lua_setfield(L, idx, "VERTEX_ATTRIB_ARRAY_POINTER");
@@ -1440,9 +1169,6 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_MAX_VERTEX_UNIFORM_COMPONENTS);
   lua_setfield(L, idx, "MAX_VERTEX_UNIFORM_COMPONENTS");
 
-  lua_pushinteger(L, GL_MAX_VARYING_FLOATS);
-  lua_setfield(L, idx, "MAX_VARYING_FLOATS");
-
   lua_pushinteger(L, GL_MAX_VERTEX_TEXTURE_IMAGE_UNITS);
   lua_setfield(L, idx, "MAX_VERTEX_TEXTURE_IMAGE_UNITS");
 
@@ -1491,9 +1217,6 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_FLOAT_MAT4);
   lua_setfield(L, idx, "FLOAT_MAT4");
 
-  lua_pushinteger(L, GL_SAMPLER_1D);
-  lua_setfield(L, idx, "SAMPLER_1D");
-
   lua_pushinteger(L, GL_SAMPLER_2D);
   lua_setfield(L, idx, "SAMPLER_2D");
 
@@ -1502,9 +1225,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_SAMPLER_CUBE);
   lua_setfield(L, idx, "SAMPLER_CUBE");
-
-  lua_pushinteger(L, GL_SAMPLER_1D_SHADOW);
-  lua_setfield(L, idx, "SAMPLER_1D_SHADOW");
 
   lua_pushinteger(L, GL_SAMPLER_2D_SHADOW);
   lua_setfield(L, idx, "SAMPLER_2D_SHADOW");
@@ -1551,15 +1271,6 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_CURRENT_PROGRAM);
   lua_setfield(L, idx, "CURRENT_PROGRAM");
 
-  lua_pushinteger(L, GL_POINT_SPRITE_COORD_ORIGIN);
-  lua_setfield(L, idx, "POINT_SPRITE_COORD_ORIGIN");
-
-  lua_pushinteger(L, GL_LOWER_LEFT);
-  lua_setfield(L, idx, "LOWER_LEFT");
-
-  lua_pushinteger(L, GL_UPPER_LEFT);
-  lua_setfield(L, idx, "UPPER_LEFT");
-
   lua_pushinteger(L, GL_STENCIL_BACK_REF);
   lua_setfield(L, idx, "STENCIL_BACK_REF");
 
@@ -1605,47 +1316,11 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_SRGB8);
   lua_setfield(L, idx, "SRGB8");
 
-  lua_pushinteger(L, GL_SRGB_ALPHA);
-  lua_setfield(L, idx, "SRGB_ALPHA");
-
   lua_pushinteger(L, GL_SRGB8_ALPHA8);
   lua_setfield(L, idx, "SRGB8_ALPHA8");
 
-  lua_pushinteger(L, GL_COMPRESSED_SRGB);
-  lua_setfield(L, idx, "COMPRESSED_SRGB");
-
-  lua_pushinteger(L, GL_COMPRESSED_SRGB_ALPHA);
-  lua_setfield(L, idx, "COMPRESSED_SRGB_ALPHA");
-
   lua_pushinteger(L, GL_COMPARE_REF_TO_TEXTURE);
   lua_setfield(L, idx, "COMPARE_REF_TO_TEXTURE");
-
-  lua_pushinteger(L, GL_CLIP_DISTANCE0);
-  lua_setfield(L, idx, "CLIP_DISTANCE0");
-
-  lua_pushinteger(L, GL_CLIP_DISTANCE1);
-  lua_setfield(L, idx, "CLIP_DISTANCE1");
-
-  lua_pushinteger(L, GL_CLIP_DISTANCE2);
-  lua_setfield(L, idx, "CLIP_DISTANCE2");
-
-  lua_pushinteger(L, GL_CLIP_DISTANCE3);
-  lua_setfield(L, idx, "CLIP_DISTANCE3");
-
-  lua_pushinteger(L, GL_CLIP_DISTANCE4);
-  lua_setfield(L, idx, "CLIP_DISTANCE4");
-
-  lua_pushinteger(L, GL_CLIP_DISTANCE5);
-  lua_setfield(L, idx, "CLIP_DISTANCE5");
-
-  lua_pushinteger(L, GL_CLIP_DISTANCE6);
-  lua_setfield(L, idx, "CLIP_DISTANCE6");
-
-  lua_pushinteger(L, GL_CLIP_DISTANCE7);
-  lua_setfield(L, idx, "CLIP_DISTANCE7");
-
-  lua_pushinteger(L, GL_MAX_CLIP_DISTANCES);
-  lua_setfield(L, idx, "MAX_CLIP_DISTANCES");
 
   lua_pushinteger(L, GL_MAJOR_VERSION);
   lua_setfield(L, idx, "MAJOR_VERSION");
@@ -1655,18 +1330,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_NUM_EXTENSIONS);
   lua_setfield(L, idx, "NUM_EXTENSIONS");
-
-  lua_pushinteger(L, GL_CONTEXT_FLAGS);
-  lua_setfield(L, idx, "CONTEXT_FLAGS");
-
-  lua_pushinteger(L, GL_COMPRESSED_RED);
-  lua_setfield(L, idx, "COMPRESSED_RED");
-
-  lua_pushinteger(L, GL_COMPRESSED_RG);
-  lua_setfield(L, idx, "COMPRESSED_RG");
-
-  lua_pushinteger(L, GL_CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT);
-  lua_setfield(L, idx, "CONTEXT_FLAG_FORWARD_COMPATIBLE_BIT");
 
   lua_pushinteger(L, GL_RGBA32F);
   lua_setfield(L, idx, "RGBA32F");
@@ -1692,29 +1355,11 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_MAX_PROGRAM_TEXEL_OFFSET);
   lua_setfield(L, idx, "MAX_PROGRAM_TEXEL_OFFSET");
 
-  lua_pushinteger(L, GL_CLAMP_READ_COLOR);
-  lua_setfield(L, idx, "CLAMP_READ_COLOR");
-
-  lua_pushinteger(L, GL_FIXED_ONLY);
-  lua_setfield(L, idx, "FIXED_ONLY");
-
   lua_pushinteger(L, GL_MAX_VARYING_COMPONENTS);
   lua_setfield(L, idx, "MAX_VARYING_COMPONENTS");
 
-  lua_pushinteger(L, GL_TEXTURE_1D_ARRAY);
-  lua_setfield(L, idx, "TEXTURE_1D_ARRAY");
-
-  lua_pushinteger(L, GL_PROXY_TEXTURE_1D_ARRAY);
-  lua_setfield(L, idx, "PROXY_TEXTURE_1D_ARRAY");
-
   lua_pushinteger(L, GL_TEXTURE_2D_ARRAY);
   lua_setfield(L, idx, "TEXTURE_2D_ARRAY");
-
-  lua_pushinteger(L, GL_PROXY_TEXTURE_2D_ARRAY);
-  lua_setfield(L, idx, "PROXY_TEXTURE_2D_ARRAY");
-
-  lua_pushinteger(L, GL_TEXTURE_BINDING_1D_ARRAY);
-  lua_setfield(L, idx, "TEXTURE_BINDING_1D_ARRAY");
 
   lua_pushinteger(L, GL_TEXTURE_BINDING_2D_ARRAY);
   lua_setfield(L, idx, "TEXTURE_BINDING_2D_ARRAY");
@@ -1730,9 +1375,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_UNSIGNED_INT_5_9_9_9_REV);
   lua_setfield(L, idx, "UNSIGNED_INT_5_9_9_9_REV");
-
-  lua_pushinteger(L, GL_TEXTURE_SHARED_SIZE);
-  lua_setfield(L, idx, "TEXTURE_SHARED_SIZE");
 
   lua_pushinteger(L, GL_TRANSFORM_FEEDBACK_VARYING_MAX_LENGTH);
   lua_setfield(L, idx, "TRANSFORM_FEEDBACK_VARYING_MAX_LENGTH");
@@ -1751,9 +1393,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_TRANSFORM_FEEDBACK_BUFFER_SIZE);
   lua_setfield(L, idx, "TRANSFORM_FEEDBACK_BUFFER_SIZE");
-
-  lua_pushinteger(L, GL_PRIMITIVES_GENERATED);
-  lua_setfield(L, idx, "PRIMITIVES_GENERATED");
 
   lua_pushinteger(L, GL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
   lua_setfield(L, idx, "TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN");
@@ -1818,32 +1457,14 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_RED_INTEGER);
   lua_setfield(L, idx, "RED_INTEGER");
 
-  lua_pushinteger(L, GL_GREEN_INTEGER);
-  lua_setfield(L, idx, "GREEN_INTEGER");
-
-  lua_pushinteger(L, GL_BLUE_INTEGER);
-  lua_setfield(L, idx, "BLUE_INTEGER");
-
   lua_pushinteger(L, GL_RGB_INTEGER);
   lua_setfield(L, idx, "RGB_INTEGER");
 
   lua_pushinteger(L, GL_RGBA_INTEGER);
   lua_setfield(L, idx, "RGBA_INTEGER");
 
-  lua_pushinteger(L, GL_BGR_INTEGER);
-  lua_setfield(L, idx, "BGR_INTEGER");
-
-  lua_pushinteger(L, GL_BGRA_INTEGER);
-  lua_setfield(L, idx, "BGRA_INTEGER");
-
-  lua_pushinteger(L, GL_SAMPLER_1D_ARRAY);
-  lua_setfield(L, idx, "SAMPLER_1D_ARRAY");
-
   lua_pushinteger(L, GL_SAMPLER_2D_ARRAY);
   lua_setfield(L, idx, "SAMPLER_2D_ARRAY");
-
-  lua_pushinteger(L, GL_SAMPLER_1D_ARRAY_SHADOW);
-  lua_setfield(L, idx, "SAMPLER_1D_ARRAY_SHADOW");
 
   lua_pushinteger(L, GL_SAMPLER_2D_ARRAY_SHADOW);
   lua_setfield(L, idx, "SAMPLER_2D_ARRAY_SHADOW");
@@ -1860,9 +1481,6 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_UNSIGNED_INT_VEC4);
   lua_setfield(L, idx, "UNSIGNED_INT_VEC4");
 
-  lua_pushinteger(L, GL_INT_SAMPLER_1D);
-  lua_setfield(L, idx, "INT_SAMPLER_1D");
-
   lua_pushinteger(L, GL_INT_SAMPLER_2D);
   lua_setfield(L, idx, "INT_SAMPLER_2D");
 
@@ -1872,14 +1490,8 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_INT_SAMPLER_CUBE);
   lua_setfield(L, idx, "INT_SAMPLER_CUBE");
 
-  lua_pushinteger(L, GL_INT_SAMPLER_1D_ARRAY);
-  lua_setfield(L, idx, "INT_SAMPLER_1D_ARRAY");
-
   lua_pushinteger(L, GL_INT_SAMPLER_2D_ARRAY);
   lua_setfield(L, idx, "INT_SAMPLER_2D_ARRAY");
-
-  lua_pushinteger(L, GL_UNSIGNED_INT_SAMPLER_1D);
-  lua_setfield(L, idx, "UNSIGNED_INT_SAMPLER_1D");
 
   lua_pushinteger(L, GL_UNSIGNED_INT_SAMPLER_2D);
   lua_setfield(L, idx, "UNSIGNED_INT_SAMPLER_2D");
@@ -1890,23 +1502,8 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_UNSIGNED_INT_SAMPLER_CUBE);
   lua_setfield(L, idx, "UNSIGNED_INT_SAMPLER_CUBE");
 
-  lua_pushinteger(L, GL_UNSIGNED_INT_SAMPLER_1D_ARRAY);
-  lua_setfield(L, idx, "UNSIGNED_INT_SAMPLER_1D_ARRAY");
-
   lua_pushinteger(L, GL_UNSIGNED_INT_SAMPLER_2D_ARRAY);
   lua_setfield(L, idx, "UNSIGNED_INT_SAMPLER_2D_ARRAY");
-
-  lua_pushinteger(L, GL_QUERY_WAIT);
-  lua_setfield(L, idx, "QUERY_WAIT");
-
-  lua_pushinteger(L, GL_QUERY_NO_WAIT);
-  lua_setfield(L, idx, "QUERY_NO_WAIT");
-
-  lua_pushinteger(L, GL_QUERY_BY_REGION_WAIT);
-  lua_setfield(L, idx, "QUERY_BY_REGION_WAIT");
-
-  lua_pushinteger(L, GL_QUERY_BY_REGION_NO_WAIT);
-  lua_setfield(L, idx, "QUERY_BY_REGION_NO_WAIT");
 
   lua_pushinteger(L, GL_BUFFER_ACCESS_FLAGS);
   lua_setfield(L, idx, "BUFFER_ACCESS_FLAGS");
@@ -1974,24 +1571,6 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_DEPTH24_STENCIL8);
   lua_setfield(L, idx, "DEPTH24_STENCIL8");
 
-  lua_pushinteger(L, GL_TEXTURE_STENCIL_SIZE);
-  lua_setfield(L, idx, "TEXTURE_STENCIL_SIZE");
-
-  lua_pushinteger(L, GL_TEXTURE_RED_TYPE);
-  lua_setfield(L, idx, "TEXTURE_RED_TYPE");
-
-  lua_pushinteger(L, GL_TEXTURE_GREEN_TYPE);
-  lua_setfield(L, idx, "TEXTURE_GREEN_TYPE");
-
-  lua_pushinteger(L, GL_TEXTURE_BLUE_TYPE);
-  lua_setfield(L, idx, "TEXTURE_BLUE_TYPE");
-
-  lua_pushinteger(L, GL_TEXTURE_ALPHA_TYPE);
-  lua_setfield(L, idx, "TEXTURE_ALPHA_TYPE");
-
-  lua_pushinteger(L, GL_TEXTURE_DEPTH_TYPE);
-  lua_setfield(L, idx, "TEXTURE_DEPTH_TYPE");
-
   lua_pushinteger(L, GL_UNSIGNED_NORMALIZED);
   lua_setfield(L, idx, "UNSIGNED_NORMALIZED");
 
@@ -2039,12 +1618,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT);
   lua_setfield(L, idx, "FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT");
-
-  lua_pushinteger(L, GL_FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER);
-  lua_setfield(L, idx, "FRAMEBUFFER_INCOMPLETE_DRAW_BUFFER");
-
-  lua_pushinteger(L, GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER);
-  lua_setfield(L, idx, "FRAMEBUFFER_INCOMPLETE_READ_BUFFER");
 
   lua_pushinteger(L, GL_FRAMEBUFFER_UNSUPPORTED);
   lua_setfield(L, idx, "FRAMEBUFFER_UNSUPPORTED");
@@ -2169,17 +1742,8 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_RENDERBUFFER_INTERNAL_FORMAT);
   lua_setfield(L, idx, "RENDERBUFFER_INTERNAL_FORMAT");
 
-  lua_pushinteger(L, GL_STENCIL_INDEX1);
-  lua_setfield(L, idx, "STENCIL_INDEX1");
-
-  lua_pushinteger(L, GL_STENCIL_INDEX4);
-  lua_setfield(L, idx, "STENCIL_INDEX4");
-
   lua_pushinteger(L, GL_STENCIL_INDEX8);
   lua_setfield(L, idx, "STENCIL_INDEX8");
-
-  lua_pushinteger(L, GL_STENCIL_INDEX16);
-  lua_setfield(L, idx, "STENCIL_INDEX16");
 
   lua_pushinteger(L, GL_RENDERBUFFER_RED_SIZE);
   lua_setfield(L, idx, "RENDERBUFFER_RED_SIZE");
@@ -2205,9 +1769,6 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_MAX_SAMPLES);
   lua_setfield(L, idx, "MAX_SAMPLES");
 
-  lua_pushinteger(L, GL_FRAMEBUFFER_SRGB);
-  lua_setfield(L, idx, "FRAMEBUFFER_SRGB");
-
   lua_pushinteger(L, GL_HALF_FLOAT);
   lua_setfield(L, idx, "HALF_FLOAT");
 
@@ -2229,18 +1790,6 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_MAP_UNSYNCHRONIZED_BIT);
   lua_setfield(L, idx, "MAP_UNSYNCHRONIZED_BIT");
 
-  lua_pushinteger(L, GL_COMPRESSED_RED_RGTC1);
-  lua_setfield(L, idx, "COMPRESSED_RED_RGTC1");
-
-  lua_pushinteger(L, GL_COMPRESSED_SIGNED_RED_RGTC1);
-  lua_setfield(L, idx, "COMPRESSED_SIGNED_RED_RGTC1");
-
-  lua_pushinteger(L, GL_COMPRESSED_RG_RGTC2);
-  lua_setfield(L, idx, "COMPRESSED_RG_RGTC2");
-
-  lua_pushinteger(L, GL_COMPRESSED_SIGNED_RG_RGTC2);
-  lua_setfield(L, idx, "COMPRESSED_SIGNED_RG_RGTC2");
-
   lua_pushinteger(L, GL_RG);
   lua_setfield(L, idx, "RG");
 
@@ -2250,14 +1799,8 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_R8);
   lua_setfield(L, idx, "R8");
 
-  lua_pushinteger(L, GL_R16);
-  lua_setfield(L, idx, "R16");
-
   lua_pushinteger(L, GL_RG8);
   lua_setfield(L, idx, "RG8");
-
-  lua_pushinteger(L, GL_RG16);
-  lua_setfield(L, idx, "RG16");
 
   lua_pushinteger(L, GL_R16F);
   lua_setfield(L, idx, "R16F");
