@@ -506,6 +506,7 @@
 --- @field VERTEX_ARRAY_BINDING 34229
 --- @field genBuffer fun(): integer
 --- @field pixelStorei fun(pname: integer, pvalue: integer)
+--- @field texParameteri fun(target: integer, pname: integer, pvalue: integer)
 --- @field bindBuffer fun(target: integer, buffer: integer): integer
 --- @field bufferData fun(target: integer, buffer: Buffer, usage: integer)
 --- @field genVertexArray fun(): integer
@@ -520,6 +521,7 @@
 --- @field deleteFramebuffer fun(framebuffer: integer)
 --- @field bindFramebuffer fun(target: integer, buffer: integer)
 --- @field genRenderbuffer fun(): integer
+--- @field renderbufferStorage fun(target: integer, internalFormat: integer, width: integer, height: integer)
 --- @field deleteRenderbuffer fun(renderbuffer: integer)
 --- @field bindRenderbuffer fun(target: integer, buffer: integer)
 --- @field framebufferTexture2D fun(target: integer, attachment: integer, textarget: integer, texture: integer, level: integer)
