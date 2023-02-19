@@ -504,13 +504,23 @@
 --- @field RG32I 33339
 --- @field RG32UI 33340
 --- @field VERTEX_ARRAY_BINDING 34229
---- @field genBuffer fun(): number
---- @field bindBuffer fun(target: number, buffer: number): number
---- @field bufferData fun(target: number, buffer: Buffer, usage: number)
---- @field genVertexArray fun(): number
---- @field bindVertexArray fun(buffer: number)
---- @field enableVertexAttribArray fun(index: number)
+--- @field genBuffer fun(): integer
+--- @field bindBuffer fun(target: integer, buffer: integer): integer
+--- @field bufferData fun(target: integer, buffer: Buffer, usage: integer)
+--- @field genVertexArray fun(): integer
+--- @field bindVertexArray fun(buffer: integer)
+--- @field enableVertexAttribArray fun(index: integer)
 --- @field loadGLLoader fun()
+--- @field genTexture fun(): integer
+--- @field bindTexture fun(target: integer, texture: integer)
+--- @field deleteTexture fun(texture: integer)
+--- @field genFramebuffer fun(): integer
+--- @field deleteFramebuffer fun(framebuffer: integer)
+--- @field bindFramebuffer fun(target: integer, buffer: integer)
+--- @field genRenderbuffer fun(): integer
+--- @field deleteRenderbuffer fun(renderbuffer: integer)
+--- @field bindRenderbuffer fun(target: integer, buffer: integer)
+--- @field framebufferTexture2D fun(target: integer, attachment: integer, textarget: integer, texture: integer, level: integer)
 
 --- @type gl
 local gl = require("opengl");

@@ -198,6 +198,26 @@ TEST_F(LuaSDL2_Test, TestDrawArrays) {
       << lua_tostring(L, -1);
 }
 
+TEST_F(LuaSDL2_Test, TestDrawElements) {
+#if defined(RUN_ON_GITHUB_ACTIONS)
+  GTEST_SKIP() << "Not work for GitHub Actions";
+#endif
+
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
+
+  initWindow();
+  initRenderer();
+  initOpenGL();
+
+  ASSERT_EQ(utils::dostring(
+                L, "local GL = require('opengl');\n"
+                   "GL.drawElements(GL.TRIANGLES, 3, GL.UNSIGNED_BYTE);\n"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+}
+
 TEST_F(LuaSDL2_Test, TestCompileShader) {
 #if defined(RUN_ON_GITHUB_ACTIONS)
   GTEST_SKIP() << "Not work for GitHub Actions";
@@ -329,7 +349,7 @@ TEST_F(LuaSDL2_Test, TestGenTexture) {
   luaL_checkinteger(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestGenFramebuffer) {
+TEST_F(LuaSDL2_Test, TestFramebufferRenderbuffer) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
@@ -342,37 +362,38 @@ TEST_F(LuaSDL2_Test, TestGenFramebuffer) {
   initRenderer();
   initOpenGL();
 
-  ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');\n"
-                               "local fbo = gl.genFramebuffer();\n"
-                               "gl.deleteFramebuffer(fbo);\n"
-                               "return fbo;\n"),
-            LUA_OK)
+  ASSERT_EQ(
+      utils::dostring(
+          L,
+          "local GL = require('opengl');\n"
+          "local framebuffer = GL.genFramebuffer();\n"
+          "GL.bindFramebuffer(GL.FRAMEBUFFER, framebuffer);\n"
+          "local renderbuffer = GL.genRenderbuffer();\n"
+          "GL.bindRenderbuffer(GL.RENDERBUFFER, renderbuffer);\n"
+          "GL.renderbufferStorage(GL.RENDERBUFFER, "
+          "GL.DEPTH_COMPONENT, 512, 512);\n"
+          "GL.framebufferRenderbuffer(GL.FRAMEBUFFER, "
+          "GL.DEPTH_ATTACHMENT, GL.RENDERBUFFER, renderbuffer);"
+          "local texColor = GL.genTexture();\n"
+          "GL.bindTexture(GL.TEXTURE_2D, texColor);\n"
+          "GL.pixelStorei(GL.UNPACK_ALIGNMENT, 1);\n"
+          "GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, 512, 512, 0, GL.RGBA, "
+          "GL.UNSIGNED_BYTE, color);\n"
+          "GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, "
+          "GL.CLAMP_TO_EDGE);\n"
+          "GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, "
+          "GL.CLAMP_TO_EDGE);\n"
+          "GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);\n"
+          "GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);\n"
+          "GL.bindTexture(GL.TEXTURE_2D, 0);\n"
+          "GL.framebufferTexture2D(GL.FRAMEBUFFER, GL.COLOR_ATTACHMENT0, "
+          "GL.TEXTURE_2D, texColor, 0);\n"
+          "GL.deleteRenderbuffer(renderbuffer);\n"
+          "GL.deleteFramebuffer(framebuffer);\n"
+          "GL.deleteTexture(texColor);\n"
+          "return framebuffer, renderbuffer;\n"),
+      LUA_OK)
       << lua_tostring(L, -1);
   luaL_checkinteger(L, -1);
-}
-
-TEST_F(LuaSDL2_Test, TestGenRenderbuffer) {
-#if defined(__EMSCRIPTEN__)
-  GTEST_SKIP() << "Not work for Emscripten";
-#endif
-
-#if defined(RUN_ON_GITHUB_ACTIONS)
-  GTEST_SKIP() << "Not work for GitHub Actions";
-#endif
-
-  initWindow();
-  initRenderer();
-  initOpenGL();
-
-  ASSERT_EQ(utils::dostring(L, "local gl = require('opengl');\n"
-                               "local rbo = gl.genRenderbuffer();\n"
-                               "gl.bindRenderbuffer(gl.RENDERBUFFER, rbo);\n"
-                               "gl.renderbufferStorage(gl.RENDERBUFFER, "
-                               "gl.DEPTH_COMPONENT, 512, 512);\n"
-                               "gl.bindRenderbuffer(gl.RENDERBUFFER, 0);\n"
-                               "gl.deleteRenderbuffer(rbo);\n"
-                               "return rbo;\n"),
-            LUA_OK)
-      << lua_tostring(L, -1);
-  luaL_checkinteger(L, -1);
+  luaL_checkinteger(L, -2);
 }

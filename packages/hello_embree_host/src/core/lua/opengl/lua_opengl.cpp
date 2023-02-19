@@ -297,6 +297,13 @@ int L_glGenFramebuffer(lua_State *L) {
   return 1;
 }
 
+int L_glBindFramebuffer(lua_State *L) {
+  auto target = static_cast<GLenum>(luaL_checkinteger(L, 1));
+  auto framebuffer = static_cast<GLuint>(luaL_checkinteger(L, 2));
+  glBindFramebuffer(target, framebuffer);
+  return 0;
+}
+
 int L_glDeleteFramebuffer(lua_State *L) {
   auto fbo = static_cast<GLuint>(luaL_checkinteger(L, 1));
   GLuint framebuffers[] = {fbo};
@@ -331,6 +338,26 @@ int L_glDeleteRenderbuffer(lua_State *L) {
   auto rbo = static_cast<GLuint>(luaL_checkinteger(L, 1));
   GLuint rbos[] = {rbo};
   glDeleteRenderbuffers(1, rbos);
+  return 0;
+}
+
+int L_glFramebufferRenderbuffer(lua_State *L) {
+  auto target = static_cast<GLenum>(luaL_checkinteger(L, 1));
+  auto attachment = static_cast<GLenum>(luaL_checkinteger(L, 2));
+  auto renderbuffertarget = static_cast<GLenum>(luaL_checkinteger(L, 3));
+  auto renderbuffer = static_cast<GLuint>(luaL_checkinteger(L, 4));
+  glFramebufferRenderbuffer(target, attachment, renderbuffertarget,
+                            renderbuffer);
+  return 0;
+}
+
+int L_glFramebufferTexture2D(lua_State *L) {
+  auto target = static_cast<GLenum>(luaL_checkinteger(L, 1));
+  auto attachment = static_cast<GLenum>(luaL_checkinteger(L, 2));
+  auto textarget = static_cast<GLenum>(luaL_checkinteger(L, 3));
+  auto texture = static_cast<GLuint>(luaL_checkinteger(L, 4));
+  auto level = static_cast<GLint>(luaL_checkinteger(L, 5));
+  glFramebufferTexture2D(target, attachment, textarget, texture, level);
   return 0;
 }
 
@@ -1960,6 +1987,9 @@ int L_require(lua_State *L) {
   lua_pushcfunction(L, L_glGenFramebuffer);
   lua_setfield(L, -2, "genFramebuffer");
 
+  lua_pushcfunction(L, L_glBindFramebuffer);
+  lua_setfield(L, -2, "bindFramebuffer");
+
   lua_pushcfunction(L, L_glDeleteFramebuffer);
   lua_setfield(L, -2, "deleteFramebuffer");
 
@@ -1974,6 +2004,12 @@ int L_require(lua_State *L) {
 
   lua_pushcfunction(L, L_glDeleteRenderbuffer);
   lua_setfield(L, -2, "deleteRenderbuffer");
+
+  lua_pushcfunction(L, L_glFramebufferRenderbuffer);
+  lua_setfield(L, -2, "framebufferRenderbuffer");
+
+  lua_pushcfunction(L, L_glFramebufferTexture2D);
+  lua_setfield(L, -2, "framebufferTexture2D");
 
   return 1;
 }

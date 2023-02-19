@@ -120,11 +120,12 @@ if not utils.isEmscripten() then
     GL.loadGLLoader()
 end
 
+local byteSizeOfFloat32 = 4
 ---@type number[]
 local points = { -1.0, -1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0, 0.0 }
-local buffer = Buffer.alloc(#points * 4)
+local buffer = Buffer.alloc(#points * byteSizeOfFloat32)
 for i, v in ipairs(points) do
-    buffer:setFloat32(4 * (i - 1), v)
+    buffer:setFloat32(byteSizeOfFloat32 * (i - 1), v)
 end
 
 local vbo = GL.genBuffer()
@@ -163,27 +164,36 @@ if GL.getProgramiv(program, GL.LINK_STATUS) ~= GL.TRUE then
     error(GL.getProgramInfoLog(program))
 end
 
-local color = Buffer.alloc(512 * 512 * 4)
+local bufferWidth = 512
+local bufferHeight = 512
+
+local color = Buffer.alloc(bufferWidth * bufferHeight * byteSizeOfFloat32)
 color:fillUint8(0xff)
+
+local framebuffer = GL.genFramebuffer();
+GL.bindFramebuffer(GL.FRAMEBUFFER, framebuffer);
+
+local renderbuffer = GL.genRenderbuffer();
+GL.bindRenderbuffer(GL.RENDERBUFFER, renderbuffer);
+GL.renderbufferStorage(GL.RENDERBUFFER, GL.DEPTH_COMPONENT16, bufferWidth, bufferHeight);
 
 local texColor = GL.genTexture()
 GL.bindTexture(GL.TEXTURE_2D, texColor)
 GL.pixelStorei(GL.UNPACK_ALIGNMENT, 1)
-GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, 512, 512, 0, GL.RGBA, GL.UNSIGNED_BYTE, color);
+GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, bufferWidth, bufferHeight, 0, GL.RGBA, GL.UNSIGNED_BYTE, color);
 GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
 GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
 GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
 GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-GL.bindTexture(GL.TEXTURE_2D, 0);
+GL.framebufferTexture2D(GL.FRAMEBUFFER, GL.COLOR_ATTACHMENT0, GL.TEXTURE_2D, texColor, 0);
 
-local rbo = GL.genRenderbuffer();
-GL.bindRenderbuffer(GL.RENDERBUFFER, rbo);
-GL.renderbufferStorage(GL.RENDERBUFFER, GL.DEPTH_COMPONENT, 512, 512);
-GL.bindRenderbuffer(GL.RENDERBUFFER, 0);
-GL.deleteRenderbuffer(rbo);
+GL.bindRenderbuffer(GL.RENDERBUFFER, renderbuffer);
+GL.bindFramebuffer(GL.FRAMEBUFFER, framebuffer);
+GL.bindTexture(GL.TEXTURE_2D, texColor);
 
-local fbo = GL.genFramebuffer();
-GL.deleteFramebuffer(fbo);
+GL.deleteRenderbuffer(renderbuffer);
+GL.deleteFramebuffer(framebuffer);
+GL.deleteTexture(texColor);
 
 local function update()
     local events = collectEvents()
