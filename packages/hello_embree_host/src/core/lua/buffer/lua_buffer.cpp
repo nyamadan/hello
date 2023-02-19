@@ -126,6 +126,37 @@ int L_fillFloat32(lua_State *L) {
   return 0;
 }
 
+int L_setFloat32FromArray(lua_State *L) {
+  auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  if (pBuffer->usage != nullptr) {
+    luaL_error(L, "This operations is not permitted.");
+  }
+
+  auto offset = luaL_checkinteger(L, 2);
+
+  luaL_checktype(L, 3, LUA_TTABLE);
+  const auto bytesPerElement = static_cast<int32_t>(sizeof(float));
+  const auto end = pBuffer->size - bytesPerElement;
+  for (int i = 1;; i++) {
+    lua_rawgeti(L, 3, i);
+    if (lua_isnil(L, -1)) {
+      lua_pop(L, 1);
+      break;
+    }
+
+    if (offset <= end) {
+      auto value = static_cast<float>(luaL_checknumber(L, -1));
+      *reinterpret_cast<float *>(pBuffer->data + offset) = value;
+      offset += bytesPerElement;
+    }
+
+    lua_pop(L, 1);
+  }
+
+  lua_pushinteger(L, offset);
+  return 1;
+}
+
 int L_getFloat32(lua_State *L) {
   auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
   if (pBuffer->usage != nullptr) {
@@ -218,6 +249,8 @@ void openlibs(lua_State *L) {
   lua_setfield(L, -2, "getUint8");
   lua_pushcfunction(L, L_setFloat32);
   lua_setfield(L, -2, "setFloat32");
+  lua_pushcfunction(L, L_setFloat32FromArray);
+  lua_setfield(L, -2, "setFloat32FromArray");
   lua_pushcfunction(L, L_fillFloat32);
   lua_setfield(L, -2, "fillFloat32");
   lua_pushcfunction(L, L_getFloat32);
