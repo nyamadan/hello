@@ -505,6 +505,7 @@
 --- @field RG32UI 33340
 --- @field VERTEX_ARRAY_BINDING 34229
 --- @field genBuffer fun(): integer
+--- @field pixelStorei fun(pname: integer, pvalue: integer)
 --- @field bindBuffer fun(target: integer, buffer: integer): integer
 --- @field bufferData fun(target: integer, buffer: Buffer, usage: integer)
 --- @field genVertexArray fun(): integer
@@ -512,6 +513,7 @@
 --- @field enableVertexAttribArray fun(index: integer)
 --- @field loadGLLoader fun()
 --- @field genTexture fun(): integer
+--- @field texImage2D fun(target: integer, level: integer, internalformat: integer, width: integer, height: integer, border: integer, format: integer, type: integer, pixels: Buffer)
 --- @field bindTexture fun(target: integer, texture: integer)
 --- @field deleteTexture fun(texture: integer)
 --- @field genFramebuffer fun(): integer
