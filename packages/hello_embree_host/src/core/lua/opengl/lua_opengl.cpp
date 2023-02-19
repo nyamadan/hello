@@ -435,29 +435,11 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_NONE);
   lua_setfield(L, idx, "NONE");
 
-  lua_pushinteger(L, GL_FRONT_LEFT);
-  lua_setfield(L, idx, "FRONT_LEFT");
-
-  lua_pushinteger(L, GL_FRONT_RIGHT);
-  lua_setfield(L, idx, "FRONT_RIGHT");
-
-  lua_pushinteger(L, GL_BACK_LEFT);
-  lua_setfield(L, idx, "BACK_LEFT");
-
-  lua_pushinteger(L, GL_BACK_RIGHT);
-  lua_setfield(L, idx, "BACK_RIGHT");
-
   lua_pushinteger(L, GL_FRONT);
   lua_setfield(L, idx, "FRONT");
 
   lua_pushinteger(L, GL_BACK);
   lua_setfield(L, idx, "BACK");
-
-  lua_pushinteger(L, GL_LEFT);
-  lua_setfield(L, idx, "LEFT");
-
-  lua_pushinteger(L, GL_RIGHT);
-  lua_setfield(L, idx, "RIGHT");
 
   lua_pushinteger(L, GL_FRONT_AND_BACK);
   lua_setfield(L, idx, "FRONT_AND_BACK");
@@ -482,33 +464,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_CCW);
   lua_setfield(L, idx, "CCW");
-
-  lua_pushinteger(L, GL_POINT_SIZE);
-  lua_setfield(L, idx, "POINT_SIZE");
-
-  lua_pushinteger(L, GL_POINT_SIZE_RANGE);
-  lua_setfield(L, idx, "POINT_SIZE_RANGE");
-
-  lua_pushinteger(L, GL_POINT_SIZE_GRANULARITY);
-  lua_setfield(L, idx, "POINT_SIZE_GRANULARITY");
-
-  lua_pushinteger(L, GL_LINE_SMOOTH);
-  lua_setfield(L, idx, "LINE_SMOOTH");
-
-  lua_pushinteger(L, GL_LINE_WIDTH);
-  lua_setfield(L, idx, "LINE_WIDTH");
-
-  lua_pushinteger(L, GL_LINE_WIDTH_RANGE);
-  lua_setfield(L, idx, "LINE_WIDTH_RANGE");
-
-  lua_pushinteger(L, GL_LINE_WIDTH_GRANULARITY);
-  lua_setfield(L, idx, "LINE_WIDTH_GRANULARITY");
-
-  lua_pushinteger(L, GL_POLYGON_MODE);
-  lua_setfield(L, idx, "POLYGON_MODE");
-
-  lua_pushinteger(L, GL_POLYGON_SMOOTH);
-  lua_setfield(L, idx, "POLYGON_SMOOTH");
 
   lua_pushinteger(L, GL_CULL_FACE);
   lua_setfield(L, idx, "CULL_FACE");
@@ -567,20 +522,8 @@ int lua_pushConstants(lua_State *L, int idx) {
   lua_pushinteger(L, GL_DITHER);
   lua_setfield(L, idx, "DITHER");
 
-  lua_pushinteger(L, GL_BLEND_DST);
-  lua_setfield(L, idx, "BLEND_DST");
-
-  lua_pushinteger(L, GL_BLEND_SRC);
-  lua_setfield(L, idx, "BLEND_SRC");
-
   lua_pushinteger(L, GL_BLEND);
   lua_setfield(L, idx, "BLEND");
-
-  lua_pushinteger(L, GL_LOGIC_OP_MODE);
-  lua_setfield(L, idx, "LOGIC_OP_MODE");
-
-  lua_pushinteger(L, GL_DRAW_BUFFER);
-  lua_setfield(L, idx, "DRAW_BUFFER");
 
   lua_pushinteger(L, GL_READ_BUFFER);
   lua_setfield(L, idx, "READ_BUFFER");
@@ -596,9 +539,6 @@ int lua_pushConstants(lua_State *L, int idx) {
 
   lua_pushinteger(L, GL_COLOR_WRITEMASK);
   lua_setfield(L, idx, "COLOR_WRITEMASK");
-
-  lua_pushinteger(L, GL_DOUBLEBUFFER);
-  lua_setfield(L, idx, "DOUBLEBUFFER");
 
   lua_pushinteger(L, GL_STEREO);
   lua_setfield(L, idx, "STEREO");
