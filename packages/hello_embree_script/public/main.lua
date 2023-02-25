@@ -226,7 +226,8 @@ local function update()
         print("ev: type = " .. ev.type)
     end
 
-    GL.clearColor(0.5, 0.5, 0.5, 1)
+    local color = { 0.5, 0.5, 0.5, 1.0 }
+    GL.clearColor(table.unpack(color))
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT)
 
     GL.useProgram(program)
