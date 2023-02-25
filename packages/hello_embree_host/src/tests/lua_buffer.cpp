@@ -102,6 +102,34 @@ TEST_F(LuaBuffer_Test, FillUint8) {
   ASSERT_EQ(reinterpret_cast<uint8_t *>(buffer->data)[1], 1);
 }
 
+TEST_F(LuaBuffer_Test, SetGetUint16) {
+  ASSERT_EQ(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
+                                           "local b = buffer.alloc(2);"
+                                           "b:setUint16(0, 10);"
+                                           "return b:getUint16(0)"),
+            LUA_OK)
+      << lua_tostring(L, -1);
+  ASSERT_EQ(luaL_checkinteger(L, -1), 10);
+
+  ASSERT_NE(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
+                                           "local b = buffer.alloc(2);"
+                                           "b:setUint16(1, 10);"),
+            LUA_OK);
+  ASSERT_NE(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
+                                           "local b = buffer.alloc(2);"
+                                           "b:setUint16(-1, 10);"),
+            LUA_OK);
+
+  ASSERT_NE(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
+                                           "local b = buffer.alloc(2);"
+                                           "b:getUint8(2);"),
+            LUA_OK);
+  ASSERT_NE(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
+                                           "local b = buffer.alloc(2);"
+                                           "b:getUint16(-1);"),
+            LUA_OK);
+}
+
 TEST_F(LuaBuffer_Test, SetGetFloat32) {
   ASSERT_EQ(hello::lua::utils::dostring(L, "local buffer = require('buffer');"
                                            "local b = buffer.alloc(4);"

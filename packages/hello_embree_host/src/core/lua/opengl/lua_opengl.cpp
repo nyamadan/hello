@@ -51,6 +51,13 @@ int L_glGenBuffer(lua_State *L) {
   return 1;
 }
 
+int L_glDeleteBuffer(lua_State *L) {
+  GLuint buffers[] = {0};
+  buffers[0] = static_cast<GLuint>(luaL_checkinteger(L, 1));
+  glDeleteBuffers(1, buffers);
+  return 0;
+}
+
 int L_glBindBuffer(lua_State *L) {
   auto target = static_cast<GLenum>(luaL_checkinteger(L, 1));
   auto buffer = static_cast<GLuint>(luaL_checkinteger(L, 2));
@@ -114,6 +121,14 @@ int L_glDrawArrays(lua_State *L) {
   auto first = static_cast<GLint>(luaL_checkinteger(L, 2));
   auto count = static_cast<GLsizei>(luaL_checkinteger(L, 3));
   glDrawArrays(mode, first, count);
+  return 0;
+}
+
+int L_glDrawElements(lua_State *L) {
+  auto mode = static_cast<GLenum>(luaL_checkinteger(L, 1));
+  auto count = static_cast<GLsizei>(luaL_checkinteger(L, 2));
+  auto type = static_cast<GLenum>(luaL_checkinteger(L, 3));
+  glDrawElements(mode, count, type, nullptr);
   return 0;
 }
 
@@ -1906,8 +1921,14 @@ int L_require(lua_State *L) {
   lua_pushcfunction(L, L_glDrawArrays);
   lua_setfield(L, -2, "drawArrays");
 
+  lua_pushcfunction(L, L_glDrawElements);
+  lua_setfield(L, -2, "drawElements");
+
   lua_pushcfunction(L, L_glGenBuffer);
   lua_setfield(L, -2, "genBuffer");
+
+  lua_pushcfunction(L, L_glDeleteBuffer);
+  lua_setfield(L, -2, "deleteBuffer");
 
   lua_pushcfunction(L, L_glBindBuffer);
   lua_setfield(L, -2, "bindBuffer");

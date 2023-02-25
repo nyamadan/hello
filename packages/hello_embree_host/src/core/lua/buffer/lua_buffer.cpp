@@ -96,6 +96,52 @@ int L_getUint8(lua_State *L) {
   return 1;
 }
 
+int L_setUint16(lua_State *L) {
+  auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  if (pBuffer->usage != nullptr) {
+    luaL_error(L, "This operations is not permitted.");
+  }
+  auto idx = luaL_checkinteger(L, 2);
+  auto n = static_cast<uint16_t>(luaL_checkinteger(L, 3));
+  luaL_argcheck(L,
+                idx >= 0 && idx + static_cast<int32_t>(sizeof(uint16_t)) <=
+                                pBuffer->size,
+                3, "setUint16: Out of range.");
+  *reinterpret_cast<uint16_t *>(pBuffer->data + idx) = n;
+  return 0;
+}
+
+int L_fillUint16(lua_State *L) {
+  auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  if (pBuffer->usage != nullptr) {
+    luaL_error(L, "This operations is not permitted.");
+  }
+
+  auto value = static_cast<uint16_t>(luaL_checkinteger(L, 2));
+
+  auto bytesPerElement = static_cast<uint16_t>(sizeof(uint16_t));
+  auto end = pBuffer->size - bytesPerElement;
+  for (auto offset = 0; offset <= end; offset += bytesPerElement) {
+    *reinterpret_cast<uint16_t *>(pBuffer->data + offset) = value;
+  }
+  return 0;
+}
+
+int L_getUint16(lua_State *L) {
+  auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
+  if (pBuffer->usage != nullptr) {
+    luaL_error(L, "This operations is not permitted.");
+  }
+
+  auto idx = luaL_checkinteger(L, 2);
+  luaL_argcheck(L,
+                idx >= 0 && idx + static_cast<uint16_t>(sizeof(uint16_t)) <=
+                                pBuffer->size,
+                2, "getUint16: Out of range.");
+  lua_pushnumber(L, *reinterpret_cast<uint16_t *>(pBuffer->data + idx));
+  return 1;
+}
+
 int L_setFloat32(lua_State *L) {
   auto pBuffer = static_cast<UDBuffer *>(luaL_checkudata(L, 1, BUFFER_NAME));
   if (pBuffer->usage != nullptr) {
@@ -247,6 +293,12 @@ void openlibs(lua_State *L) {
   lua_setfield(L, -2, "fillUint8");
   lua_pushcfunction(L, L_getUint8);
   lua_setfield(L, -2, "getUint8");
+  lua_pushcfunction(L, L_setUint16);
+  lua_setfield(L, -2, "setUint16");
+  lua_pushcfunction(L, L_fillUint16);
+  lua_setfield(L, -2, "fillUint16");
+  lua_pushcfunction(L, L_getUint16);
+  lua_setfield(L, -2, "getUint16");
   lua_pushcfunction(L, L_setFloat32);
   lua_setfield(L, -2, "setFloat32");
   lua_pushcfunction(L, L_setFloat32FromArray);

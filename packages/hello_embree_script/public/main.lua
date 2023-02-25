@@ -122,22 +122,41 @@ end
 
 local byteSizeOfFloat32 = 4
 ---@type number[]
-local points = { -1.0, -1.0, 0.0, 1.0, -1.0, 0.0, 0.0, 1.0, 0.0 }
-local buffer = Buffer.alloc(#points * byteSizeOfFloat32)
+local points = {
+    -0.5, 0.5, 0.0,
+    0.5, 0.5, 0.0,
+    -0.5, -0.5, 0.0,
+    0.5, -0.5, 0.0,
+}
+local pointsBuffer = Buffer.alloc(#points * byteSizeOfFloat32)
 for i, v in ipairs(points) do
-    buffer:setFloat32(byteSizeOfFloat32 * (i - 1), v)
+    pointsBuffer:setFloat32(byteSizeOfFloat32 * (i - 1), v)
 end
 
 local vbo = GL.genBuffer()
 GL.bindBuffer(GL.ARRAY_BUFFER, vbo)
-GL.bufferData(GL.ARRAY_BUFFER, buffer, GL.STATIC_DRAW)
+GL.bufferData(GL.ARRAY_BUFFER, pointsBuffer, GL.STATIC_DRAW)
 GL.bindBuffer(GL.ARRAY_BUFFER, 0)
+
+local byteSizeOfUint16 = 2
+---@type integer[]
+local indices = { 0, 1, 2, 1, 3, 2 }
+local indicesBuffer = Buffer.alloc(#indices * byteSizeOfUint16)
+for i, v in ipairs(indices) do
+    indicesBuffer:setUint16(byteSizeOfUint16 * (i - 1), v)
+end
+
+local ibo = GL.genBuffer()
+GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ibo)
+GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, indicesBuffer, GL.STATIC_DRAW)
+GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, 0)
 
 local vao = GL.genVertexArray()
 GL.bindVertexArray(vao)
 GL.bindBuffer(GL.ARRAY_BUFFER, vbo)
 GL.enableVertexAttribArray(0)
 GL.vertexAttribPointer(0, 3, GL.FLOAT, GL.FALSE, 0)
+GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ibo)
 GL.bindVertexArray(0)
 
 local vsSource, fsSource = transpileShaders()
@@ -212,7 +231,7 @@ local function update()
 
     GL.useProgram(program)
     GL.bindVertexArray(vao);
-    GL.drawArrays(GL.TRIANGLES, 0, 3)
+    GL.drawElements(GL.TRIANGLES, #indices, GL.UNSIGNED_SHORT)
     GL.bindVertexArray(0);
 
     SDL.GL_SwapWindow(window)

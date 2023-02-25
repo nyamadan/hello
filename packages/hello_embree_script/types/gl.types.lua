@@ -510,8 +510,10 @@
 --- @field bindBuffer fun(target: integer, buffer: integer): integer
 --- @field bufferData fun(target: integer, buffer: Buffer, usage: integer)
 --- @field genVertexArray fun(): integer
+--- @field drawElements fun(mode: integer, count: integer, type: integer)
 --- @field bindVertexArray fun(buffer: integer)
 --- @field enableVertexAttribArray fun(index: integer)
+--- @field vertexAttribPointer fun(index: integer, size: integer, type: integer, normalized: integer, stride: integer)
 --- @field loadGLLoader fun()
 --- @field genTexture fun(): integer
 --- @field texImage2D fun(target: integer, level: integer, internalformat: integer, width: integer, height: integer, border: integer, format: integer, type: integer, pixels: Buffer)

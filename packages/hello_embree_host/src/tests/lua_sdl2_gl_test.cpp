@@ -211,10 +211,53 @@ TEST_F(LuaSDL2_Test, TestDrawElements) {
   initRenderer();
   initOpenGL();
 
-  ASSERT_EQ(utils::dostring(
-                L, "local GL = require('opengl');\n"
-                   "GL.drawElements(GL.TRIANGLES, 3, GL.UNSIGNED_BYTE);\n"),
-            LUA_OK)
+  ASSERT_EQ(
+      utils::dostring(
+          L, "local GL = require('opengl');\n"
+             "local Buffer = require('buffer')\n"
+             "local byteSizeOfFloat32 = 4\n"
+             "local points = {\n"
+             "    -0.5, 0.5, 0.0,\n"
+             "    0.5, 0.5, 0.0,\n"
+             "    -0.5, -0.5, 0.0,\n"
+             "    0.5, -0.5, 0.0,\n"
+             "}\n"
+             "local pointsBuffer = Buffer.alloc(#points * byteSizeOfFloat32)\n"
+             "for i, v in ipairs(points) do\n"
+             "    pointsBuffer:setFloat32(byteSizeOfFloat32 * (i - 1), v)\n"
+             "end\n"
+             "\n"
+             "local vbo = GL.genBuffer()\n"
+             "GL.bindBuffer(GL.ARRAY_BUFFER, vbo)\n"
+             "GL.bufferData(GL.ARRAY_BUFFER, pointsBuffer, GL.STATIC_DRAW)\n"
+             "GL.bindBuffer(GL.ARRAY_BUFFER, 0)\n"
+             "local byteSizeOfUint16 = 2\n"
+             "local indices = { 0, 1, 2, 1, 3, 2 }\n"
+             "local indicesBuffer = Buffer.alloc(#indices * byteSizeOfUint16)\n"
+             "for i, v in ipairs(indices) do\n"
+             "    indicesBuffer:setUint16(byteSizeOfUint16 * (i - 1), v)\n"
+             "end\n"
+             "\n"
+             "local ibo = GL.genBuffer()\n"
+             "GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ibo)\n"
+             "GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, indicesBuffer, "
+             "GL.STATIC_DRAW)\n"
+             "GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, 0)\n"
+             "\n"
+             "local vao = GL.genVertexArray()\n"
+             "GL.bindVertexArray(vao)\n"
+             "GL.bindBuffer(GL.ARRAY_BUFFER, vbo)\n"
+             "GL.enableVertexAttribArray(0)\n"
+             "GL.vertexAttribPointer(0, 3, GL.FLOAT, GL.FALSE, 0)\n"
+             "GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ibo)\n"
+             "GL.bindVertexArray(0)\n"
+             "GL.bindVertexArray(vao);\n"
+             "GL.drawElements(GL.TRIANGLES, #indices, GL.UNSIGNED_SHORT)\n"
+             "GL.bindVertexArray(0);\n"
+             "GL.deleteBuffer(vbo)\n"
+             "GL.deleteBuffer(ibo)\n"
+             "GL.deleteBuffer(vao)\n"),
+      LUA_OK)
       << lua_tostring(L, -1);
 }
 
