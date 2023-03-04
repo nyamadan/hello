@@ -5,8 +5,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
-#include <fstream>
-#include <vector>
+#include <cstdio>
 
 using namespace hello::lua::buffer;
 
@@ -60,12 +59,13 @@ int L_fromString(lua_State *L) {
 
 int L_fromFile(lua_State *L) {
   auto pStream = static_cast<luaL_Stream *>(luaL_checkudata(L, 1, "FILE*"));
-  auto ifs = std::ifstream(pStream->f);
-  auto tmpVec = std::vector<char>(std::istreambuf_iterator<char>(ifs),
-                                  std::istreambuf_iterator<char>());
+  ::fpos_t fpos;
+  ::fseek(pStream->f, 0, SEEK_END);
+  auto size = ::fgetpos(pStream->f, &fpos);
+  ::fseek(pStream->f, 0, SEEK_SET);
   auto pudBuffer =
-      hello::lua::buffer::alloc(L, static_cast<int>(tmpVec.size()));
-  std::copy(tmpVec.begin(), tmpVec.end(), pudBuffer->data);
+      hello::lua::buffer::alloc(L, size);
+  ::fread(pudBuffer->data, 1, size, pStream->f);
   return 1;
 }
 
