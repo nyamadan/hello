@@ -173,6 +173,9 @@ int L_require(lua_State *L) {
   lua_pushinteger(L, SDL_GL_CONTEXT_MINOR_VERSION);
   lua_setfield(L, -2, "GL_CONTEXT_MINOR_VERSION");
 
+  lua_pushinteger(L, SDL_PIXELFORMAT_ABGR8888);
+  lua_setfield(L, -2, "PIXELFORMAT_ABGR8888");
+
   lua_pushcfunction(L, L_SDL_Init);
   lua_setfield(L, -2, "Init");
 

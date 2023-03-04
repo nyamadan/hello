@@ -3,6 +3,7 @@ local utils = require("utils")
 local Buffer = require("buffer")
 --- @type gl
 local GL = require("opengl")
+--- @type SDL
 local SDL = require("sdl2")
 --- @type SDL_image
 local SDL_image = require("sdl2_image")
@@ -164,6 +165,9 @@ GL.bindVertexArray(0)
 local image = SDL_image.load("../../hello_embree_host/assets/uv_checker.png");
 local info = image:getInfo();
 print("<image>\n" .. inspect(info));
+if info.format.format == SDL.PIXELFORMAT_ABGR8888 then
+    print("image is PIXELFORMAT_ABGR8888")
+end
 image:free();
 local vsSource, fsSource = transpileShaders()
 

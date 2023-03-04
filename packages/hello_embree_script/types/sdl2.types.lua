@@ -1,0 +1,2 @@
+--- @class SDL
+--- @field PIXELFORMAT_ABGR8888 376840196
