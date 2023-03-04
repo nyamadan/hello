@@ -15,6 +15,7 @@
 #include "../core/lua/lua_utils.hpp"
 #include "../core/lua/opengl/lua_opengl.hpp"
 #include "../core/lua/sdl2/lua_sdl2.hpp"
+#include "../core/lua/sdl2_image/lua_sdl2_image.hpp"
 
 #define TEST_LUA_CONSTANT(m, val1, val2)                                       \
   do {                                                                         \

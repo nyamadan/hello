@@ -11,6 +11,7 @@ void LuaSDL2_Test::initLuaState() {
   L = luaL_newstate();
   luaL_openlibs(L);
   sdl2::openlibs(L);
+  sdl2_image::openlibs(L);
   opengl::openlibs(L);
   buffer::openlibs(L);
 }

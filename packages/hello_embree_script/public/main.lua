@@ -4,6 +4,8 @@ local Buffer = require("buffer")
 --- @type gl
 local GL = require("opengl")
 local SDL = require("sdl2")
+--- @type SDL_image
+local SDL_image = require("sdl2_image")
 local GLSLANG = require("glslang")
 local SPV_CROSS = require("spv_cross")
 
@@ -159,6 +161,10 @@ GL.vertexAttribPointer(0, 3, GL.FLOAT, GL.FALSE, 0)
 GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ibo)
 GL.bindVertexArray(0)
 
+local image = SDL_image.load("../../hello_embree_host/assets/uv_checker.png");
+local info = image:getInfo();
+print("<image>\n" .. inspect(info));
+image:free();
 local vsSource, fsSource = transpileShaders()
 
 local vs = GL.createShader(GL.VERTEX_SHADER)

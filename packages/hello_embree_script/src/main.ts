@@ -24,6 +24,7 @@ async function main() {
     "inspect.lua",
     "handle_error.lua",
     "main.lua",
+    "uv_checker.png",
   ] as const;
 
   async function load(file: string): Promise<void> {

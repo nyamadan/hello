@@ -4,6 +4,7 @@
 #include "lua/lua_utils.hpp"
 #include "lua/opengl/lua_opengl.hpp"
 #include "lua/sdl2/lua_sdl2.hpp"
+#include "lua/sdl2_image/lua_sdl2_image.hpp"
 #include "lua/spv_cross/lua_spv_cross.hpp"
 #include "utils/arguments.hpp"
 #include <iostream>
@@ -23,6 +24,7 @@ void initialize(lua_State *L) {
   lua::opengl::openlibs(L);
   lua::glslang::openlibs(L);
   lua::spv_cross::openlibs(L);
+  lua::sdl2_image::openlibs(L);
 }
 void finalize(lua_State *L) { lua_close(L); }
 void handleEvents(void *arg) {
