@@ -527,8 +527,8 @@ target_link_libraries(hello_embree_host
   ${EMBREE3_LIB}
   ${TBB_LIB}
   ${LUA_LIB}
-  ${SDL2_LIB}
   ${SDL2_image_LIB}
+  ${SDL2_LIB}
   ${SPIRVCROSS_LIB}
   ${GLSLANG_LIB}
   ${OPENGL_LIBRARIES}
@@ -620,8 +620,8 @@ target_link_libraries(
   ${EMBREE3_LIB}
   ${TBB_LIB}
   ${LUA_LIB}
-  ${SDL2_LIB}
   ${SDL2_image_LIB}
+  ${SDL2_LIB}
   ${SPIRVCROSS_LIB}
   ${GLSLANG_LIB}
   ${OPENGL_LIBRARIES}
