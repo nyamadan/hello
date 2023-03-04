@@ -4,6 +4,9 @@
 using namespace hello::lua;
 
 TEST_F(LuaSDL2_Test, LoadImageTest) {
+#if defined(__EMSCRIPTEN__)
+  GTEST_SKIP() << "Not work for Emscripten";
+#endif
   ASSERT_EQ(
       LUA_OK,
       utils::dostring(
