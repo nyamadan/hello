@@ -19,7 +19,12 @@ local inspect = require("inspect")
 local function transpileShaders()
     local DefaultVertexShader = [[#version 310 es
 layout(location=0) in vec3 aPosition;
+layout(location=1) in vec2 aUv0;
+
+out vec2 vUv0;
+
 void main(void) {
+    vUv0 = aUv0;
     gl_Position = vec4(aPosition, 1.0);
 }
 ]]
@@ -30,12 +35,14 @@ precision mediump float;
 // layout(location=0) uniform vec2 resolution;
 // layout(location=1) uniform sampler2D backbuffer;
 
-layout(location=0) out vec4 fragColor;
+out vec4 fragColor;
+
+in vec2 vUv0;
 
 void main(void) {
     // vec2 uv = gl_FragCoord.xy / resolution;
     // vec3 color = texture(backbuffer, uv).rgb;
-    vec3 color = vec3(1.0, 0.0, 1.0);
+    vec3 color = vec3(vUv0.x, vUv0.y, 0.0);
     fragColor = vec4(color, 1.0);
 }
 ]]
@@ -45,6 +52,7 @@ void main(void) {
     vsShader:setEnvInput(GLSLANG.EShSourceGlsl, GLSLANG.EShLangVertex, GLSLANG.EShClientOpenGL, 100)
     vsShader:setEnvClient(GLSLANG.EShClientOpenGL, GLSLANG.EShTargetOpenGL_450)
     vsShader:setEnvTarget(GLSLANG.EShTargetSpv, GLSLANG.EShTargetSpv_1_0)
+    vsShader:setAutoMapLocations(true)
     if not vsShader:parse(100, true, 0) then
         error(vsShader:getInfoLog())
     end
@@ -55,6 +63,7 @@ void main(void) {
     fsShader:setEnvInput(GLSLANG.EShSourceGlsl, GLSLANG.EShLangFragment, GLSLANG.EShClientOpenGL, 100)
     fsShader:setEnvClient(GLSLANG.EShClientOpenGL, GLSLANG.EShTargetOpenGL_450)
     fsShader:setEnvTarget(GLSLANG.EShTargetSpv, GLSLANG.EShTargetSpv_1_0)
+    fsShader:setAutoMapLocations(true)
     if not fsShader:parse(100, true, 0) then
         error(fsShader:getInfoLog())
     end
@@ -136,9 +145,26 @@ for i, v in ipairs(points) do
     pointsBuffer:setFloat32(byteSizeOfFloat32 * (i - 1), v)
 end
 
-local vbo = GL.genBuffer()
-GL.bindBuffer(GL.ARRAY_BUFFER, vbo)
+---@type number[]
+local uv0s = {
+    0.0, 1.0,
+    1.0, 1.0,
+    0.0, 0.0,
+    1.0, 0.0,
+}
+local uv0sBuffer = Buffer.alloc(#uv0s * byteSizeOfFloat32)
+for i, v in ipairs(uv0s) do
+    uv0sBuffer:setFloat32(byteSizeOfFloat32 * (i - 1), v)
+end
+
+local vbPositions = GL.genBuffer()
+GL.bindBuffer(GL.ARRAY_BUFFER, vbPositions)
 GL.bufferData(GL.ARRAY_BUFFER, pointsBuffer, GL.STATIC_DRAW)
+GL.bindBuffer(GL.ARRAY_BUFFER, 0)
+
+local vbUv0s = GL.genBuffer()
+GL.bindBuffer(GL.ARRAY_BUFFER, vbUv0s)
+GL.bufferData(GL.ARRAY_BUFFER, uv0sBuffer, GL.STATIC_DRAW)
 GL.bindBuffer(GL.ARRAY_BUFFER, 0)
 
 local byteSizeOfUint16 = 2
@@ -156,9 +182,12 @@ GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, 0)
 
 local vao = GL.genVertexArray()
 GL.bindVertexArray(vao)
-GL.bindBuffer(GL.ARRAY_BUFFER, vbo)
+GL.bindBuffer(GL.ARRAY_BUFFER, vbPositions)
 GL.enableVertexAttribArray(0)
 GL.vertexAttribPointer(0, 3, GL.FLOAT, GL.FALSE, 0)
+GL.bindBuffer(GL.ARRAY_BUFFER, vbUv0s)
+GL.enableVertexAttribArray(1)
+GL.vertexAttribPointer(1, 2, GL.FLOAT, GL.FALSE, 0)
 GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ibo)
 GL.bindVertexArray(0)
 

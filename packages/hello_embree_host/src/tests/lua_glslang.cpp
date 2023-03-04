@@ -123,6 +123,7 @@ TEST_F(LuaGlslang_Test, ParseShaderTest) {
                    "shader:setEnvInput(1, 4, 2, 100);\n"
                    "shader:setEnvClient(2, 450);\n"
                    "shader:setEnvTarget(1, 65536);\n"
+                   "shader:setAutoMapLocations(true);\n"
                    "local parseResult = shader:parse(100, true, 0, function"
                    "(module, header, includer, depth)\n"
                    "  local color = [[//module\n"

@@ -411,6 +411,14 @@ int L_Shader_setEnvTarget(lua_State *L) {
   return 0;
 }
 
+int L_Shader_setAutoMapLocations(lua_State *L) {
+  auto pShader = static_cast<UDShader *>(luaL_checkudata(L, 1, SHADER_NAME));
+  luaL_argcheck(L, pShader->data != nullptr, 1, "Shader is null value.");
+  auto b = static_cast<int>(lua_toboolean(L, 2));
+  pShader->data->setAutoMapLocations(!!b);
+  return 0;
+}
+
 int L_Shader_parse(lua_State *L) {
   auto udShader = static_cast<UDShader *>(luaL_checkudata(L, 1, SHADER_NAME));
   luaL_argcheck(L, udShader->data != nullptr, 1, "Shader is null value.");
@@ -486,6 +494,8 @@ void openlibs(lua_State *L) {
   lua_setfield(L, -2, "setEnvClient");
   lua_pushcfunction(L, L_Shader_setEnvTarget);
   lua_setfield(L, -2, "setEnvTarget");
+  lua_pushcfunction(L, L_Shader_setAutoMapLocations);
+  lua_setfield(L, -2, "setAutoMapLocations");
   lua_pushcfunction(L, L_Shader_parse);
   lua_setfield(L, -2, "parse");
   lua_setfield(L, -2, "__index");
