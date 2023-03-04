@@ -189,7 +189,8 @@ GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ibo)
 GL.bindVertexArray(0)
 
 local f = io.open("./uv_checker.png", "rb");
-local buf = Buffer.fromFile(f)
+local s = f:read("a");
+local buf = Buffer.fromString(s)
 local image = SDL_image.loadFromBuffer(buf)
 f:close();
 

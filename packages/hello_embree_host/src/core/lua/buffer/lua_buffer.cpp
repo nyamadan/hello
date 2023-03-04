@@ -3,9 +3,9 @@
 #include <algorithm>
 #include <cfloat>
 #include <cstdint>
+#include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <cstdio>
 
 using namespace hello::lua::buffer;
 
@@ -36,8 +36,8 @@ int L_alloc(lua_State *L) {
 }
 
 int L_fromString(lua_State *L) {
-  auto str = luaL_checkstring(L, 1);
-  auto size = static_cast<int32_t>(strlen(str));
+  size_t size;
+  auto str = luaL_checklstring(L, 1, &size);
   auto pBuffer = static_cast<UDBuffer *>(lua_newuserdata(L, sizeof(UDBuffer)));
   if (size == 0) {
     pBuffer->data = nullptr;
@@ -47,7 +47,7 @@ int L_fromString(lua_State *L) {
     if (p == nullptr) {
       luaL_error(L, "Could not allocate buffer!");
     }
-    pBuffer->size = size;
+    pBuffer->size = static_cast<int32_t>(size);
     pBuffer->data = p;
     memcpy(pBuffer->data, str, size);
     pBuffer->usage = nullptr;
@@ -59,12 +59,10 @@ int L_fromString(lua_State *L) {
 
 int L_fromFile(lua_State *L) {
   auto pStream = static_cast<luaL_Stream *>(luaL_checkudata(L, 1, "FILE*"));
-  ::fpos_t fpos;
   ::fseek(pStream->f, 0, SEEK_END);
-  auto size = ::fgetpos(pStream->f, &fpos);
+  auto size = ::ftell(pStream->f);
   ::fseek(pStream->f, 0, SEEK_SET);
-  auto pudBuffer =
-      hello::lua::buffer::alloc(L, size);
+  auto pudBuffer = hello::lua::buffer::alloc(L, size);
   ::fread(pudBuffer->data, 1, size, pStream->f);
   return 1;
 }
