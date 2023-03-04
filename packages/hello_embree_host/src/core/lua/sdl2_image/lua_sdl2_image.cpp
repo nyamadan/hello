@@ -1,8 +1,10 @@
 #include "./lua_sdl2_image.hpp"
+#include "../buffer/lua_buffer.hpp"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 
+#include <fstream>
 #include <memory>
 
 namespace {
@@ -22,6 +24,24 @@ int L_load(lua_State *L) {
   } else {
     lua_pushnil(L);
   }
+  return 1;
+}
+
+int L_loadFromBuffer(lua_State *L) {
+  auto buf = hello::lua::buffer::get(L, 1);
+  luaL_argcheck(L, buf != nullptr, 1, "Expected buffer");
+  auto rw = SDL_RWFromMem(buf->data, buf->size);
+  auto surface = IMG_Load_RW(rw, SDL_FALSE);
+
+  if (surface != nullptr) {
+    auto pudSurface =
+        static_cast<UDSDL_Surface *>(lua_newuserdata(L, sizeof(UDSDL_Surface)));
+    pudSurface->surface = surface;
+    luaL_setmetatable(L, SDL_SURFACE_NAME);
+  } else {
+    lua_pushnil(L);
+  }
+  SDL_FreeRW(rw);
   return 1;
 }
 
@@ -109,6 +129,8 @@ int L_require(lua_State *L) {
   lua_newtable(L);
   lua_pushcfunction(L, L_load);
   lua_setfield(L, -2, "load");
+  lua_pushcfunction(L, L_loadFromBuffer);
+  lua_setfield(L, -2, "loadFromBuffer");
   return 1;
 }
 } // namespace

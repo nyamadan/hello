@@ -1,9 +1,12 @@
 #include "./lua_buffer.hpp"
 #include "../lua_utils.hpp"
+#include <algorithm>
 #include <cfloat>
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <fstream>
+#include <vector>
 
 using namespace hello::lua::buffer;
 
@@ -52,6 +55,17 @@ int L_fromString(lua_State *L) {
   }
 
   luaL_setmetatable(L, BUFFER_NAME);
+  return 1;
+}
+
+int L_fromFile(lua_State *L) {
+  auto pStream = static_cast<luaL_Stream *>(luaL_checkudata(L, 1, "FILE*"));
+  auto ifs = std::ifstream(pStream->f);
+  auto tmpVec = std::vector<char>(std::istreambuf_iterator<char>(ifs),
+                                  std::istreambuf_iterator<char>());
+  auto pudBuffer =
+      hello::lua::buffer::alloc(L, static_cast<int>(tmpVec.size()));
+  std::copy(tmpVec.begin(), tmpVec.end(), pudBuffer->data);
   return 1;
 }
 
@@ -252,6 +266,9 @@ int L_require(lua_State *L) {
 
   lua_pushcfunction(L, L_fromString);
   lua_setfield(L, -2, "fromString");
+
+  lua_pushcfunction(L, L_fromFile);
+  lua_setfield(L, -2, "fromFile");
 
   return 1;
 }

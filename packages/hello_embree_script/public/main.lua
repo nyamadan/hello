@@ -188,7 +188,11 @@ GL.vertexAttribPointer(1, 2, GL.FLOAT, GL.FALSE, 0)
 GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ibo)
 GL.bindVertexArray(0)
 
-local image = SDL_image.load("./uv_checker.png");
+local f = io.open("./uv_checker.png", "rb");
+local buf = Buffer.fromFile(f)
+local image = SDL_image.loadFromBuffer(buf)
+f:close();
+
 image:lock()
 image:flipVertical()
 image:unlock()
