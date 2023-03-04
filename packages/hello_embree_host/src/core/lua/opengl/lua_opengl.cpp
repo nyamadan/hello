@@ -246,6 +246,13 @@ int L_glUseProgram(lua_State *L) {
   return 0;
 }
 
+int L_glUniform1i(lua_State *L) {
+  auto location = static_cast<GLint>(luaL_checkinteger(L, 1));
+  auto v0 = static_cast<GLint>(luaL_checkinteger(L, 2));
+  glUniform1i(location, v0);
+  return 0;
+}
+
 int L_glGenTexture(lua_State *L) {
   GLuint textures[] = {0};
   glGenTextures(1, textures);
@@ -303,6 +310,12 @@ int L_glBindTexture(lua_State *L) {
   auto target = static_cast<GLenum>(luaL_checkinteger(L, 1));
   auto texture = static_cast<GLuint>(luaL_checkinteger(L, 2));
   glBindTexture(target, texture);
+  return 0;
+}
+
+int L_glActivateTexture(lua_State *L) {
+  auto texture = static_cast<GLenum>(luaL_checkinteger(L, 1));
+  glActiveTexture(texture);
   return 0;
 }
 
@@ -1995,6 +2008,9 @@ int L_require(lua_State *L) {
   lua_pushcfunction(L, L_glUseProgram);
   lua_setfield(L, -2, "useProgram");
 
+  lua_pushcfunction(L, L_glUniform1i);
+  lua_setfield(L, -2, "uniform1i");
+
   lua_pushcfunction(L, L_glGenTexture);
   lua_setfield(L, -2, "genTexture");
 
@@ -2012,6 +2028,9 @@ int L_require(lua_State *L) {
 
   lua_pushcfunction(L, L_glBindTexture);
   lua_setfield(L, -2, "bindTexture");
+
+  lua_pushcfunction(L, L_glActivateTexture);
+  lua_setfield(L, -2, "activateTexture");
 
   lua_pushcfunction(L, L_glGenFramebuffer);
   lua_setfield(L, -2, "genFramebuffer");

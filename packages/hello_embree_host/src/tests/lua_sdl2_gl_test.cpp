@@ -188,6 +188,7 @@ TEST_F(LuaSDL2_Test, TestDrawArrays) {
              "gl.bufferData(gl.ARRAY_BUFFER, data, gl.STATIC_DRAW);\n"
              "local vao = gl.genVertexArray();\n"
              "gl.bindVertexArray(vao);\n"
+             "gl.uniform1i(0, 0);\n"
              "gl.enableVertexAttribArray(0);\n"
              "gl.enableVertexAttribArray(1);\n"
              "gl.bindBuffer(gl.ARRAY_BUFFER, vbo);\n"

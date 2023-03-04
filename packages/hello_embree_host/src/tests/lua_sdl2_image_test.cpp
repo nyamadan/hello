@@ -14,6 +14,9 @@ TEST_F(LuaSDL2_Test, LoadImageTest) {
           "local SDL_image = require('sdl2_image');\n"
           "local image = "
           "SDL_image.load('../../hello_embree_host/assets/uv_checker.png');\n"
+          "image:lock();\n"
+          "image:flipVertical();\n"
+          "image:unlock();\n"
           "return image:getInfo();\n"))
       << lua_tostring(L, -1);
 }

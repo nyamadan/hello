@@ -514,10 +514,12 @@
 --- @field bindVertexArray fun(buffer: integer)
 --- @field enableVertexAttribArray fun(index: integer)
 --- @field vertexAttribPointer fun(index: integer, size: integer, type: integer, normalized: integer, stride: integer)
+--- @field uniform1i fun(location: integer, v0: integer)
 --- @field loadGLLoader fun()
 --- @field genTexture fun(): integer
 --- @field texImage2D fun(target: integer, level: integer, internalformat: integer, width: integer, height: integer, border: integer, format: integer, type: integer, pixels: Buffer)
 --- @field bindTexture fun(target: integer, texture: integer)
+--- @field activateTexture fun(texture: integer)
 --- @field deleteTexture fun(texture: integer)
 --- @field genFramebuffer fun(): integer
 --- @field deleteFramebuffer fun(framebuffer: integer)

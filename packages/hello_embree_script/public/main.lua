@@ -32,17 +32,14 @@ void main(void) {
     local DefaultFragmentShader = [[#version 310 es
 precision mediump float;
 
-// layout(location=0) uniform vec2 resolution;
-// layout(location=1) uniform sampler2D backbuffer;
-
 out vec4 fragColor;
 
 in vec2 vUv0;
 
+layout(location=0) uniform sampler2D uSampler;
+
 void main(void) {
-    // vec2 uv = gl_FragCoord.xy / resolution;
-    // vec3 color = texture(backbuffer, uv).rgb;
-    vec3 color = vec3(vUv0.x, vUv0.y, 0.0);
+    vec3 color = texture(uSampler, vec2(vUv0.s, vUv0.t)).rgb;
     fragColor = vec4(color, 1.0);
 }
 ]]
@@ -192,6 +189,9 @@ GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ibo)
 GL.bindVertexArray(0)
 
 local image = SDL_image.load("./uv_checker.png");
+image:lock()
+image:flipVertical()
+image:unlock()
 local info = image:getInfo();
 print("<image>\n" .. inspect(info));
 if info.format.format == SDL.PIXELFORMAT_ABGR8888 then
@@ -280,6 +280,9 @@ local function update()
 
     GL.useProgram(program)
     GL.bindVertexArray(vao);
+    GL.activateTexture(GL.TEXTURE0);
+    GL.bindTexture(GL.TEXTURE_2D, texImage);
+    GL.uniform1i(0, 0);
     GL.drawElements(GL.TRIANGLES, #indices, GL.UNSIGNED_SHORT)
     GL.bindVertexArray(0);
 
