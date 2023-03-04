@@ -4,9 +4,7 @@
 #include <SDL2/SDL_image.h>
 
 namespace {
-struct UDSDL_Surface {
-  SDL_Surface *surface;
-};
+using hello::lua::sdl2_image::UDSDL_Surface;
 
 const char *const SDL_SURFACE_NAME = "SDL_Surface";
 
@@ -67,6 +65,12 @@ int L_require(lua_State *L) {
 } // namespace
 
 namespace hello::lua::sdl2_image {
+UDSDL_Surface *get(lua_State *L, int idx) {
+  auto pudSurface =
+      static_cast<UDSDL_Surface *>(luaL_testudata(L, idx, SDL_SURFACE_NAME));
+  return pudSurface;
+}
+
 void openlibs(lua_State *L) {
   luaL_newmetatable(L, SDL_SURFACE_NAME);
   lua_pushcfunction(L, L_freeSurface);

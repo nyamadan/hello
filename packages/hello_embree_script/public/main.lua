@@ -162,13 +162,22 @@ GL.vertexAttribPointer(0, 3, GL.FLOAT, GL.FALSE, 0)
 GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ibo)
 GL.bindVertexArray(0)
 
-local image = SDL_image.load("../../hello_embree_host/assets/uv_checker.png");
+local image = SDL_image.load("./uv_checker.png");
 local info = image:getInfo();
 print("<image>\n" .. inspect(info));
 if info.format.format == SDL.PIXELFORMAT_ABGR8888 then
     print("image is PIXELFORMAT_ABGR8888")
 end
-image:free();
+
+local texImage = GL.genTexture()
+GL.bindTexture(GL.TEXTURE_2D, texImage)
+GL.pixelStorei(GL.UNPACK_ALIGNMENT, 1)
+GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, info.w, info.h, 0, GL.RGBA, GL.UNSIGNED_BYTE, image);
+GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
+GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
+GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
+GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
+
 local vsSource, fsSource = transpileShaders()
 
 local vs = GL.createShader(GL.VERTEX_SHADER)

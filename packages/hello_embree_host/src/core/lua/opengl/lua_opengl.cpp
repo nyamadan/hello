@@ -1,5 +1,6 @@
 #include "./lua_opengl.hpp"
 #include "../buffer/lua_buffer.hpp"
+#include "../sdl2_image/lua_sdl2_image.hpp"
 #include <SDL2/SDL.h>
 #include <cfloat>
 #include <cstring>
@@ -265,12 +266,19 @@ int L_glTexImage2D(lua_State *L) {
   void *pixels = nullptr;
   if (!lua_isnoneornil(L, 9)) {
     auto buffer = hello::lua::buffer::get(L, 9);
-    luaL_argcheck(L, buffer != nullptr, 9, "Expected buffer");
-    luaL_argcheck(L, buffer->usage == nullptr, 9,
-                  "operation is not permitted.");
-    luaL_argcheck(L, buffer->size > 0, 9, "size must be breater than 0");
-    pixels = buffer->data;
+    if (buffer != nullptr) {
+      luaL_argcheck(L, buffer->usage == nullptr, 9,
+                    "operation is not permitted.");
+      luaL_argcheck(L, buffer->size > 0, 9, "size must be breater than 0");
+      pixels = buffer->data;
+    } else {
+      auto pudSurface = hello::lua::sdl2_image::get(L, 9);
+      luaL_argcheck(L, pudSurface->surface != nullptr, 9,
+                    "specify SDL_Surface or Buffer");
+      pixels = pudSurface->surface->pixels;
+    }
   }
+
   glTexImage2D(target, level, internalformat, width, height, border, format,
                type, pixels);
   return 0;

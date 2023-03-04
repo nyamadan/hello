@@ -277,7 +277,7 @@ UDBuffer *alloc(lua_State *L, int size, const char *usage) {
 }
 
 UDBuffer *get(lua_State *L, int idx) {
-  return static_cast<UDBuffer *>(luaL_checkudata(L, idx, BUFFER_NAME));
+  return static_cast<UDBuffer *>(luaL_testudata(L, idx, BUFFER_NAME));
 }
 
 void openlibs(lua_State *L) {
