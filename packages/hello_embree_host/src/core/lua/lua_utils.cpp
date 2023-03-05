@@ -138,8 +138,7 @@ int L_getFetchRequest(lua_State *L) {
   lua_pushstring(L, fetch->url);
   lua_setfield(L, -2, "url");
   if (fetch->numBytes > 0 && udFetchRequest->finished) {
-    auto udBuffer = hello::lua::buffer::alloc(L, fetch->numBytes);
-    memcpy(udBuffer->data, fetch->data, fetch->numBytes);
+    lua_pushlstring(L, fetch->data, fetch->numBytes);
     lua_setfield(L, -2, "data");
   } else {
     lua_pushnil(L);
