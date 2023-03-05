@@ -102,10 +102,13 @@ if SDL.Init(SDL.INIT_VIDEO | SDL.INIT_TIMER) ~= 0 then
     error(SDL.GetError())
 end
 
+local windowWidth = 1280
+local windowHeight = 720
+
 local window = SDL.CreateWindow("hello embree",
     SDL.WINDOWPOS_UNDEFINED,
     SDL.WINDOWPOS_UNDEFINED,
-    1280, 720,
+    windowWidth, windowHeight,
     SDL.WINDOW_OPENGL)
 local renderer = SDL.CreateRenderer(window, -1, SDL.RENDERER_ACCELERATED)
 
@@ -131,10 +134,10 @@ end
 local points = {}
 for _, v in ipairs(
     {
-        -0.5, 0.5, 0.0,
-        0.5, 0.5, 0.0,
-        -0.5, -0.5, 0.0,
-        0.5, -0.5, 0.0,
+        -1.0, 1.0, 0.0,
+        1.0, 1.0, 0.0,
+        -1.0, -1.0, 0.0,
+        1.0, -1.0, 0.0,
     }
 ) do
     table.insert(points, ("f"):pack(v));
@@ -231,8 +234,8 @@ if GL.getProgramiv(program, GL.LINK_STATUS) ~= GL.TRUE then
     error(GL.getProgramInfoLog(program))
 end
 
-local bufferWidth = 512
-local bufferHeight = 512
+local bufferWidth = windowWidth
+local bufferHeight = windowHeight
 
 local color = ("B"):pack(0xff):rep(4 * bufferWidth * bufferHeight)
 
@@ -257,9 +260,9 @@ GL.bindRenderbuffer(GL.RENDERBUFFER, renderbuffer);
 GL.bindFramebuffer(GL.FRAMEBUFFER, framebuffer);
 GL.bindTexture(GL.TEXTURE_2D, texColor);
 
-GL.deleteRenderbuffer(renderbuffer);
-GL.deleteFramebuffer(framebuffer);
-GL.deleteTexture(texColor);
+-- GL.deleteRenderbuffer(renderbuffer);
+-- GL.deleteFramebuffer(framebuffer);
+-- GL.deleteTexture(texColor);
 
 local function update()
     local events = collectEvents()
@@ -273,14 +276,25 @@ local function update()
         print("ev: type = " .. ev.type)
     end
 
-    local color = { 0.5, 0.5, 0.5, 1.0 }
-    GL.clearColor(table.unpack(color))
-    GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT)
+    GL.viewport(0, 0, windowWidth, windowHeight)
 
+    GL.bindFramebuffer(GL.FRAMEBUFFER, framebuffer);
+    local clearColor = { 0.5, 0.5, 0.5, 1.0 }
+    GL.clearColor(table.unpack(clearColor))
+    GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT)
     GL.useProgram(program)
     GL.bindVertexArray(vao);
     GL.activateTexture(GL.TEXTURE0);
     GL.bindTexture(GL.TEXTURE_2D, texImage);
+    GL.uniform1i(0, 0);
+    GL.drawElements(GL.TRIANGLES, #indices / 2, GL.UNSIGNED_SHORT)
+    GL.bindVertexArray(0);
+
+    GL.bindFramebuffer(GL.FRAMEBUFFER, 0);
+    GL.useProgram(program)
+    GL.bindVertexArray(vao);
+    GL.activateTexture(GL.TEXTURE0);
+    GL.bindTexture(GL.TEXTURE_2D, texColor);
     GL.uniform1i(0, 0);
     GL.drawElements(GL.TRIANGLES, #indices / 2, GL.UNSIGNED_SHORT)
     GL.bindVertexArray(0);
