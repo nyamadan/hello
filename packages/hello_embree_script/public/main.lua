@@ -260,10 +260,6 @@ GL.bindRenderbuffer(GL.RENDERBUFFER, renderbuffer);
 GL.bindFramebuffer(GL.FRAMEBUFFER, framebuffer);
 GL.bindTexture(GL.TEXTURE_2D, texColor);
 
--- GL.deleteRenderbuffer(renderbuffer);
--- GL.deleteFramebuffer(framebuffer);
--- GL.deleteTexture(texColor);
-
 local function update()
     local events = collectEvents()
     for _, ev in ipairs(events) do
@@ -302,6 +298,16 @@ local function update()
     SDL.GL_SwapWindow(window)
 end
 
+local function finalize()
+    GL.deleteRenderbuffer(renderbuffer);
+    GL.deleteFramebuffer(framebuffer);
+    GL.deleteTexture(texColor);
+end
+
 utils.registerFunction("update", function(...)
     return handleError(pcall(update, ...))
+end)
+
+utils.registerFunction("finalize", function(...)
+    return handleError(pcall(finalize, ...))
 end)

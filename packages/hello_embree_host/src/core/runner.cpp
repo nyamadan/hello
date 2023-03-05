@@ -23,7 +23,14 @@ void initialize(lua_State *L) {
   lua::spv_cross::openlibs(L);
   lua::sdl2_image::openlibs(L);
 }
-void finalize(lua_State *L) { lua_close(L); }
+
+void finalize(lua_State *L) {
+  if (lua::utils::getFunction(L, "finalize") == LUA_TFUNCTION) {
+    lua::utils::report(L, lua::utils::docall(L, 0, LUA_MULTRET));
+  }
+  lua_close(L);
+}
+
 void handleEvents(void *arg) {
   auto L = static_cast<lua_State *>(arg);
 #if defined(__EMSCRIPTEN__)
