@@ -269,7 +269,7 @@ local function update()
             return
         end
 
-        print("ev: type = " .. ev.type)
+        print("event = " .. inspect(ev))
     end
 
 
