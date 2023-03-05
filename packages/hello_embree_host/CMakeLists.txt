@@ -32,18 +32,6 @@ else()
   set(OPENGL_LIBRARIES)
 endif()
 
-# args
-ExternalProject_Add(args
-  PREFIX "${EXTERNALS_ROOT}"
-  URL "https://github.com/Taywee/args/archive/refs/tags/6.4.1.tar.gz"
-  URL_HASH SHA256=9b3f78208c9cfb06ccbeb7c44903018c8b036b6592a2d9a7d8695d1944060b35
-  CMAKE_ARGS
-  -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
-  -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
-  -DARGS_BUILD_EXAMPLE:BOOL=False
-  -DARGS_BUILD_UNITTESTS:BOOL=False
-)
-
 # SDL2
 if(MSVC)
   if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
@@ -455,7 +443,7 @@ if(MSVC OR MINGW)
   )
 endif()
 
-add_dependencies(hello_embree_host_lib glad args lua sdl2 sdl2_image embree3 glslang spirvcross)
+add_dependencies(hello_embree_host_lib glad lua sdl2 sdl2_image embree3 glslang spirvcross)
 
 # core executable
 if(MSVC OR MINGW)
@@ -551,8 +539,7 @@ elseif(EMSCRIPTEN)
     "-sNO_EXIT_RUNTIME=1"
     "-sFORCE_FILESYSTEM=1"
     "-sINVOKE_RUN=0"
-    "--post-js"
-    "${PROJECT_SOURCE_DIR}/post.js"
+    "-sEXPORTED_RUNTIME_METHODS=['FS', 'callMain']"
   )
 endif()
 

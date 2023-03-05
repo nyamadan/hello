@@ -12,7 +12,7 @@
       "windows": {
         "runtimeExecutable": "${workspaceFolder}/../hello_embree_host/build/hello_embree_host.exe"
       },
-      "runtimeArgs": ["-f", "index.lua"],
+      "runtimeArgs": ["index.lua"],
       "cwd": "${workspaceFolder}/public",
       "console": "internalConsole"
     }

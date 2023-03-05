@@ -1,9 +1,8 @@
 {
   "cmake.debugConfig": {
     "cwd": "${workspaceFolder}/../hello_embree_script/public",
-    "args": ["-f", "index.lua"]
+    "args": ["index.lua"]
   },
-  "cmake.ctestArgs": ["--output-on-failure"],
   "cmake.installPrefix": "",
   "cmake.configureSettings": {},
   "cmake.generator": "Unix Makefiles",

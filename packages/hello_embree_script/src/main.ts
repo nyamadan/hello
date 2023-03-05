@@ -39,7 +39,7 @@ async function main() {
   }
 
   await Promise.all(assetFileNames.map(load));
-  callMain(["-f", entry]);
+  callMain([entry]);
 }
 
 main();
