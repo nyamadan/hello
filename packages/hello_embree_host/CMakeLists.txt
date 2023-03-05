@@ -1,7 +1,5 @@
-cmake_minimum_required(VERSION 3.20.0)
+cmake_minimum_required(VERSION 3.25.0)
 project(hello_embree_host VERSION 0.1.0)
-
-set(CMAKE_VERBOSE_MAKEFILE True)
 
 # GoogleTest requires at least C++14
 set(CMAKE_CXX_STANDARD 17)
