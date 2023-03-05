@@ -19,30 +19,27 @@ async function main() {
   );
   Module["canvas"] = canvas;
 
-  const texts: readonly string[] = [
+  type AssetFileName = typeof assetFileNames[number];
+  const assetFileNames = [
     "index.lua",
+    "main.lua",
     "inspect.lua",
     "handle_error.lua",
-    "main.lua",
+    "uv_checker.png",
   ] as const;
+  const [entry] = assetFileNames;
 
-  const assets: readonly string[] = ["uv_checker.png"] as const;
-
-  async function loadText(file: string): Promise<void> {
-    const response = await fetch(file);
-    const text = await response.text();
-    FS.createDataFile("/", file, text, true, true, false);
-  }
-
-  async function loadBinary(file: string): Promise<void> {
+  async function load<T extends AssetFileName = AssetFileName>(file: T) {
     const response = await fetch(file);
     const arrayBuffer = await response.arrayBuffer();
     const buffer = new Uint8Array(arrayBuffer);
     FS.createDataFile("/", file, buffer, true, true, false);
+
+    return [file, buffer];
   }
 
-  await Promise.all([...texts.map(loadText), ...assets.map(loadBinary)]);
-  callMain(["-f", texts[0]]);
+  await Promise.all(assetFileNames.map(load));
+  callMain(["-f", entry]);
 }
 
 main();
