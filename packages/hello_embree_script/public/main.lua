@@ -246,19 +246,19 @@ local renderbuffer = GL.genRenderbuffer();
 GL.bindRenderbuffer(GL.RENDERBUFFER, renderbuffer);
 GL.renderbufferStorage(GL.RENDERBUFFER, GL.DEPTH_COMPONENT16, bufferWidth, bufferHeight);
 
-local texColor = GL.genTexture()
-GL.bindTexture(GL.TEXTURE_2D, texColor)
+local texBackBuffer = GL.genTexture()
+GL.bindTexture(GL.TEXTURE_2D, texBackBuffer)
 GL.pixelStorei(GL.UNPACK_ALIGNMENT, 1)
 GL.texImage2D(GL.TEXTURE_2D, 0, GL.RGBA, bufferWidth, bufferHeight, 0, GL.RGBA, GL.UNSIGNED_BYTE, color);
 GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_S, GL.CLAMP_TO_EDGE);
 GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_WRAP_T, GL.CLAMP_TO_EDGE);
 GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MIN_FILTER, GL.LINEAR);
 GL.texParameteri(GL.TEXTURE_2D, GL.TEXTURE_MAG_FILTER, GL.LINEAR);
-GL.framebufferTexture2D(GL.FRAMEBUFFER, GL.COLOR_ATTACHMENT0, GL.TEXTURE_2D, texColor, 0);
+GL.framebufferTexture2D(GL.FRAMEBUFFER, GL.COLOR_ATTACHMENT0, GL.TEXTURE_2D, texBackBuffer, 0);
 
 GL.bindRenderbuffer(GL.RENDERBUFFER, renderbuffer);
 GL.bindFramebuffer(GL.FRAMEBUFFER, framebuffer);
-GL.bindTexture(GL.TEXTURE_2D, texColor);
+GL.bindTexture(GL.TEXTURE_2D, texBackBuffer);
 
 local function update()
     local events = collectEvents()
@@ -272,9 +272,9 @@ local function update()
         print("ev: type = " .. ev.type)
     end
 
-    GL.viewport(0, 0, windowWidth, windowHeight)
 
     GL.bindFramebuffer(GL.FRAMEBUFFER, framebuffer);
+    GL.viewport(0, 0, bufferWidth, bufferHeight)
     local clearColor = { 0.5, 0.5, 0.5, 1.0 }
     GL.clearColor(table.unpack(clearColor))
     GL.clear(GL.COLOR_BUFFER_BIT | GL.DEPTH_BUFFER_BIT)
@@ -287,10 +287,11 @@ local function update()
     GL.bindVertexArray(0);
 
     GL.bindFramebuffer(GL.FRAMEBUFFER, 0);
+    GL.viewport(0, 0, windowWidth, windowHeight)
     GL.useProgram(program)
     GL.bindVertexArray(vao);
     GL.activateTexture(GL.TEXTURE0);
-    GL.bindTexture(GL.TEXTURE_2D, texColor);
+    GL.bindTexture(GL.TEXTURE_2D, texBackBuffer);
     GL.uniform1i(0, 0);
     GL.drawElements(GL.TRIANGLES, #indices / 2, GL.UNSIGNED_SHORT)
     GL.bindVertexArray(0);
@@ -301,7 +302,9 @@ end
 local function finalize()
     GL.deleteRenderbuffer(renderbuffer);
     GL.deleteFramebuffer(framebuffer);
-    GL.deleteTexture(texColor);
+    GL.deleteTexture(texBackBuffer);
+    GL.deleteTexture(texImage);
+    GLSLANG.finalizeProcess()
 end
 
 utils.registerFunction("update", function(...)
