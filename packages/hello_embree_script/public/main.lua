@@ -127,53 +127,54 @@ if not utils.isEmscripten() then
     GL.loadGLLoader()
 end
 
----@type number[]
-local points = {
-    -0.5, 0.5, 0.0,
-    0.5, 0.5, 0.0,
-    -0.5, -0.5, 0.0,
-    0.5, -0.5, 0.0,
-}
-local pointsBuffer = {}
-for _, v in ipairs(points) do
-    table.insert(pointsBuffer, ("f"):pack(v));
+--- @type string[]
+local points = {}
+for _, v in ipairs(
+    {
+        -0.5, 0.5, 0.0,
+        0.5, 0.5, 0.0,
+        -0.5, -0.5, 0.0,
+        0.5, -0.5, 0.0,
+    }
+) do
+    table.insert(points, ("f"):pack(v));
 end
-local pointsBuffer = table.concat(pointsBuffer);
+local points = table.concat(points);
 
----@type number[]
-local uv0s = {
-    0.0, 1.0,
-    1.0, 1.0,
-    0.0, 0.0,
-    1.0, 0.0,
-}
-local uv0sBuffer = {}
-for i, v in ipairs(uv0s) do
-    table.insert(uv0sBuffer, ("f"):pack(v))
+--- @type string[]
+local uv0s = {}
+for _, v in ipairs(
+    {
+        0.0, 1.0,
+        1.0, 1.0,
+        0.0, 0.0,
+        1.0, 0.0,
+    }
+) do
+    table.insert(uv0s, ("f"):pack(v))
 end
-local uv0sBuffer = table.concat(uv0sBuffer)
+local uv0s = table.concat(uv0s)
 
 local vbPositions = GL.genBuffer()
 GL.bindBuffer(GL.ARRAY_BUFFER, vbPositions)
-GL.bufferData(GL.ARRAY_BUFFER, pointsBuffer, GL.STATIC_DRAW)
+GL.bufferData(GL.ARRAY_BUFFER, points, GL.STATIC_DRAW)
 GL.bindBuffer(GL.ARRAY_BUFFER, 0)
 
 local vbUv0s = GL.genBuffer()
 GL.bindBuffer(GL.ARRAY_BUFFER, vbUv0s)
-GL.bufferData(GL.ARRAY_BUFFER, uv0sBuffer, GL.STATIC_DRAW)
+GL.bufferData(GL.ARRAY_BUFFER, uv0s, GL.STATIC_DRAW)
 GL.bindBuffer(GL.ARRAY_BUFFER, 0)
 
----@type integer[]
-local indices = { 0, 1, 2, 1, 3, 2 }
-local indicesBuffer = {}
-for _, v in ipairs(indices) do
-    table.insert(indicesBuffer, ("I2"):pack(v))
+---@type string[]
+local indices = {}
+for _, v in ipairs({ 0, 1, 2, 1, 3, 2 }) do
+    table.insert(indices, ("I2"):pack(v))
 end
-local indicesBuffer = table.concat(indicesBuffer)
+local indices = table.concat(indices)
 
 local ibo = GL.genBuffer()
 GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ibo)
-GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, indicesBuffer, GL.STATIC_DRAW)
+GL.bufferData(GL.ELEMENT_ARRAY_BUFFER, indices, GL.STATIC_DRAW)
 GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, 0)
 
 local vao = GL.genVertexArray()
@@ -233,7 +234,7 @@ end
 local bufferWidth = 512
 local bufferHeight = 512
 
-local color = ("c" .. (4 * bufferWidth * bufferHeight)):pack(("B"):pack(0xff));
+local color = ("B"):pack(0xff):rep(4 * bufferWidth * bufferHeight)
 
 local framebuffer = GL.genFramebuffer();
 GL.bindFramebuffer(GL.FRAMEBUFFER, framebuffer);
@@ -281,7 +282,7 @@ local function update()
     GL.activateTexture(GL.TEXTURE0);
     GL.bindTexture(GL.TEXTURE_2D, texImage);
     GL.uniform1i(0, 0);
-    GL.drawElements(GL.TRIANGLES, #indices, GL.UNSIGNED_SHORT)
+    GL.drawElements(GL.TRIANGLES, #indices / 2, GL.UNSIGNED_SHORT)
     GL.bindVertexArray(0);
 
     SDL.GL_SwapWindow(window)
