@@ -1,6 +1,4 @@
 local utils = require("utils")
---- @type buffer
-local Buffer = require("buffer")
 --- @type gl
 local GL = require("opengl")
 --- @type SDL
@@ -129,7 +127,6 @@ if not utils.isEmscripten() then
     GL.loadGLLoader()
 end
 
-local byteSizeOfFloat32 = 4
 ---@type number[]
 local points = {
     -0.5, 0.5, 0.0,
@@ -137,10 +134,11 @@ local points = {
     -0.5, -0.5, 0.0,
     0.5, -0.5, 0.0,
 }
-local pointsBuffer = Buffer.alloc(#points * byteSizeOfFloat32)
-for i, v in ipairs(points) do
-    pointsBuffer:setFloat32(byteSizeOfFloat32 * (i - 1), v)
+local pointsBuffer = {}
+for _, v in ipairs(points) do
+    table.insert(pointsBuffer, ("f"):pack(v));
 end
+local pointsBuffer = table.concat(pointsBuffer);
 
 ---@type number[]
 local uv0s = {
@@ -149,10 +147,11 @@ local uv0s = {
     0.0, 0.0,
     1.0, 0.0,
 }
-local uv0sBuffer = Buffer.alloc(#uv0s * byteSizeOfFloat32)
+local uv0sBuffer = {}
 for i, v in ipairs(uv0s) do
-    uv0sBuffer:setFloat32(byteSizeOfFloat32 * (i - 1), v)
+    table.insert(uv0sBuffer, ("f"):pack(v))
 end
+local uv0sBuffer = table.concat(uv0sBuffer)
 
 local vbPositions = GL.genBuffer()
 GL.bindBuffer(GL.ARRAY_BUFFER, vbPositions)
@@ -164,13 +163,13 @@ GL.bindBuffer(GL.ARRAY_BUFFER, vbUv0s)
 GL.bufferData(GL.ARRAY_BUFFER, uv0sBuffer, GL.STATIC_DRAW)
 GL.bindBuffer(GL.ARRAY_BUFFER, 0)
 
-local byteSizeOfUint16 = 2
 ---@type integer[]
 local indices = { 0, 1, 2, 1, 3, 2 }
-local indicesBuffer = Buffer.alloc(#indices * byteSizeOfUint16)
-for i, v in ipairs(indices) do
-    indicesBuffer:setUint16(byteSizeOfUint16 * (i - 1), v)
+local indicesBuffer = {}
+for _, v in ipairs(indices) do
+    table.insert(indicesBuffer, ("I2"):pack(v))
 end
+local indicesBuffer = table.concat(indicesBuffer)
 
 local ibo = GL.genBuffer()
 GL.bindBuffer(GL.ELEMENT_ARRAY_BUFFER, ibo)
@@ -234,8 +233,7 @@ end
 local bufferWidth = 512
 local bufferHeight = 512
 
-local color = Buffer.alloc(bufferWidth * bufferHeight * byteSizeOfFloat32)
-color:fillUint8(0xff)
+local color = ("c" .. (4 * bufferWidth * bufferHeight)):pack(("B"):pack(0xff));
 
 local framebuffer = GL.genFramebuffer();
 GL.bindFramebuffer(GL.FRAMEBUFFER, framebuffer);

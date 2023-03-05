@@ -1,5 +1,4 @@
 #include "../core/lua/spv_cross/lua_spv_cross.hpp"
-#include "../core/lua/buffer/lua_buffer.hpp"
 #include "../core/lua/lua_common.hpp"
 #include "../core/lua/lua_utils.hpp"
 #include <gtest/gtest.h>
@@ -11,7 +10,6 @@ protected:
   virtual void SetUp() {
     L = luaL_newstate();
     luaL_openlibs(L);
-    hello::lua::buffer::openlibs(L);
     hello::lua::spv_cross::openlibs(L);
   }
   virtual void TearDown() {
@@ -62,8 +60,8 @@ TEST_F(LuaSpvCross_Test, CompileTest) {
                      "local p = require('spv_cross').compile(args[1]);\n"
                      "return p;\n");
   const auto size = sizeof(spv);
-  auto udBuffer = hello::lua::buffer::alloc(L, size);
-  memcpy(udBuffer->data, spv, size);
+  const auto data = reinterpret_cast<const char *>(spv);
+  lua_pushlstring(L, data, size);
   ASSERT_EQ(hello::lua::utils::docall(L, 1), LUA_OK) << lua_tostring(L, -1);
   ASSERT_STRNE(luaL_checkstring(L, -1), "");
 }

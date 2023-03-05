@@ -1,5 +1,4 @@
 #include "runner.hpp"
-#include "lua/buffer/lua_buffer.hpp"
 #include "lua/glslang/lua_glslang.hpp"
 #include "lua/lua_utils.hpp"
 #include "lua/opengl/lua_opengl.hpp"
@@ -19,7 +18,6 @@ namespace {
 void initialize(lua_State *L) {
   luaL_openlibs(L);
   lua::utils::openlibs(L);
-  lua::buffer::openlibs(L);
   lua::sdl2::openlibs(L);
   lua::opengl::openlibs(L);
   lua::glslang::openlibs(L);

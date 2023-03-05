@@ -1,5 +1,4 @@
 #include "./lua_sdl2_image.hpp"
-#include "../buffer/lua_buffer.hpp"
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
@@ -27,11 +26,13 @@ int L_load(lua_State *L) {
   return 1;
 }
 
-int L_loadFromBuffer(lua_State *L) {
-  auto buf = hello::lua::buffer::get(L, 1);
-  luaL_argcheck(L, buf != nullptr, 1, "Expected buffer");
-  auto rw = SDL_RWFromMem(buf->data, buf->size);
-  auto surface = IMG_Load_RW(rw, SDL_FALSE);
+int L_loadFromString(lua_State *L) {
+  size_t size;
+  auto src = luaL_checklstring(L, 1, &size);
+  auto dst = malloc(size);
+  ::memcpy(dst, src, size);
+  auto rw = SDL_RWFromMem(dst, static_cast<int>(size));
+  auto surface = IMG_Load_RW(rw, SDL_TRUE);
 
   if (surface != nullptr) {
     auto pudSurface =
@@ -41,7 +42,6 @@ int L_loadFromBuffer(lua_State *L) {
   } else {
     lua_pushnil(L);
   }
-  SDL_FreeRW(rw);
   return 1;
 }
 
@@ -129,8 +129,8 @@ int L_require(lua_State *L) {
   lua_newtable(L);
   lua_pushcfunction(L, L_load);
   lua_setfield(L, -2, "load");
-  lua_pushcfunction(L, L_loadFromBuffer);
-  lua_setfield(L, -2, "loadFromBuffer");
+  lua_pushcfunction(L, L_loadFromString);
+  lua_setfield(L, -2, "loadFromString");
   return 1;
 }
 } // namespace

@@ -1,5 +1,4 @@
 #include "./lua_opengl.hpp"
-#include "../buffer/lua_buffer.hpp"
 #include "../sdl2_image/lua_sdl2_image.hpp"
 #include <SDL2/SDL.h>
 #include <cfloat>
@@ -68,12 +67,11 @@ int L_glBindBuffer(lua_State *L) {
 
 int L_glBufferData(lua_State *L) {
   auto target = static_cast<GLenum>(luaL_checkinteger(L, 1));
-  auto buffer = hello::lua::buffer::get(L, 2);
-  luaL_argcheck(L, buffer != nullptr, 2, "Expected buffer");
-  luaL_argcheck(L, buffer->usage == nullptr, 2, "operation is not permitted.");
-  luaL_argcheck(L, buffer->size > 0, 2, "size must be breater than 0");
+  size_t size;
+  auto data = luaL_checklstring(L, 2, &size);
+  luaL_argcheck(L, size > 0, 2, "size must be breater than 0");
   auto usage = static_cast<GLenum>(luaL_checkinteger(L, 3));
-  glBufferData(target, buffer->size, buffer->data, usage);
+  glBufferData(target, size, data, usage);
   return 0;
 }
 
@@ -270,14 +268,13 @@ int L_glTexImage2D(lua_State *L) {
   auto format = static_cast<GLenum>(luaL_checkinteger(L, 7));
   auto type = static_cast<GLenum>(luaL_checkinteger(L, 8));
 
-  void *pixels = nullptr;
+  const void *pixels = nullptr;
   if (!lua_isnoneornil(L, 9)) {
-    auto buffer = hello::lua::buffer::get(L, 9);
-    if (buffer != nullptr) {
-      luaL_argcheck(L, buffer->usage == nullptr, 9,
-                    "operation is not permitted.");
-      luaL_argcheck(L, buffer->size > 0, 9, "size must be breater than 0");
-      pixels = buffer->data;
+    if (lua_isstring(L, 9)) {
+      size_t size;
+      auto data = luaL_checklstring(L, 9, &size);
+      luaL_argcheck(L, size > 0, 9, "size must be breater than 0");
+      pixels = data;
     } else {
       auto pudSurface = hello::lua::sdl2_image::get(L, 9);
       luaL_argcheck(L, pudSurface->surface != nullptr, 9,

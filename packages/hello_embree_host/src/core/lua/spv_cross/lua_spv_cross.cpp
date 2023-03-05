@@ -1,6 +1,5 @@
 
 #include "./lua_spv_cross.hpp"
-#include "../buffer/lua_buffer.hpp"
 #include <cstdlib>
 #include <spirv_cross/spirv_glsl.hpp>
 #include <utility>
@@ -8,7 +7,8 @@
 
 namespace {
 int L_compile(lua_State *L) {
-  auto udBuffer = hello::lua::buffer::get(L, 1);
+  size_t size;
+  auto data = luaL_checklstring(L, 1, &size);
 
   auto es = true;
   auto version = 300;
@@ -28,8 +28,8 @@ int L_compile(lua_State *L) {
 
   try {
     spirv_cross::CompilerGLSL glsl(
-        reinterpret_cast<unsigned int *>(udBuffer->data),
-        static_cast<size_t>(udBuffer->size / sizeof(unsigned int)));
+        reinterpret_cast<const unsigned int *>(data),
+        static_cast<size_t>(size / sizeof(unsigned int)));
 
     // The SPIR-V is now parsed, and we can perform reflection on it.
     spirv_cross::ShaderResources resources = glsl.get_shader_resources();

@@ -1,5 +1,4 @@
 #include "../core/lua/glslang/lua_glslang.hpp"
-#include "../core/lua/buffer/lua_buffer.hpp"
 #include "../core/lua/lua_common.hpp"
 #include "../core/lua/lua_utils.hpp"
 #include <glslang/Public/ShaderLang.h>
@@ -27,7 +26,6 @@ protected:
   virtual void SetUp() {
     L = luaL_newstate();
     luaL_openlibs(L);
-    hello::lua::buffer::openlibs(L);
     hello::lua::glslang::openlibs(L);
   }
   virtual void TearDown() {

@@ -1,5 +1,4 @@
 #include "./lua_glslang.hpp"
-#include "../buffer/lua_buffer.hpp"
 #include "../lua_utils.hpp"
 
 #include <cstdint>
@@ -330,10 +329,9 @@ int L_GlslangToSpv(lua_State *L) {
 
   auto spirv = std::vector<unsigned int>();
   glslang::GlslangToSpv(*(pIntermediate->data), spirv);
-  auto size = static_cast<int>(sizeof(unsigned int) * spirv.size());
-  auto udBuffer = hello::lua::buffer::alloc(L, size);
-  auto pBuffer = udBuffer->data;
-  memcpy(pBuffer, spirv.data(), size);
+  auto size = sizeof(unsigned int) * spirv.size();
+  auto data = reinterpret_cast<const char *>(spirv.data());
+  lua_pushlstring(L, data, size);
   return 1;
 }
 

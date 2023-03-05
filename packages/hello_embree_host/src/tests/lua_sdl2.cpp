@@ -13,7 +13,6 @@ void LuaSDL2_Test::initLuaState() {
   sdl2::openlibs(L);
   sdl2_image::openlibs(L);
   opengl::openlibs(L);
-  buffer::openlibs(L);
 }
 
 void LuaSDL2_Test::initOpenGL() {
