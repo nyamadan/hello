@@ -230,8 +230,8 @@ endif()
 
 ExternalProject_Add(glslang
   PREFIX "${EXTERNALS_ROOT}"
-  URL "https://github.com/KhronosGroup/glslang/archive/refs/tags/11.12.0.tar.gz"
-  URL_HASH SHA256=7795a97450fecd9779f3d821858fbc2d1a3bf1dd602617d95b685ccbcabc302f
+  URL "https://github.com/KhronosGroup/glslang/archive/refs/tags/12.2.0.tar.gz"
+  URL_HASH SHA256=870d17030fda7308c1521fb2e01a9e93cbe4b130bc8274e90d00e127432ab6f6
   BUILD_BYPRODUCTS ${GLSLANG_LIB}
   CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
