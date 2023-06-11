@@ -60,8 +60,8 @@ endif()
 if(NOT EMSCRIPTEN)
   ExternalProject_Add(sdl2
     PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.24.2.tar.gz"
-    URL_HASH SHA256=be08ca66d11b1743996cb69a9b6c44771e16084a2dbcb4b61e52d9ac4983f4fc
+    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.26.5.tar.gz"
+    URL_HASH SHA256=8f347d4b5adff605098f31fe35c23cdd91482e76edebacb4fa3b83a91465af83
     BUILD_BYPRODUCTS ${SDL2_LIB} ${SDL2MAIN_LIB}
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
@@ -73,8 +73,8 @@ if(NOT EMSCRIPTEN)
 else()
   ExternalProject_Add(sdl2
     PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.24.2.tar.gz"
-    URL_HASH SHA256=be08ca66d11b1743996cb69a9b6c44771e16084a2dbcb4b61e52d9ac4983f4fc
+    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.26.5.tar.gz"
+    URL_HASH SHA256=8f347d4b5adff605098f31fe35c23cdd91482e76edebacb4fa3b83a91465af83
     BUILD_BYPRODUCTS ${SDL2_LIB} ${SDL2MAIN_LIB}
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
