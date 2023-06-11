@@ -21,7 +21,7 @@ jobs:
         shell: bash
       - uses: actions/checkout@v3
       - name: Run CMake (Configure)
-        run: cmake -S packages/hello_host -B packages/hello_host/build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DRUN_ON_GITHUB_ACTIONS=True -DCMAKE_VERBOSE_MAKEFILE=True
+        run: cmake -S packages/hello_host -B packages/hello_host/build -G "Ninja" -DCMAKE_BUILD_TYPE=Release -DRUN_ON_GITHUB_ACTIONS=True
       - name: Run CMake (Build)
         run: cmake --build packages/hello_host/build --config Release --parallel -- -w dupbuild=warn
       - name: Run (CTest)
