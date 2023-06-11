@@ -12,16 +12,6 @@
       "ctestCommandArgs": "",
       "variables": [
         {
-          "name": "TBB_USE_BINARY",
-          "value": "False",
-          "type": "BOOL"
-        },
-        {
-          "name": "EMBREE3_USE_BINARY",
-          "value": "False",
-          "type": "BOOL"
-        },
-        {
           "name": "SDL2_USE_BINARY",
           "value": "False",
           "type": "BOOL"

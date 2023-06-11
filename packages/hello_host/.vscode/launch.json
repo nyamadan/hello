@@ -8,15 +8,15 @@
       "type": "lua",
       "request": "launch",
       "name": "Debug",
-      "runtimeExecutable": "${workspaceFolder}/build/hello_embree_host",
+      "runtimeExecutable": "${workspaceFolder}/build/hello_host",
       "windows": {
         "name": "Debug",
         "type": "lua",
         "request": "launch",
-        "runtimeExecutable": "${workspaceFolder}/build/hello_embree_host.exe"
+        "runtimeExecutable": "${workspaceFolder}/build/hello_host.exe"
       },
       "runtimeArgs": ["index.lua"],
-      "cwd": "${workspaceFolder}/../hello_embree_script/public",
+      "cwd": "${workspaceFolder}/../hello_script/public",
       "console": "internalConsole",
       "stopOnEntry": false
     }

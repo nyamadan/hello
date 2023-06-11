@@ -8,9 +8,9 @@
       "type": "lua",
       "request": "launch",
       "name": "Debug",
-      "runtimeExecutable": "${workspaceFolder}/../hello_embree_host/build/hello_embree_host",
+      "runtimeExecutable": "${workspaceFolder}/../hello_host/build/hello_host",
       "windows": {
-        "runtimeExecutable": "${workspaceFolder}/../hello_embree_host/build/hello_embree_host.exe"
+        "runtimeExecutable": "${workspaceFolder}/../hello_host/build/hello_host.exe"
       },
       "runtimeArgs": ["index.lua"],
       "cwd": "${workspaceFolder}/public",

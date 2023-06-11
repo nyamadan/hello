@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.25.0)
-project(hello_embree_host VERSION 0.1.0)
+project(hello_host VERSION 0.1.0)
 
 # GoogleTest requires at least C++14
 set(CMAKE_CXX_STANDARD 17)
@@ -243,125 +243,6 @@ ExternalProject_Add(glslang
   -DENABLE_CTEST:BOOL=Off
 )
 
-# EMBREE3
-if(MSVC)
-  set(EMBREE3_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/embree3.lib)
-elseif(MINGW)
-  set(EMBREE3_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/embree3.lib)
-elseif(EMSCRIPTEN)
-  set(EMBREE3_LIB
-    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libembree3.a
-    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/liblexers.a
-    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libmath.a
-    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libsimd.a
-    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libsys.a
-    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libtasking.a
-  )
-else()
-  set(EMBREE3_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libembree3.a)
-endif()
-
-if(MINGW)
-  ExternalProject_Add(embree3
-    PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/embree/embree/releases/download/v3.13.4/embree-3.13.4.x64.vc14.windows.zip"
-    URL_HASH SHA256=6c62147c887c2917bd2f6f6bbe5ff33095fa333c38395feae0d881025601a14e
-    BUILD_BYPRODUCTS ${EMBREE3_LIB}
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND
-    ${CMAKE_COMMAND} -E copy_directory ${EXTERNALS_ROOT}/src/embree3/include ${EXTERNALS_ROOT}/include
-    && ${CMAKE_COMMAND} -E copy ${EXTERNALS_ROOT}/src/embree3/bin/embree3.dll ${EXTERNALS_ROOT}/bin/embree3.dll
-    && ${CMAKE_COMMAND} -E copy ${EXTERNALS_ROOT}/src/embree3/bin/msvcp140.dll ${EXTERNALS_ROOT}/bin/msvcp140.dll
-    && ${CMAKE_COMMAND} -E copy ${EXTERNALS_ROOT}/src/embree3/bin/vcruntime140.dll ${EXTERNALS_ROOT}/bin/vcruntime140.dll
-    && ${CMAKE_COMMAND} -E copy ${EXTERNALS_ROOT}/src/embree3/lib/embree3.lib ${EXTERNALS_ROOT}/lib/embree3.lib
-    && ${CMAKE_COMMAND} -E copy ${EXTERNALS_ROOT}/src/embree3/bin/tbb12.dll ${EXTERNALS_ROOT}/bin/tbb12.dll
-  )
-elseif(EMSCRIPTEN)
-  ExternalProject_Add(embree3
-    PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/embree/embree/archive/refs/tags/v3.13.4.tar.gz"
-    URL_HASH SHA256=e6a8d1d4742f60ae4d936702dd377bc4577a3b034e2909adb2197d0648b1cb35
-    BUILD_BYPRODUCTS ${EMBREE3_LIB}
-    CMAKE_ARGS
-    -DEMBREE_ISPC_SUPPORT=Off
-    -DEMBREE_TASKING_SYSTEM=Internal
-    -DEMBREE_TUTORIALS=Off
-    -DEMBREE_STATIC_LIB=On
-    -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
-    -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
-    -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-else()
-  ExternalProject_Add(embree3
-    PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/embree/embree/archive/refs/tags/v3.13.4.tar.gz"
-    URL_HASH SHA256=e6a8d1d4742f60ae4d936702dd377bc4577a3b034e2909adb2197d0648b1cb35
-    BUILD_BYPRODUCTS ${EMBREE3_LIB}
-    CMAKE_ARGS
-    -DEMBREE_ISPC_SUPPORT=Off
-    -DEMBREE_TASKING_SYSTEM=TBB
-    -DEMBREE_TUTORIALS=Off
-    -DEMBREE_STATIC_LIB=Off
-    -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
-    -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
-    -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-endif()
-
-# TBB
-if(MSVC)
-  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-    set(TBB_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/tbb12_debug.lib)
-  else()
-    set(TBB_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/tbb12.lib)
-  endif()
-elseif(MINGW)
-  set(TBB_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/tbb12.lib)
-elseif(EMSCRIPTEN)
-  set(TBB_LIB)
-else()
-  set(TBB_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libtbb12.a)
-endif()
-
-if(MINGW)
-  ExternalProject_Add(tbb
-    PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/oneapi-src/oneTBB/releases/download/v2021.5.0/oneapi-tbb-2021.5.0-win.zip"
-    URL_HASH SHA256=096c004c7079af89fe990bb259d58983b0ee272afa3a7ef0733875bfe09fcd8e
-    BUILD_BYPRODUCTS ${TBB_LIB}
-    CONFIGURE_COMMAND ""
-    BUILD_COMMAND ""
-    INSTALL_COMMAND
-    ${CMAKE_COMMAND} -E copy_directory ${EXTERNALS_ROOT}/src/tbb/include ${EXTERNALS_ROOT}/include
-    && ${CMAKE_COMMAND} -E copy ${EXTERNALS_ROOT}/src/tbb/lib/intel64/vc14/tbb12.lib ${EXTERNALS_ROOT}/lib/tbb12.lib
-    && ${CMAKE_COMMAND} -E copy ${EXTERNALS_ROOT}/src/tbb/lib/intel64/vc14/tbbbind.lib ${EXTERNALS_ROOT}/lib/tbbbind.lib
-    && ${CMAKE_COMMAND} -E copy ${EXTERNALS_ROOT}/src/tbb/lib/intel64/vc14/tbbmalloc.lib ${EXTERNALS_ROOT}/lib/tbbmalloc.lib
-    && ${CMAKE_COMMAND} -E copy ${EXTERNALS_ROOT}/src/tbb/lib/intel64/vc14/tbbmalloc_proxy.lib ${EXTERNALS_ROOT}/lib/tbbmalloc_proxy.lib
-    && ${CMAKE_COMMAND} -E copy ${EXTERNALS_ROOT}/src/tbb/redist/intel64/vc14/tbb12.dll ${EXTERNALS_ROOT}/bin/tbb12.dll
-    && ${CMAKE_COMMAND} -E copy ${EXTERNALS_ROOT}/src/tbb/redist/intel64/vc14/tbbmalloc.dll ${EXTERNALS_ROOT}/bin/tbbmalloc.dll
-    && ${CMAKE_COMMAND} -E copy ${EXTERNALS_ROOT}/src/tbb/redist/intel64/vc14/tbbmalloc_proxy.dll ${EXTERNALS_ROOT}/bin/tbbmalloc_proxy.dll
-  )
-elseif(NOT EMSCRIPTEN)
-  ExternalProject_Add(tbb
-    PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/oneapi-src/oneTBB/archive/refs/tags/v2021.5.0.zip"
-    URL_HASH SHA256=83ea786c964a384dd72534f9854b419716f412f9d43c0be88d41874763e7bb47
-    BUILD_BYPRODUCTS ${TBB_LIB}
-    CMAKE_ARGS
-    -DTBB_TEST:BOOL=False
-    -DTBB_STRICT:BOOL=False
-    -DTBB_EXAMPLES:BOOL=False
-    -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
-    -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
-    -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
-  )
-endif()
-
-if(NOT EMSCRIPTEN)
-  add_dependencies(embree3 tbb)
-endif()
-
 # lua
 if(MSVC)
   if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
@@ -408,83 +289,83 @@ target_include_directories(glad
 file(GLOB_RECURSE CORE_SOURCES "src/core/*.cpp" "src/core/*.c")
 
 # core library
-add_library(hello_embree_host_lib "${CORE_SOURCES}")
+add_library(hello_host_lib "${CORE_SOURCES}")
 
 if(MSVC)
-  set_target_properties(hello_embree_host_lib PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-  set_target_properties(hello_embree_host_lib PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
-  set_target_properties(hello_embree_host_lib PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
+  set_target_properties(hello_host_lib PROPERTIES LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+  set_target_properties(hello_host_lib PROPERTIES LIBRARY_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
+  set_target_properties(hello_host_lib PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
 endif()
 
 # compile options
-target_compile_options(hello_embree_host_lib PRIVATE
+target_compile_options(hello_host_lib PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
-target_include_directories(hello_embree_host_lib
+target_include_directories(hello_host_lib
   PRIVATE
   "externals/include"
   $<BUILD_INTERFACE:${EXTERNALS_ROOT}/${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 if(MSVC OR MINGW)
-  target_compile_definitions(hello_embree_host_lib PUBLIC LUA_BUILD_AS_DLL)
+  target_compile_definitions(hello_host_lib PUBLIC LUA_BUILD_AS_DLL)
 endif()
 
 if(RUN_ON_GITHUB_ACTIONS)
-  target_compile_definitions(hello_embree_host_lib PRIVATE RUN_ON_GITHUB_ACTIONS)
+  target_compile_definitions(hello_host_lib PRIVATE RUN_ON_GITHUB_ACTIONS)
 endif()
 
 if(MSVC OR MINGW)
-  add_custom_command(TARGET hello_embree_host_lib POST_BUILD
+  add_custom_command(TARGET hello_host_lib POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory ${EXTERNALS_ROOT}/bin ${PROJECT_BINARY_DIR}
   )
 endif()
 
-add_dependencies(hello_embree_host_lib glad lua sdl2 sdl2_image embree3 glslang spirvcross)
+add_dependencies(hello_host_lib glad lua sdl2 sdl2_image glslang spirvcross)
 
 # core executable
 if(MSVC OR MINGW)
-  add_executable(hello_embree_host
+  add_executable(hello_host
     WIN32
     src/main.cpp
   )
 else()
-  add_executable(hello_embree_host
+  add_executable(hello_host
     src/main.cpp
   )
 endif()
 
 if(MSVC)
-  set_target_properties(hello_embree_host PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-  set_target_properties(hello_embree_host PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
-  set_target_properties(hello_embree_host PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
+  set_target_properties(hello_host PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+  set_target_properties(hello_host PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
+  set_target_properties(hello_host PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
 endif()
 
 if(EMSCRIPTEN)
-  set_target_properties(hello_embree_host PROPERTIES OUTPUT_NAME "index" SUFFIX ".js")
+  set_target_properties(hello_host PROPERTIES OUTPUT_NAME "index" SUFFIX ".js")
 endif()
 
 # compile options
-target_compile_options(hello_embree_host PRIVATE
+target_compile_options(hello_host PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
-target_include_directories(hello_embree_host
+target_include_directories(hello_host
   PRIVATE
   "externals/include"
   $<BUILD_INTERFACE:${EXTERNALS_ROOT}/${CMAKE_INSTALL_INCLUDEDIR}>
 )
 
 if(MSVC OR MINGW)
-  target_compile_definitions(hello_embree_host
+  target_compile_definitions(hello_host
     PUBLIC
     LUA_BUILD_AS_DLL
   )
 endif()
 
 if(RUN_ON_GITHUB_ACTIONS)
-  target_compile_definitions(hello_embree_host PRIVATE RUN_ON_GITHUB_ACTIONS)
+  target_compile_definitions(hello_host PRIVATE RUN_ON_GITHUB_ACTIONS)
 endif()
 
 # link option
@@ -506,12 +387,10 @@ else()
   set(PLATFROM_LIBS)
 endif()
 
-target_link_libraries(hello_embree_host
+target_link_libraries(hello_host
   ${SDL2MAIN_LIB}
-  hello_embree_host_lib
+  hello_host_lib
   glad
-  ${EMBREE3_LIB}
-  ${TBB_LIB}
   ${LUA_LIB}
   ${SDL2_image_LIB}
   ${SDL2_LIB}
@@ -522,9 +401,9 @@ target_link_libraries(hello_embree_host
 )
 
 if(MINGW)
-  target_link_options(hello_embree_host PRIVATE "-static" "-lstdc++")
+  target_link_options(hello_host PRIVATE "-static" "-lstdc++")
 elseif(EMSCRIPTEN)
-  target_link_options(hello_embree_host PRIVATE
+  target_link_options(hello_host PRIVATE
     "-sWASM=1"
     "-sFETCH=1"
     "-sMAX_WEBGL_VERSION=2"
@@ -542,41 +421,41 @@ elseif(EMSCRIPTEN)
 endif()
 
 #
-add_dependencies(hello_embree_host hello_embree_host_lib)
+add_dependencies(hello_host hello_host_lib)
 
 # Tests
 include(CTest)
 enable_testing()
 
 file(GLOB_RECURSE TEST_SOURCES "src/tests/*.cpp" "src/tests/*.c")
-add_executable(hello_embree_host_test "${TEST_SOURCES}")
+add_executable(hello_host_test "${TEST_SOURCES}")
 
 if(MSVC)
-  set_target_properties(hello_embree_host_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
-  set_target_properties(hello_embree_host_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
-  set_target_properties(hello_embree_host_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
+  set_target_properties(hello_host_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR})
+  set_target_properties(hello_host_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY_DEBUG ${PROJECT_BINARY_DIR})
+  set_target_properties(hello_host_test PROPERTIES RUNTIME_OUTPUT_DIRECTORY_RELEASE ${PROJECT_BINARY_DIR})
 elseif(EMSCRIPTEN)
-  set_target_properties(hello_embree_host_test PROPERTIES OUTPUT_NAME "hello_embree_host_test" SUFFIX ".cjs")
+  set_target_properties(hello_host_test PROPERTIES OUTPUT_NAME "hello_host_test" SUFFIX ".cjs")
 endif()
 
 # compile options
 if(MSVC OR MINGW)
-  target_compile_definitions(hello_embree_host_test
+  target_compile_definitions(hello_host_test
     PUBLIC
     LUA_BUILD_AS_DLL
   )
 endif()
 
-target_compile_options(hello_embree_host_test PRIVATE
+target_compile_options(hello_host_test PRIVATE
   $<$<CXX_COMPILER_ID:MSVC>:/W4 /WX>
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
 if(RUN_ON_GITHUB_ACTIONS)
-  target_compile_definitions(hello_embree_host_test PRIVATE RUN_ON_GITHUB_ACTIONS)
+  target_compile_definitions(hello_host_test PRIVATE RUN_ON_GITHUB_ACTIONS)
 endif()
 
-target_include_directories(hello_embree_host_test
+target_include_directories(hello_host_test
   PRIVATE
   "externals/include"
   $<BUILD_INTERFACE:${EXTERNALS_ROOT}/${CMAKE_INSTALL_INCLUDEDIR}>
@@ -584,9 +463,9 @@ target_include_directories(hello_embree_host_test
 
 # link option
 if(MINGW)
-  target_link_options(hello_embree_host_test PRIVATE "-static" "-lstdc++")
+  target_link_options(hello_host_test PRIVATE "-static" "-lstdc++")
 elseif(EMSCRIPTEN)
-  target_link_options(hello_embree_host_test PRIVATE
+  target_link_options(hello_host_test PRIVATE
     "-sWASM=1"
     "-sFETCH=1"
     "-sALLOW_MEMORY_GROWTH=1"
@@ -598,12 +477,10 @@ elseif(EMSCRIPTEN)
 endif()
 
 target_link_libraries(
-  hello_embree_host_test
+  hello_host_test
   GTest::gtest_main
-  hello_embree_host_lib
+  hello_host_lib
   glad
-  ${EMBREE3_LIB}
-  ${TBB_LIB}
   ${LUA_LIB}
   ${SDL2_image_LIB}
   ${SDL2_LIB}
@@ -614,4 +491,4 @@ target_link_libraries(
 )
 
 include(GoogleTest)
-gtest_discover_tests(hello_embree_host_test DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/../hello_embree_script/public")
+gtest_discover_tests(hello_host_test DISCOVERY_MODE PRE_TEST WORKING_DIRECTORY "${PROJECT_SOURCE_DIR}/../hello_script/public")

@@ -1,11 +1,12 @@
 {
   "cmake.debugConfig": {
-    "cwd": "${workspaceFolder}/../hello_embree_script/public",
+    "cwd": "${workspaceFolder}/../hello_script/public",
     "args": ["index.lua"]
   },
   "cmake.installPrefix": "",
   "cmake.configureSettings": {},
   "cmake.generator": "Unix Makefiles",
+  "cmake.parallelJobs": 16,
   "files.associations": {
     "stdexcept": "cpp",
     "chrono": "cpp",

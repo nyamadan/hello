@@ -105,7 +105,7 @@ end
 local windowWidth = 1280
 local windowHeight = 720
 
-local window = SDL.CreateWindow("hello embree",
+local window = SDL.CreateWindow("hello",
     SDL.WINDOWPOS_UNDEFINED,
     SDL.WINDOWPOS_UNDEFINED,
     windowWidth, windowHeight,

@@ -1,5 +1,5 @@
 {
-  "name": "hello_embree",
+  "name": "hello",
   "version": "0.0.1",
   "description": "",
   "main": "index.js",
@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
-    "hello_embree_script": "workspace:*"
+    "hello_script": "workspace:*"
   },
   "keywords": [],
   "author": "Yoshiki YAMADA",
