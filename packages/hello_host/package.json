@@ -1,5 +1,5 @@
 {
-  "name": "hello_embree_host",
+  "name": "hello_host",
   "version": "0.0.1",
   "type": "module",
   "main": "build/index.js",

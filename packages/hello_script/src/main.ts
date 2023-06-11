@@ -1,5 +1,5 @@
 // @ts-ignore
-import createModule from "hello_embree_host";
+import createModule from "hello_host";
 
 async function main() {
   const Module: any = await createModule();
