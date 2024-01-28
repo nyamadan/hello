@@ -60,8 +60,8 @@ endif()
 if(NOT EMSCRIPTEN)
   ExternalProject_Add(sdl2
     PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.26.5.tar.gz"
-    URL_HASH SHA256=8f347d4b5adff605098f31fe35c23cdd91482e76edebacb4fa3b83a91465af83
+    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.28.5.tar.gz"
+    URL_HASH SHA256=9f0556e4a24ef5b267010038ad9e9948b62f236d5bcc4b22179f95ef62d84023
     BUILD_BYPRODUCTS ${SDL2_LIB} ${SDL2MAIN_LIB}
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
@@ -73,8 +73,8 @@ if(NOT EMSCRIPTEN)
 else()
   ExternalProject_Add(sdl2
     PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.26.5.tar.gz"
-    URL_HASH SHA256=8f347d4b5adff605098f31fe35c23cdd91482e76edebacb4fa3b83a91465af83
+    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.28.5.tar.gz"
+    URL_HASH SHA256=9f0556e4a24ef5b267010038ad9e9948b62f236d5bcc4b22179f95ef62d84023
     BUILD_BYPRODUCTS ${SDL2_LIB} ${SDL2MAIN_LIB}
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
@@ -102,8 +102,8 @@ endif()
 
 ExternalProject_Add(sdl2_image
   PREFIX "${EXTERNALS_ROOT}"
-  URL "https://github.com/libsdl-org/SDL_image/archive/refs/tags/release-2.6.2.tar.gz"
-  URL_HASH SHA256=5d91ea72b449a161821ef51464d0767efb6fedf7a773f923c43e483dc137e362
+  URL "https://github.com/libsdl-org/SDL_image/archive/refs/tags/release-2.8.2.tar.gz"
+  URL_HASH SHA256=8fd59b2c17772d7ac1192b11c645be8d7874f595c1714f4b200ee70b7cc38f3e
   BUILD_BYPRODUCTS ${SDL2_image_LIB}
   CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
@@ -161,8 +161,8 @@ endif()
 
 ExternalProject_Add(spirvcross
   PREFIX "${EXTERNALS_ROOT}"
-  URL "https://github.com/KhronosGroup/SPIRV-Cross/archive/refs/tags/sdk-1.3.231.1.tar.gz"
-  URL_HASH SHA256=3b42f5b6e46b45600e09fd55234f59edb7cfca803e49d7830dc6fb5a086143b1
+  URL "https://github.com/KhronosGroup/SPIRV-Cross/archive/refs/tags/sdk-1.3.261.1.tar.gz"
+  URL_HASH SHA256=a5cf99ed62e93800232e50b782890321d4d7e053dcaa71bd8efc0c48a00bd1dd
   BUILD_BYPRODUCTS ${SPIRVCROSS_LIB}
   CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
