@@ -1,2 +1,6 @@
 --- @class SDL
 --- @field PIXELFORMAT_ABGR8888 376840196
+--- @field Init fun(flags: integer)
+--- @field GetError fun(): string
+--- @field INIT_VIDEO 32
+--- @field INIT_TIMER 1
