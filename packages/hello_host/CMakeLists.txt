@@ -60,8 +60,8 @@ endif()
 if(NOT EMSCRIPTEN)
   ExternalProject_Add(sdl2
     PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.26.5.tar.gz"
-    URL_HASH SHA256=8f347d4b5adff605098f31fe35c23cdd91482e76edebacb4fa3b83a91465af83
+    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.28.5.tar.gz"
+    URL_HASH SHA256=9f0556e4a24ef5b267010038ad9e9948b62f236d5bcc4b22179f95ef62d84023
     BUILD_BYPRODUCTS ${SDL2_LIB} ${SDL2MAIN_LIB}
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
@@ -73,8 +73,8 @@ if(NOT EMSCRIPTEN)
 else()
   ExternalProject_Add(sdl2
     PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.26.5.tar.gz"
-    URL_HASH SHA256=8f347d4b5adff605098f31fe35c23cdd91482e76edebacb4fa3b83a91465af83
+    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.28.5.tar.gz"
+    URL_HASH SHA256=9f0556e4a24ef5b267010038ad9e9948b62f236d5bcc4b22179f95ef62d84023
     BUILD_BYPRODUCTS ${SDL2_LIB} ${SDL2MAIN_LIB}
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
@@ -102,8 +102,8 @@ endif()
 
 ExternalProject_Add(sdl2_image
   PREFIX "${EXTERNALS_ROOT}"
-  URL "https://github.com/libsdl-org/SDL_image/archive/refs/tags/release-2.6.2.tar.gz"
-  URL_HASH SHA256=5d91ea72b449a161821ef51464d0767efb6fedf7a773f923c43e483dc137e362
+  URL "https://github.com/libsdl-org/SDL_image/archive/refs/tags/release-2.8.2.tar.gz"
+  URL_HASH SHA256=8fd59b2c17772d7ac1192b11c645be8d7874f595c1714f4b200ee70b7cc38f3e
   BUILD_BYPRODUCTS ${SDL2_image_LIB}
   CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
@@ -161,8 +161,8 @@ endif()
 
 ExternalProject_Add(spirvcross
   PREFIX "${EXTERNALS_ROOT}"
-  URL "https://github.com/KhronosGroup/SPIRV-Cross/archive/refs/tags/sdk-1.3.231.1.tar.gz"
-  URL_HASH SHA256=3b42f5b6e46b45600e09fd55234f59edb7cfca803e49d7830dc6fb5a086143b1
+  URL "https://github.com/KhronosGroup/SPIRV-Cross/archive/refs/tags/sdk-1.3.261.1.tar.gz"
+  URL_HASH SHA256=a5cf99ed62e93800232e50b782890321d4d7e053dcaa71bd8efc0c48a00bd1dd
   BUILD_BYPRODUCTS ${SPIRVCROSS_LIB}
   CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
@@ -177,9 +177,7 @@ if(MSVC)
     set(GLSLANG_LIB
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/GenericCodeGend.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/glslangd.lib
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/HLSLd.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/MachineIndependentd.lib
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/OGLCompilerd.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/OSDependentd.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SPIRVd.lib
     )
@@ -187,9 +185,7 @@ if(MSVC)
     set(GLSLANG_LIB
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/GenericCodeGen.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/glslang.lib
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/HLSL.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/MachineIndependent.lib
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/OGLCompiler.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/OSDependent.lib
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SPIRV.lib
     )
@@ -199,9 +195,7 @@ elseif(MINGW)
     set(GLSLANG_LIB
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libGenericCodeGend.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslangd.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libHLSLd.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libMachineIndependentd.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOGLCompilerd.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOSDependentd.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRVd.a
     )
@@ -209,9 +203,7 @@ elseif(MINGW)
     set(GLSLANG_LIB
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libGenericCodeGen.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslang.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libHLSL.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libMachineIndependent.a
-      ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOGLCompiler.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOSDependent.a
       ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRV.a
     )
@@ -220,9 +212,7 @@ else()
   set(GLSLANG_LIB
     ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libGenericCodeGen.a
     ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libglslang.a
-    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libHLSL.a
     ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libMachineIndependent.a
-    ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOGLCompiler.a
     ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libOSDependent.a
     ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSPIRV.a
   )
@@ -230,14 +220,15 @@ endif()
 
 ExternalProject_Add(glslang
   PREFIX "${EXTERNALS_ROOT}"
-  URL "https://github.com/KhronosGroup/glslang/archive/refs/tags/12.2.0.tar.gz"
-  URL_HASH SHA256=870d17030fda7308c1521fb2e01a9e93cbe4b130bc8274e90d00e127432ab6f6
+  URL "https://github.com/KhronosGroup/glslang/archive/refs/tags/14.0.0.tar.gz"
+  URL_HASH SHA256=80bbb916a23e94ea9cbfb1acb5d1a44a7e0c9613bcf5b5947c03f2273bdc92b0
   BUILD_BYPRODUCTS ${GLSLANG_LIB}
   CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
   -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
   -DENABLE_SPVREMAPPER:BOOL=Off
+  -DENABLE_OPT:BOOL=Off
   -DENABLE_GLSLANG_BINARIES:BOOL=Off
   -DENABLE_GLSLANG_JS:BOOL=Off
   -DENABLE_CTEST:BOOL=Off

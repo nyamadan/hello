@@ -1,0 +1,11 @@
+{
+	"folders": [
+		{
+			"path": "packages/hello_host"
+		},
+		{
+			"path": "packages/hello_script"
+		}
+	],
+	"settings": {}
+}
