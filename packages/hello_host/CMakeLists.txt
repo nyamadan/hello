@@ -312,8 +312,8 @@ if(MSVC OR MINGW)
   target_compile_definitions(hello_host_lib PUBLIC LUA_BUILD_AS_DLL)
 endif()
 
-if(RUN_ON_GITHUB_ACTIONS)
-  target_compile_definitions(hello_host_lib PRIVATE RUN_ON_GITHUB_ACTIONS)
+if(GITHUB_ACTIONS)
+  target_compile_definitions(hello_host_lib PRIVATE GITHUB_ACTIONS)
 endif()
 
 if(MSVC OR MINGW)
@@ -364,8 +364,8 @@ if(MSVC OR MINGW)
   )
 endif()
 
-if(RUN_ON_GITHUB_ACTIONS)
-  target_compile_definitions(hello_host PRIVATE RUN_ON_GITHUB_ACTIONS)
+if(GITHUB_ACTIONS)
+  target_compile_definitions(hello_host PRIVATE GITHUB_ACTIONS)
 endif()
 
 # link option
@@ -451,8 +451,8 @@ target_compile_options(hello_host_test PRIVATE
   $<$<NOT:$<CXX_COMPILER_ID:MSVC>>:-Wall -Wextra -Wpedantic -Werror>
 )
 
-if(RUN_ON_GITHUB_ACTIONS)
-  target_compile_definitions(hello_host_test PRIVATE RUN_ON_GITHUB_ACTIONS)
+if(GITHUB_ACTIONS)
+  target_compile_definitions(hello_host_test PRIVATE GITHUB_ACTIONS)
 endif()
 
 target_include_directories(hello_host_test
