@@ -11,5 +11,6 @@
   },
   "keywords": [],
   "author": "Yoshiki YAMADA",
-  "license": "MIT"
+  "license": "MIT",
+  "packageManager": "pnpm@9.15.4"
 }
