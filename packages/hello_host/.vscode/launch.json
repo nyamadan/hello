@@ -10,9 +10,6 @@
       "name": "Debug",
       "runtimeExecutable": "${workspaceFolder}/build/hello_host",
       "windows": {
-        "name": "Debug",
-        "type": "lua",
-        "request": "launch",
         "runtimeExecutable": "${workspaceFolder}/build/hello_host.exe"
       },
       "runtimeArgs": ["index.lua"],

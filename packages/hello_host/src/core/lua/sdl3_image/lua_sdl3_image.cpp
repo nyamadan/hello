@@ -1,13 +1,13 @@
-#include "./lua_sdl2_image.hpp"
+#include "./lua_sdl3_image.hpp"
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL_image.h>
+#include <SDL3/SDL.h>
+#include <SDL3_image/SDL_image.h>
 
 #include <fstream>
 #include <memory>
 
 namespace {
-using hello::lua::sdl2_image::UDSDL_Surface;
+using hello::lua::sdl3_image::UDSDL_Surface;
 
 const char *const SDL_SURFACE_NAME = "SDL_Surface";
 
@@ -31,8 +31,8 @@ int L_loadFromString(lua_State *L) {
   auto src = luaL_checklstring(L, 1, &size);
   auto dst = malloc(size);
   ::memcpy(dst, src, size);
-  auto rw = SDL_RWFromMem(dst, static_cast<int>(size));
-  auto surface = IMG_Load_RW(rw, SDL_TRUE);
+  auto rw = SDL_IOFromMem(dst, static_cast<int>(size));
+  auto surface = IMG_Load_IO(rw, true);
 
   if (surface != nullptr) {
     auto pudSurface =
@@ -105,22 +105,16 @@ int L_getInfoSurface(lua_State *L) {
   lua_pushinteger(L, pudSurface->surface->pitch);
   lua_setfield(L, -2, "pitch");
 
-  lua_newtable(L);
-  lua_pushinteger(L, pudSurface->surface->format->BitsPerPixel);
-  lua_setfield(L, -2, "BitsPerPixel");
-  lua_pushinteger(L, pudSurface->surface->format->BytesPerPixel);
-  lua_setfield(L, -2, "BytesPerPixel");
-  lua_pushinteger(L, pudSurface->surface->format->format);
+  lua_pushinteger(L, pudSurface->surface->format);
   lua_setfield(L, -2, "format");
 
-  lua_setfield(L, -2, "format");
   return 1;
 }
 
 int L_freeSurface(lua_State *L) {
   auto pudSurface =
       static_cast<UDSDL_Surface *>(luaL_checkudata(L, 1, SDL_SURFACE_NAME));
-  SDL_FreeSurface(pudSurface->surface);
+  SDL_DestroySurface(pudSurface->surface);
   pudSurface->surface = nullptr;
   return 0;
 }
@@ -135,7 +129,7 @@ int L_require(lua_State *L) {
 }
 } // namespace
 
-namespace hello::lua::sdl2_image {
+namespace hello::lua::sdl3_image {
 UDSDL_Surface *get(lua_State *L, int idx) {
   auto pudSurface =
       static_cast<UDSDL_Surface *>(luaL_testudata(L, idx, SDL_SURFACE_NAME));
@@ -159,7 +153,7 @@ void openlibs(lua_State *L) {
   lua_setfield(L, -2, "flipVertical");
   lua_setfield(L, -2, "__index");
 
-  luaL_requiref(L, "sdl2_image", L_require, false);
+  luaL_requiref(L, "sdl3_image", L_require, false);
   lua_pop(L, 2);
 }
-} // namespace hello::lua::sdl2_image
+} // namespace hello::lua::sdl3_image

@@ -2,9 +2,9 @@ local utils = require("utils")
 --- @type gl
 local GL = require("opengl")
 --- @type SDL
-local SDL = require("sdl2")
+local SDL = require("sdl3")
 --- @type SDL_image
-local SDL_image = require("sdl2_image")
+local SDL_image = require("sdl3_image")
 local GLSLANG = require("glslang")
 local SPV_CROSS = require("spv_cross")
 
@@ -98,7 +98,7 @@ end
 
 GLSLANG.initializeProcess()
 
-if SDL.Init(SDL.INIT_VIDEO | SDL.INIT_TIMER) ~= 0 then
+if not SDL.Init(SDL.INIT_VIDEO) then
     error(SDL.GetError())
 end
 
@@ -197,7 +197,7 @@ image:flipVertical()
 image:unlock()
 local info = image:getInfo();
 print("<image>\n" .. inspect(info));
-if info.format.format == SDL.PIXELFORMAT_ABGR8888 then
+if info.format == SDL.PIXELFORMAT_ABGR8888 then
     print("image is PIXELFORMAT_ABGR8888")
 end
 
@@ -263,7 +263,7 @@ GL.bindTexture(GL.TEXTURE_2D, texBackBuffer);
 local function update()
     local events = collectEvents()
     for _, ev in ipairs(events) do
-        if ev.type == SDL.QUIT then
+        if ev.type == SDL.EVENT_QUIT then
             utils.unregisterFunction("update")
             SDL.Quit()
             return

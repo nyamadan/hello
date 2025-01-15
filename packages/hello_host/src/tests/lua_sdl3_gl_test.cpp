@@ -1,28 +1,28 @@
-#include "./lua_sdl2_test.hpp"
+#include "./lua_sdl3_test.hpp"
 
 using namespace hello::lua;
 
-TEST_F(LuaSDL2_Test, TestGlSetAttribute) {
+TEST_F(LuaSDL3_Test, TestGlSetAttribute) {
   ASSERT_EQ(LUA_OK,
             utils::dostring(
-                L, "local SDL = require('sdl2');"
+                L, "local SDL = require('sdl3');"
                    "return SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);"))
       << lua_tostring(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestFailedToGlSetAttribute) {
-  ASSERT_NE(LUA_OK, utils::dostring(L, "local SDL = require('sdl2');"
+TEST_F(LuaSDL3_Test, TestFailedToGlSetAttribute) {
+  ASSERT_NE(LUA_OK, utils::dostring(L, "local SDL = require('sdl3');"
                                        "return SDL.GL_SetAttribute();"))
       << lua_tostring(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestGL_CreateContext) {
+TEST_F(LuaSDL3_Test, TestGL_CreateContext) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
   initWindow();
   initRenderer();
-  luaL_loadstring(L, "local SDL = require('sdl2');"
+  luaL_loadstring(L, "local SDL = require('sdl3');"
                      "local args = {...};"
                      "SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);"
                      "SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, "
@@ -35,13 +35,13 @@ TEST_F(LuaSDL2_Test, TestGL_CreateContext) {
   ASSERT_NE(nullptr, luaL_testudata(L, -1, "SDL_GL_Context"));
 }
 
-TEST_F(LuaSDL2_Test, TestGL_MakeCurrent) {
+TEST_F(LuaSDL3_Test, TestGL_MakeCurrent) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
   initWindow();
   initRenderer();
-  luaL_loadstring(L, "local SDL = require('sdl2');"
+  luaL_loadstring(L, "local SDL = require('sdl3');"
                      "local args = {...};"
                      "SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);"
                      "SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, "
@@ -55,13 +55,13 @@ TEST_F(LuaSDL2_Test, TestGL_MakeCurrent) {
   ASSERT_TRUE(lua_isinteger(L, -1));
 }
 
-TEST_F(LuaSDL2_Test, TestGL_SetSwapInterval) {
+TEST_F(LuaSDL3_Test, TestGL_SetSwapInterval) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
   initWindow();
   initRenderer();
-  luaL_loadstring(L, "local SDL = require('sdl2');"
+  luaL_loadstring(L, "local SDL = require('sdl3');"
                      "local args = {...};"
                      "SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);"
                      "SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, "
@@ -76,13 +76,13 @@ TEST_F(LuaSDL2_Test, TestGL_SetSwapInterval) {
   ASSERT_TRUE(lua_isinteger(L, -1));
 }
 
-TEST_F(LuaSDL2_Test, TestGL_SwapWindow) {
+TEST_F(LuaSDL3_Test, TestGL_SwapWindow) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
   initWindow();
   initRenderer();
-  luaL_loadstring(L, "local SDL = require('sdl2');"
+  luaL_loadstring(L, "local SDL = require('sdl3');"
                      "local args = {...};"
                      "SDL.GL_SetAttribute(SDL.GL_CONTEXT_FLAGS, 0);"
                      "SDL.GL_SetAttribute(SDL.GL_CONTEXT_PROFILE_MASK, "
@@ -97,7 +97,7 @@ TEST_F(LuaSDL2_Test, TestGL_SwapWindow) {
   ASSERT_EQ(LUA_OK, utils::docall(L, 1)) << lua_tostring(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestglClearColor) {
+TEST_F(LuaSDL3_Test, TestglClearColor) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
@@ -112,7 +112,7 @@ TEST_F(LuaSDL2_Test, TestglClearColor) {
       << lua_tostring(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestglClearDepth) {
+TEST_F(LuaSDL3_Test, TestglClearDepth) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
@@ -127,7 +127,7 @@ TEST_F(LuaSDL2_Test, TestglClearDepth) {
       << lua_tostring(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestglClear) {
+TEST_F(LuaSDL3_Test, TestglClear) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
@@ -142,7 +142,7 @@ TEST_F(LuaSDL2_Test, TestglClear) {
       << lua_tostring(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestglViewport) {
+TEST_F(LuaSDL3_Test, TestglViewport) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
@@ -157,7 +157,7 @@ TEST_F(LuaSDL2_Test, TestglViewport) {
       << lua_tostring(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestDrawArrays) {
+TEST_F(LuaSDL3_Test, TestDrawArrays) {
 #if defined(GITHUB_ACTIONS)
   GTEST_SKIP() << "Not work for GitHub Actions";
 #endif
@@ -199,7 +199,7 @@ TEST_F(LuaSDL2_Test, TestDrawArrays) {
       << lua_tostring(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestDrawElements) {
+TEST_F(LuaSDL3_Test, TestDrawElements) {
 #if defined(GITHUB_ACTIONS)
   GTEST_SKIP() << "Not work for GitHub Actions";
 #endif
@@ -263,7 +263,7 @@ TEST_F(LuaSDL2_Test, TestDrawElements) {
       << lua_tostring(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestCompileShader) {
+TEST_F(LuaSDL3_Test, TestCompileShader) {
 #if defined(GITHUB_ACTIONS)
   GTEST_SKIP() << "Not work for GitHub Actions";
 #endif
@@ -292,7 +292,7 @@ TEST_F(LuaSDL2_Test, TestCompileShader) {
   ASSERT_STREQ(luaL_checkstring(L, -2), "");
 }
 
-TEST_F(LuaSDL2_Test, TestFailToCompileShader) {
+TEST_F(LuaSDL3_Test, TestFailToCompileShader) {
 #if defined(GITHUB_ACTIONS)
   GTEST_SKIP() << "Not work for GitHub Actions";
 #endif
@@ -321,7 +321,7 @@ TEST_F(LuaSDL2_Test, TestFailToCompileShader) {
   ASSERT_STRNE(luaL_checkstring(L, -2), "");
 }
 
-TEST_F(LuaSDL2_Test, TestFailToLinkProgram) {
+TEST_F(LuaSDL3_Test, TestFailToLinkProgram) {
 #if defined(GITHUB_ACTIONS)
   GTEST_SKIP() << "Not work for GitHub Actions";
 #endif
@@ -359,7 +359,7 @@ TEST_F(LuaSDL2_Test, TestFailToLinkProgram) {
   ASSERT_STRNE(luaL_checkstring(L, -2), "");
 }
 
-TEST_F(LuaSDL2_Test, TestGenTexture) {
+TEST_F(LuaSDL3_Test, TestGenTexture) {
 #if defined(GITHUB_ACTIONS)
   GTEST_SKIP() << "Not work for GitHub Actions";
 #endif
@@ -394,7 +394,7 @@ TEST_F(LuaSDL2_Test, TestGenTexture) {
   luaL_checkinteger(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestFramebufferRenderbuffer) {
+TEST_F(LuaSDL3_Test, TestFramebufferRenderbuffer) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif

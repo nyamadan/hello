@@ -1,6 +1,6 @@
-#include "./lua_sdl2.hpp"
+#include "./lua_sdl3.hpp"
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 namespace {
 const char *const SDL_WINDOW_NAME = "SDL_Window";
@@ -10,7 +10,7 @@ const char *const SDL_GL_CONTEXT_NAME = "SDL_GL_Context";
 int L_SDL_Init(lua_State *L) {
   auto flags = static_cast<Uint32>(luaL_checkinteger(L, 1));
   auto result = SDL_Init(flags);
-  lua_pushinteger(L, result);
+  lua_pushboolean(L, result);
   return 1;
 }
 
@@ -27,12 +27,12 @@ int L_SDL_GetError(lua_State *L) {
 
 int L_SDL_CreateWindow(lua_State *L) {
   const char *const title = luaL_checkstring(L, 1);
-  const auto x = static_cast<int32_t>(luaL_checkinteger(L, 2));
-  const auto y = static_cast<int32_t>(luaL_checkinteger(L, 3));
+  // const auto x = static_cast<int32_t>(luaL_checkinteger(L, 2));
+  // const auto y = static_cast<int32_t>(luaL_checkinteger(L, 3));
   const auto w = static_cast<int32_t>(luaL_checkinteger(L, 4));
   const auto h = static_cast<int32_t>(luaL_checkinteger(L, 5));
   const auto flags = static_cast<uint32_t>(luaL_checkinteger(L, 6));
-  auto window = SDL_CreateWindow(title, x, y, w, h, flags);
+  auto window = SDL_CreateWindow(title, w, h, flags);
   auto pWindow =
       static_cast<SDL_Window **>(lua_newuserdata(L, sizeof(SDL_Window *)));
   *pWindow = window;
@@ -50,9 +50,9 @@ int L_SDL_DestroyWindow(lua_State *L) {
 int L_SDL_CreateRenderer(lua_State *L) {
   auto pWindow =
       reinterpret_cast<SDL_Window **>(luaL_checkudata(L, 1, SDL_WINDOW_NAME));
-  const int32_t index = static_cast<int32_t>(luaL_checkinteger(L, 2));
-  const uint32_t flags = static_cast<uint32_t>(luaL_checkinteger(L, 3));
-  auto renderer = SDL_CreateRenderer(*pWindow, index, flags);
+  // const int32_t index = static_cast<int32_t>(luaL_checkinteger(L, 2));
+  // const uint32_t flags = static_cast<uint32_t>(luaL_checkinteger(L, 3));
+  auto renderer = SDL_CreateRenderer(*pWindow, NULL);
   auto pRenderer =
       static_cast<SDL_Renderer **>(lua_newuserdata(L, sizeof(SDL_Renderer *)));
   *pRenderer = renderer;
@@ -78,26 +78,20 @@ int L_SDL_PollEvent(lua_State *L) {
     lua_newtable(L);
     lua_pushinteger(L, event.button.button);
     lua_setfield(L, -2, "button");
-    lua_pushinteger(L, event.button.x);
+    lua_pushnumber(L, event.button.x);
     lua_setfield(L, -2, "x");
-    lua_pushinteger(L, event.button.y);
+    lua_pushnumber(L, event.button.y);
     lua_setfield(L, -2, "y");
     lua_pushinteger(L, event.button.clicks);
     lua_setfield(L, -2, "clicks");
-    lua_pushinteger(L, event.button.state);
-    lua_setfield(L, -2, "state");
+    lua_pushinteger(L, event.button.down);
+    lua_setfield(L, -2, "down");
     lua_setfield(L, -2, "button");
     lua_newtable(L);
-    lua_newtable(L);
-    lua_pushinteger(L, event.key.keysym.sym);
-    lua_setfield(L, -2, "sym");
-    lua_pushinteger(L, event.key.keysym.scancode);
+    lua_pushinteger(L, event.key.scancode);
     lua_setfield(L, -2, "scancode");
-    lua_pushinteger(L, event.key.keysym.mod);
+    lua_pushinteger(L, event.key.mod);
     lua_setfield(L, -2, "mod");
-    lua_setfield(L, -2, "keysym");
-    lua_pushinteger(L, event.key.state);
-    lua_setfield(L, -2, "state");
     lua_pushinteger(L, event.key.type);
     lua_setfield(L, -2, "type");
     lua_pushinteger(L, event.key.timestamp);
@@ -108,13 +102,13 @@ int L_SDL_PollEvent(lua_State *L) {
     lua_setfield(L, -2, "state");
     lua_pushinteger(L, event.motion.type);
     lua_setfield(L, -2, "type");
-    lua_pushinteger(L, event.motion.x);
+    lua_pushnumber(L, event.motion.x);
     lua_setfield(L, -2, "x");
-    lua_pushinteger(L, event.motion.y);
+    lua_pushnumber(L, event.motion.y);
     lua_setfield(L, -2, "y");
-    lua_pushinteger(L, event.motion.xrel);
+    lua_pushnumber(L, event.motion.xrel);
     lua_setfield(L, -2, "xrel");
-    lua_pushinteger(L, event.motion.yrel);
+    lua_pushnumber(L, event.motion.yrel);
     lua_setfield(L, -2, "yrel");
     lua_setfield(L, -2, "motion");
   } else {
@@ -131,7 +125,7 @@ int L_SDL_Delay(lua_State *L) {
 }
 
 int L_SDL_GL_SetAttribute(lua_State *L) {
-  const auto attr = static_cast<SDL_GLattr>(luaL_checkinteger(L, 1));
+  const auto attr = static_cast<SDL_GLAttr>(luaL_checkinteger(L, 1));
   const auto value = static_cast<int>(luaL_checkinteger(L, 2));
   auto result = SDL_GL_SetAttribute(attr, value);
   lua_pushinteger(L, result);
@@ -182,9 +176,6 @@ int L_require(lua_State *L) {
   lua_pushinteger(L, SDL_INIT_VIDEO);
   lua_setfield(L, -2, "INIT_VIDEO");
 
-  lua_pushinteger(L, SDL_INIT_TIMER);
-  lua_setfield(L, -2, "INIT_TIMER");
-
   lua_pushinteger(L, SDL_WINDOW_OPENGL);
   lua_setfield(L, -2, "WINDOW_OPENGL");
 
@@ -194,11 +185,8 @@ int L_require(lua_State *L) {
   lua_pushinteger(L, SDL_WINDOWPOS_UNDEFINED);
   lua_setfield(L, -2, "WINDOWPOS_UNDEFINED");
 
-  lua_pushinteger(L, SDL_RENDERER_ACCELERATED);
-  lua_setfield(L, -2, "RENDERER_ACCELERATED");
-
-  lua_pushinteger(L, SDL_QUIT);
-  lua_setfield(L, -2, "QUIT");
+  lua_pushinteger(L, SDL_EVENT_QUIT);
+  lua_setfield(L, -2, "EVENT_QUIT");
 
   lua_pushinteger(L, SDL_GL_CONTEXT_FLAGS);
   lua_setfield(L, -2, "GL_CONTEXT_FLAGS");
@@ -264,12 +252,12 @@ int L_require(lua_State *L) {
 }
 } // namespace
 
-namespace hello::lua::sdl2 {
+namespace hello::lua::sdl3 {
 void openlibs(lua_State *L) {
   luaL_newmetatable(L, SDL_WINDOW_NAME);
   luaL_newmetatable(L, SDL_RENDERER_NAME);
   luaL_newmetatable(L, SDL_GL_CONTEXT_NAME);
-  luaL_requiref(L, "sdl2", L_require, false);
+  luaL_requiref(L, "sdl3", L_require, false);
   lua_pop(L, 4);
 }
-} // namespace hello::lua::sdl2
+} // namespace hello::lua::sdl3

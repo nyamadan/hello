@@ -2,8 +2,8 @@
 #include "lua/glslang/lua_glslang.hpp"
 #include "lua/lua_utils.hpp"
 #include "lua/opengl/lua_opengl.hpp"
-#include "lua/sdl2/lua_sdl2.hpp"
-#include "lua/sdl2_image/lua_sdl2_image.hpp"
+#include "lua/sdl3/lua_sdl3.hpp"
+#include "lua/sdl3_image/lua_sdl3_image.hpp"
 #include "lua/spv_cross/lua_spv_cross.hpp"
 #include <iostream>
 
@@ -17,11 +17,11 @@ namespace {
 void initialize(lua_State *L) {
   luaL_openlibs(L);
   lua::utils::openlibs(L);
-  lua::sdl2::openlibs(L);
+  lua::sdl3::openlibs(L);
   lua::opengl::openlibs(L);
   lua::glslang::openlibs(L);
   lua::spv_cross::openlibs(L);
-  lua::sdl2_image::openlibs(L);
+  lua::sdl3_image::openlibs(L);
 }
 
 void finalize(lua_State *L) {

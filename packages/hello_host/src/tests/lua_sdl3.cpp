@@ -1,21 +1,21 @@
-#include "./lua_sdl2_test.hpp"
+#include "./lua_sdl3_test.hpp"
 #include <glad/glad.h>
 
 using namespace hello::lua;
 
-void LuaSDL2_Test::SetUpTestSuite() { SDL_Init(SDL_INIT_VIDEO); }
+void LuaSDL3_Test::SetUpTestSuite() { SDL_Init(SDL_INIT_VIDEO); }
 
-void LuaSDL2_Test::TearDownTestSuite() { SDL_Quit(); }
+void LuaSDL3_Test::TearDownTestSuite() { SDL_Quit(); }
 
-void LuaSDL2_Test::initLuaState() {
+void LuaSDL3_Test::initLuaState() {
   L = luaL_newstate();
   luaL_openlibs(L);
-  sdl2::openlibs(L);
-  sdl2_image::openlibs(L);
+  sdl3::openlibs(L);
+  sdl3_image::openlibs(L);
   opengl::openlibs(L);
 }
 
-void LuaSDL2_Test::initOpenGL() {
+void LuaSDL3_Test::initOpenGL() {
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_FLAGS, 0);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
   SDL_GL_SetAttribute(SDL_GL_CONTEXT_MAJOR_VERSION, 3);
@@ -27,38 +27,37 @@ void LuaSDL2_Test::initOpenGL() {
   SDL_GL_MakeCurrent(this->window, context);
   SDL_GL_SetSwapInterval(1);
 #ifndef __EMSCRIPTEN__
-  gladLoadGLLoader(SDL_GL_GetProcAddress);
+  gladLoadGLLoader((GLADloadproc)SDL_GL_GetProcAddress);
 #endif
 }
 
-void LuaSDL2_Test::initWindow(Uint32 flags) {
-  this->window = SDL_CreateWindow("Hello", SDL_WINDOWPOS_UNDEFINED,
-                                  SDL_WINDOWPOS_UNDEFINED, 1280, 720, flags);
+void LuaSDL3_Test::initWindow(Uint32 flags) {
+  this->window = SDL_CreateWindow("Hello", 1280, 720, flags);
 }
 
-void LuaSDL2_Test::pushWindow() {
+void LuaSDL3_Test::pushWindow() {
   auto pWindow =
       static_cast<SDL_Window **>(lua_newuserdata(L, sizeof(SDL_Window *)));
   *pWindow = window;
   luaL_setmetatable(L, "SDL_Window");
 }
 
-void LuaSDL2_Test::initRenderer() {
+void LuaSDL3_Test::initRenderer() {
   ASSERT_NE(nullptr, this->window);
   this->renderer =
-      SDL_CreateRenderer(this->window, -1, SDL_RENDERER_ACCELERATED);
+      SDL_CreateRenderer(this->window, NULL);
 }
 
-void LuaSDL2_Test::pushRenderer() {
+void LuaSDL3_Test::pushRenderer() {
   auto pRenderer =
       static_cast<SDL_Renderer **>(lua_newuserdata(L, sizeof(SDL_Renderer *)));
   *pRenderer = renderer;
   luaL_setmetatable(L, "SDL_Renderer");
 }
 
-void LuaSDL2_Test::SetUp() { initLuaState(); }
+void LuaSDL3_Test::SetUp() { initLuaState(); }
 
-void LuaSDL2_Test::TearDown() {
+void LuaSDL3_Test::TearDown() {
   if (this->renderer != nullptr) {
     SDL_DestroyRenderer(this->renderer);
     this->renderer = nullptr;

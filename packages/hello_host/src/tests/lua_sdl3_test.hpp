@@ -1,8 +1,8 @@
-#ifndef __LUA_SDL2_TEST_HPP__
-#define __LUA_SDL2_TEST_HPP__
+#ifndef __LUA_SDL3_TEST_HPP__
+#define __LUA_SDL3_TEST_HPP__
 #include <gtest/gtest.h>
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #ifdef EMSCRIPTEN
 #include "emscripten.h"
 #include <GLES2/gl2.h>
@@ -13,8 +13,8 @@
 #include "../core/lua/lua_common.hpp"
 #include "../core/lua/lua_utils.hpp"
 #include "../core/lua/opengl/lua_opengl.hpp"
-#include "../core/lua/sdl2/lua_sdl2.hpp"
-#include "../core/lua/sdl2_image/lua_sdl2_image.hpp"
+#include "../core/lua/sdl3/lua_sdl3.hpp"
+#include "../core/lua/sdl3_image/lua_sdl3_image.hpp"
 
 #define TEST_LUA_CONSTANT(m, val1, val2)                                       \
   do {                                                                         \
@@ -26,7 +26,7 @@
     EXPECT_EQ(lua_tointeger(L, -1), val2);                                     \
   } while (0)
 
-class LuaSDL2_Test : public ::testing::Test {
+class LuaSDL3_Test : public ::testing::Test {
 public:
   static void SetUpTestSuite();
   static void TearDownTestSuite();

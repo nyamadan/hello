@@ -1,28 +1,26 @@
-#include "./lua_sdl2_test.hpp"
+#include "./lua_sdl3_test.hpp"
 
 using namespace hello::lua;
 
-TEST_F(LuaSDL2_Test, TestSDLConstants) {
-  TEST_LUA_CONSTANT("sdl2", "INIT_VIDEO", SDL_INIT_VIDEO);
-  TEST_LUA_CONSTANT("sdl2", "INIT_TIMER", SDL_INIT_TIMER);
-  TEST_LUA_CONSTANT("sdl2", "WINDOW_OPENGL", SDL_WINDOW_OPENGL);
-  TEST_LUA_CONSTANT("sdl2", "WINDOW_HIDDEN", SDL_WINDOW_HIDDEN);
-  TEST_LUA_CONSTANT("sdl2", "WINDOWPOS_UNDEFINED", SDL_WINDOWPOS_UNDEFINED);
-  TEST_LUA_CONSTANT("sdl2", "RENDERER_ACCELERATED", SDL_RENDERER_ACCELERATED);
-  TEST_LUA_CONSTANT("sdl2", "QUIT", SDL_QUIT);
-  TEST_LUA_CONSTANT("sdl2", "GL_CONTEXT_FLAGS", SDL_GL_CONTEXT_FLAGS);
-  TEST_LUA_CONSTANT("sdl2", "GL_CONTEXT_PROFILE_MASK",
+TEST_F(LuaSDL3_Test, TestSDLConstants) {
+  TEST_LUA_CONSTANT("sdl3", "INIT_VIDEO", SDL_INIT_VIDEO);
+  TEST_LUA_CONSTANT("sdl3", "WINDOW_OPENGL", SDL_WINDOW_OPENGL);
+  TEST_LUA_CONSTANT("sdl3", "WINDOW_HIDDEN", SDL_WINDOW_HIDDEN);
+  TEST_LUA_CONSTANT("sdl3", "WINDOWPOS_UNDEFINED", SDL_WINDOWPOS_UNDEFINED);
+  TEST_LUA_CONSTANT("sdl3", "EVENT_QUIT", SDL_EVENT_QUIT);
+  TEST_LUA_CONSTANT("sdl3", "GL_CONTEXT_FLAGS", SDL_GL_CONTEXT_FLAGS);
+  TEST_LUA_CONSTANT("sdl3", "GL_CONTEXT_PROFILE_MASK",
                     SDL_GL_CONTEXT_PROFILE_MASK);
-  TEST_LUA_CONSTANT("sdl2", "GL_CONTEXT_PROFILE_CORE",
+  TEST_LUA_CONSTANT("sdl3", "GL_CONTEXT_PROFILE_CORE",
                     SDL_GL_CONTEXT_PROFILE_CORE);
-  TEST_LUA_CONSTANT("sdl2", "GL_CONTEXT_MAJOR_VERSION",
+  TEST_LUA_CONSTANT("sdl3", "GL_CONTEXT_MAJOR_VERSION",
                     SDL_GL_CONTEXT_MAJOR_VERSION);
-  TEST_LUA_CONSTANT("sdl2", "GL_CONTEXT_MINOR_VERSION",
+  TEST_LUA_CONSTANT("sdl3", "GL_CONTEXT_MINOR_VERSION",
                     SDL_GL_CONTEXT_MINOR_VERSION);
 }
 
-TEST_F(LuaSDL2_Test, TestGetError) {
-  ASSERT_EQ(utils::dostring(L, "local SDL = require('sdl2');"
+TEST_F(LuaSDL3_Test, TestGetError) {
+  ASSERT_EQ(utils::dostring(L, "local SDL = require('sdl3');"
                                "return SDL.GetError();"),
             LUA_OK)
       << lua_tostring(L, -1);
@@ -30,14 +28,14 @@ TEST_F(LuaSDL2_Test, TestGetError) {
       << "GetError did not return string: " << lua_typename(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, CreateWindow) {
+TEST_F(LuaSDL3_Test, CreateWindow) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
   ASSERT_EQ(utils::dostring(
-                L, "local SDL = require('sdl2');"
-                   "return SDL.CreateWindow('Hello', SDL.WINDOWPOS_UNDEFINED, "
-                   "SDL.WINDOWPOS_UNDEFINED, 1280, 720, SDL.WINDOW_HIDDEN);"),
+                L, "local SDL = require('sdl3');"
+                   "return SDL.CreateWindow('Hello', 0, "
+                   "0, 1280, 720, SDL.WINDOW_HIDDEN);"),
             LUA_OK)
       << "Failed to create: " << lua_tostring(L, -1);
   auto w = *static_cast<SDL_Window **>(luaL_testudata(L, -1, "SDL_Window"));
@@ -45,21 +43,21 @@ TEST_F(LuaSDL2_Test, CreateWindow) {
   SDL_DestroyWindow(w);
 }
 
-TEST_F(LuaSDL2_Test, FailedToCreateWindow) {
+TEST_F(LuaSDL3_Test, FailedToCreateWindow) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
-  ASSERT_NE(utils::dostring(L, "local SDL = require('sdl2');"
+  ASSERT_NE(utils::dostring(L, "local SDL = require('sdl3');"
                                "return SDL.CreateWindow();"),
             LUA_OK);
 }
 
-TEST_F(LuaSDL2_Test, DestroyWindow) {
+TEST_F(LuaSDL3_Test, DestroyWindow) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
   initWindow();
-  luaL_loadstring(L, "local SDL = require('sdl2');"
+  luaL_loadstring(L, "local SDL = require('sdl3');"
                      "local args = {...};"
                      "return SDL.DestroyWindow(args[1]);");
   pushWindow();
@@ -68,12 +66,12 @@ TEST_F(LuaSDL2_Test, DestroyWindow) {
   this->window = nullptr;
 }
 
-TEST_F(LuaSDL2_Test, CreateRenderer) {
+TEST_F(LuaSDL3_Test, CreateRenderer) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
   initWindow();
-  luaL_loadstring(L, "local SDL = require('sdl2');"
+  luaL_loadstring(L, "local SDL = require('sdl3');"
                      "local args = {...};"
                      "return SDL.CreateRenderer(args[1], -1, "
                      "SDL.RENDERER_ACCELERATED);");
@@ -84,24 +82,24 @@ TEST_F(LuaSDL2_Test, CreateRenderer) {
   SDL_DestroyRenderer(r);
 }
 
-TEST_F(LuaSDL2_Test, FailedToCreateRenderer) {
+TEST_F(LuaSDL3_Test, FailedToCreateRenderer) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
   initWindow();
-  luaL_loadstring(L, "local SDL = require('sdl2');"
+  luaL_loadstring(L, "local SDL = require('sdl3');"
                      "return SDL.CreateRenderer();");
   pushWindow();
   ASSERT_NE(utils::docall(L, 1), LUA_OK);
 }
 
-TEST_F(LuaSDL2_Test, DestroyRenderer) {
+TEST_F(LuaSDL3_Test, DestroyRenderer) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
   initWindow();
   initRenderer();
-  luaL_loadstring(L, "local SDL = require('sdl2');"
+  luaL_loadstring(L, "local SDL = require('sdl3');"
                      "local args = {...};"
                      "return SDL.DestroyRenderer(args[1]);");
   pushRenderer();
@@ -109,13 +107,13 @@ TEST_F(LuaSDL2_Test, DestroyRenderer) {
   this->renderer = nullptr;
 }
 
-TEST_F(LuaSDL2_Test, TestPollEvent) {
+TEST_F(LuaSDL3_Test, TestPollEvent) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
   initWindow(SDL_WINDOW_OPENGL);
 
-  ASSERT_EQ(LUA_OK, utils::dostring(L, "local SDL = require('sdl2');"
+  ASSERT_EQ(LUA_OK, utils::dostring(L, "local SDL = require('sdl3');"
                                        "return SDL.PollEvent();"))
       << lua_tostring(L, -1);
   ASSERT_TRUE(lua_istable(L, -1))
@@ -127,24 +125,24 @@ TEST_F(LuaSDL2_Test, TestPollEvent) {
       << lua_typename(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestDelay) {
+TEST_F(LuaSDL3_Test, TestDelay) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
   initWindow();
 
-  ASSERT_EQ(LUA_OK, utils::dostring(L, "local SDL = require('sdl2');"
+  ASSERT_EQ(LUA_OK, utils::dostring(L, "local SDL = require('sdl3');"
                                        "return SDL.Delay(16);"))
       << lua_tostring(L, -1);
 }
 
-TEST_F(LuaSDL2_Test, TestFailToDelay) {
+TEST_F(LuaSDL3_Test, TestFailToDelay) {
 #if defined(__EMSCRIPTEN__)
   GTEST_SKIP() << "Not work for Emscripten";
 #endif
   initWindow();
 
-  ASSERT_NE(LUA_OK, utils::dostring(L, "local SDL = require('sdl2');"
+  ASSERT_NE(LUA_OK, utils::dostring(L, "local SDL = require('sdl3');"
                                        "return SDL.Delay();"))
       << lua_tostring(L, -1);
 }

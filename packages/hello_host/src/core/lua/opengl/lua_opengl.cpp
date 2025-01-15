@@ -1,8 +1,9 @@
 #include "./lua_opengl.hpp"
-#include "../sdl2_image/lua_sdl2_image.hpp"
-#include <SDL2/SDL.h>
+#include "../sdl3_image/lua_sdl3_image.hpp"
+#include <SDL3/SDL.h>
 #include <cfloat>
 #include <cstring>
+#include <cstdlib>
 #ifdef __EMSCRIPTEN__
 #include "emscripten.h"
 #include <GLES3/gl3.h>
@@ -13,7 +14,7 @@
 namespace {
 int L_loadGLLoader(lua_State *) {
 #ifndef __EMSCRIPTEN__
-  gladLoadGLLoader(SDL_GL_GetProcAddress);
+  gladLoadGLLoader(reinterpret_cast<GLADloadproc>(SDL_GL_GetProcAddress));
 #endif
   return 0;
 }
@@ -276,7 +277,7 @@ int L_glTexImage2D(lua_State *L) {
       luaL_argcheck(L, size > 0, 9, "size must be breater than 0");
       pixels = data;
     } else {
-      auto pudSurface = hello::lua::sdl2_image::get(L, 9);
+      auto pudSurface = hello::lua::sdl3_image::get(L, 9);
       luaL_argcheck(L, pudSurface->surface != nullptr, 9,
                     "specify SDL_Surface or Buffer");
       pixels = pudSurface->surface->pixels;

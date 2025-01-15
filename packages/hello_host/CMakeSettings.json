@@ -9,14 +9,7 @@
       "installRoot": "${projectDir}\\out\\install\\${name}",
       "cmakeCommandArgs": "",
       "buildCommandArgs": "",
-      "ctestCommandArgs": "",
-      "variables": [
-        {
-          "name": "SDL2_USE_BINARY",
-          "value": "False",
-          "type": "BOOL"
-        }
-      ]
+      "ctestCommandArgs": ""
     }
   ]
 }

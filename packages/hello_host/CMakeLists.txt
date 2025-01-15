@@ -8,7 +8,7 @@ include(FetchContent)
 FetchContent_Declare(
   googletest
   GIT_REPOSITORY https://github.com/google/googletest.git
-  GIT_TAG release-1.12.1
+  GIT_TAG v1.15.2
 )
 
 # For Windows: Prevent overriding the parent project's compiler/linker settings
@@ -30,39 +30,21 @@ else()
   set(OPENGL_LIBRARIES)
 endif()
 
-# SDL2
+# SDL3
 if(MSVC)
-  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-    set(SDL2_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SDL2d.lib)
-    set(SDL2MAIN_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SDL2maind.lib)
-  else()
-    set(SDL2_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SDL2.lib)
-    set(SDL2MAIN_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SDL2main.lib)
-  endif()
+  set(SDL3_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SDL3.lib)
 elseif(MINGW)
-  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-    set(SDL2_LIB "${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2d.dll.a")
-    set(SDL2MAIN_LIB "mingw32" "${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2maind.a")
-  else()
-    set(SDL2_LIB "${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2.dll.a")
-    set(SDL2MAIN_LIB "mingw32" "${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2main.a")
-  endif()
+  set(SDL3_LIB "${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL3.dll.a")
 else()
-  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-    set(SDL2_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2d.a)
-    set(SDL2MAIN_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2maind.a)
-  else()
-    set(SDL2_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2.a)
-    set(SDL2MAIN_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2main.a)
-  endif()
+  set(SDL3_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL3.a)
 endif()
 
 if(NOT EMSCRIPTEN)
-  ExternalProject_Add(sdl2
+  ExternalProject_Add(sdl3
     PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.26.5.tar.gz"
-    URL_HASH SHA256=8f347d4b5adff605098f31fe35c23cdd91482e76edebacb4fa3b83a91465af83
-    BUILD_BYPRODUCTS ${SDL2_LIB} ${SDL2MAIN_LIB}
+    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/preview-3.1.8.tar.gz"
+    URL_HASH SHA256=6fae3080e9d13ac4fe62432835b1e979bfba1a59ee9cce0ffb03a2fbcf9b46cd
+    BUILD_BYPRODUCTS ${SDL3_LIB}
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
     -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
@@ -71,11 +53,11 @@ if(NOT EMSCRIPTEN)
     -DSDL_TEST:BOOL=Off
   )
 else()
-  ExternalProject_Add(sdl2
+  ExternalProject_Add(sdl3
     PREFIX "${EXTERNALS_ROOT}"
-    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/release-2.26.5.tar.gz"
-    URL_HASH SHA256=8f347d4b5adff605098f31fe35c23cdd91482e76edebacb4fa3b83a91465af83
-    BUILD_BYPRODUCTS ${SDL2_LIB} ${SDL2MAIN_LIB}
+    URL "https://github.com/libsdl-org/SDL/archive/refs/tags/preview-3.1.8.tar.gz"
+    URL_HASH SHA256=6fae3080e9d13ac4fe62432835b1e979bfba1a59ee9cce0ffb03a2fbcf9b46cd
+    BUILD_BYPRODUCTS ${SDL3_LIB}
     CMAKE_ARGS
     -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
     -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
@@ -85,37 +67,26 @@ else()
   )
 endif()
 
-# SDL2_image
+# SDL3_image
 if(MSVC)
-  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-    set(SDL2_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SDL2_image-staticd.lib)
-  else()
-    set(SDL2_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SDL2_image-static.lib)
-  endif()
+  set(SDL3_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/SDL3_image-static.lib)
 else()
-  if("${CMAKE_BUILD_TYPE}" MATCHES "Debug")
-    set(SDL2_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2_imaged.a)
-  else()
-    set(SDL2_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL2_image.a)
-  endif()
+  set(SDL3_image_LIB ${EXTERNALS_ROOT}/${CMAKE_INSTALL_LIBDIR}/libSDL3_image.a)
 endif()
 
-ExternalProject_Add(sdl2_image
+ExternalProject_Add(sdl3_image
   PREFIX "${EXTERNALS_ROOT}"
-  URL "https://github.com/libsdl-org/SDL_image/archive/refs/tags/release-2.6.2.tar.gz"
-  URL_HASH SHA256=5d91ea72b449a161821ef51464d0767efb6fedf7a773f923c43e483dc137e362
-  BUILD_BYPRODUCTS ${SDL2_image_LIB}
+  URL "https://github.com/libsdl-org/SDL_image/archive/refs/tags/preview-3.1.0.tar.gz"
+  URL_HASH SHA256=7f62ffc33249e44052c4ee4356cd4c27eb4eda37f3b216d4c1b8438d45dc8949
+  BUILD_BYPRODUCTS ${SDL3_image_LIB}
   CMAKE_ARGS
   -DCMAKE_BUILD_TYPE:PATH=${CMAKE_BUILD_TYPE}
   -DCMAKE_INSTALL_PREFIX:PATH=<INSTALL_DIR>
   -DCMAKE_TOOLCHAIN_FILE:PATH=${CMAKE_TOOLCHAIN_FILE}
   -DBUILD_SHARED_LIBS:BOOL=Off
-  -DSDL2IMAGE_SAMPLES:BOOL=Off
-  -DSDL2IMAGE_TESTS:BOOL=Off
-  -DSDL2_LIBRARY:PATH=${SDL2_LIB}
-  -DSDL2_INCLUDE_DIR:PATH=${EXTERNALS_ROOT}/include/SDL2
+  -DSDLIMAGE_VENDORED=OFF
 )
-add_dependencies(sdl2_image sdl2)
+add_dependencies(sdl3_image sdl3)
 
 # SPIRVCROSS
 if(MSVC)
@@ -322,7 +293,7 @@ if(MSVC OR MINGW)
   )
 endif()
 
-add_dependencies(hello_host_lib glad lua sdl2 sdl2_image glslang spirvcross)
+add_dependencies(hello_host_lib glad lua sdl3 sdl3_image glslang spirvcross)
 
 # core executable
 if(MSVC OR MINGW)
@@ -388,12 +359,11 @@ else()
 endif()
 
 target_link_libraries(hello_host
-  ${SDL2MAIN_LIB}
   hello_host_lib
   glad
   ${LUA_LIB}
-  ${SDL2_image_LIB}
-  ${SDL2_LIB}
+  ${SDL3_image_LIB}
+  ${SDL3_LIB}
   ${SPIRVCROSS_LIB}
   ${GLSLANG_LIB}
   ${OPENGL_LIBRARIES}
@@ -482,8 +452,8 @@ target_link_libraries(
   hello_host_lib
   glad
   ${LUA_LIB}
-  ${SDL2_image_LIB}
-  ${SDL2_LIB}
+  ${SDL3_image_LIB}
+  ${SDL3_LIB}
   ${SPIRVCROSS_LIB}
   ${GLSLANG_LIB}
   ${OPENGL_LIBRARIES}
