@@ -9,7 +9,7 @@ jobs:
         with:
           node-version: 20
       - name: Install Emscripten
-        run: git clone https://github.com/emscripten-core/emsdk.git && cd emsdk && ./emsdk install 3.1.35 && ./emsdk activate 3.1.35
+        run: git clone https://github.com/emscripten-core/emsdk.git && cd emsdk && ./emsdk install 3.1.74 && ./emsdk activate 3.1.74
       - name: Run CMake (Configure)
         run:  NODE=$(which node) && EMSDK_QUIET=1 source ./emsdk/emsdk_env.sh && emcmake cmake -S packages/hello_host -B packages/hello_host/build -DCMAKE_BUILD_TYPE=Release -DCMAKE_CROSSCOMPILING_EMULATOR=$NODE -DGITHUB_ACTIONS=True
       - name: Run CMake (Build)
